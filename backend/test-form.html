@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Form - AIQuinto</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #2980b9;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #3498db;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+        }
+        .checkbox-group input {
+            width: auto;
+            margin-right: 10px;
+        }
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            display: none;
+        }
+        .success {
+            border-color: #27ae60;
+            background-color: #eafaf1;
+        }
+        .error {
+            border-color: #c0392b;
+            background-color: #fdedeb;
+        }
+    </style>
+</head>
+<body>
+    <h1>Richiedi Preventivo Prestito - Test Form</h1>
+    
+    <form id="leadForm">
+        <div class="form-group">
+            <label for="firstName">Nome</label>
+            <input type="text" id="firstName" name="firstName" required value="Giulia">
+        </div>
+        
+        <div class="form-group">
+            <label for="lastName">Cognome</label>
+            <input type="text" id="lastName" name="lastName" required value="Bianchi">
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required value="test-form@example.com">
+        </div>
+        
+        <div class="form-group">
+            <label for="phone">Telefono</label>
+            <input type="tel" id="phone" name="phone" required value="3479876543">
+        </div>
+        
+        <div class="form-group">
+            <label for="importoRichiesto">Importo Richiesto (€)</label>
+            <input type="number" id="importoRichiesto" name="importoRichiesto" required value="25000">
+        </div>
+        
+        <div class="form-group">
+            <label for="stipendioNetto">Stipendio Netto Mensile (€)</label>
+            <input type="number" id="stipendioNetto" name="stipendioNetto" required value="1800">
+        </div>
+        
+        <div class="form-group">
+            <label for="tipologiaDipendente">Tipologia</label>
+            <select id="tipologiaDipendente" name="tipologiaDipendente" required>
+                <option value="Privato" selected>Privato</option>
+                <option value="Pubblico">Pubblico</option>
+                <option value="Pensionato">Pensionato</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="sottotipo">Sottotipo</label>
+            <select id="sottotipo" name="sottotipo" required>
+                <option value="Dipendente" selected>Dipendente</option>
+                <option value="Amministratore">Amministratore</option>
+                <option value="Libero Professionista">Libero Professionista</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="tipoContratto">Tipo Contratto</label>
+            <select id="tipoContratto" name="tipoContratto" required>
+                <option value="Tempo Indeterminato" selected>Tempo Indeterminato</option>
+                <option value="Tempo Determinato">Tempo Determinato</option>
+                <option value="Altro">Altro</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="provinciaResidenza">Provincia di Residenza</label>
+            <input type="text" id="provinciaResidenza" name="provinciaResidenza" required value="Milano">
+        </div>
+        
+        <div class="form-group">
+            <label for="message">Messaggio</label>
+            <textarea id="message" name="message" rows="3">Richiesta di prestito personale per acquisto auto</textarea>
+        </div>
+        
+        <div class="form-group checkbox-group">
+            <input type="checkbox" id="privacyAccettata" name="privacyAccettata" checked required>
+            <label for="privacyAccettata">Accetto le condizioni sulla privacy</label>
+        </div>
+        
+        <!-- Hidden field for form source -->
+        <input type="hidden" id="source" name="source" value="aiquinto">
+        
+        <button type="submit">Invia Richiesta</button>
+    </form>
+    
+    <div id="response" class="response">
+        <h3 id="responseTitle"></h3>
+        <pre id="responseData"></pre>
+    </div>
+    
+    <script>
+        document.getElementById('leadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Get form data
+            const formData = new FormData(this);
+            const formDataObj = {};
+            
+            // Convert FormData to JSON object
+            formData.forEach((value, key) => {
+                // Handle checkbox
+                if (key === 'privacyAccettata') {
+                    formDataObj[key] = value === 'on';
+                } else {
+                    formDataObj[key] = value;
+                }
+            });
+            
+            // Show form data being sent
+            console.log('Sending data:', formDataObj);
+            
+            try {
+                // Send POST request to API
+                const response = await fetch('http://localhost:3000/api/leads/webhook', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': 'dev-api-key-123'
+                    },
+                    body: JSON.stringify(formDataObj)
+                });
+                
+                // Parse response
+                const responseData = await response.json();
+                
+                // Show response
+                const responseElement = document.getElementById('response');
+                const responseTitleElement = document.getElementById('responseTitle');
+                const responseDataElement = document.getElementById('responseData');
+                
+                if (response.ok) {
+                    responseElement.className = 'response success';
+                    responseTitleElement.textContent = 'Richiesta inviata con successo!';
+                } else {
+                    responseElement.className = 'response error';
+                    responseTitleElement.textContent = 'Si è verificato un errore';
+                }
+                
+                responseDataElement.textContent = JSON.stringify(responseData, null, 2);
+                responseElement.style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error submitting form:', error);
+                
+                const responseElement = document.getElementById('response');
+                const responseTitleElement = document.getElementById('responseTitle');
+                const responseDataElement = document.getElementById('responseData');
+                
+                responseElement.className = 'response error';
+                responseTitleElement.textContent = 'Si è verificato un errore';
+                responseDataElement.textContent = error.message;
+                responseElement.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

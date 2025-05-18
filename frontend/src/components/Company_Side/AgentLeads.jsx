@@ -1,0 +1,753 @@
+import { useState } from "react"
+import { useAuth } from "@/auth/AuthContext"
+import { useToast } from "@/hooks/use-toast"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Search, RefreshCw, Trash2, PencilLine, Save } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import LogoHeader from "./LogoHeader"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog"
+import CommentPreviewCell from "./CommentPreviewCell"
+import LeadSourceTabs from "@/components/LeadSourceTabs"
+
+// Status options for leads
+const STATUS_OPTIONS = [
+  { value: "new", label: "Nuovo", color: "bg-blue-400" },
+  { value: "contacted", label: "Contattato", color: "bg-yellow-400" },
+  { value: "qualified", label: "Qualificato", color: "bg-green-500" },
+  { value: "not_interested", label: "Non interessato", color: "bg-red-500" }
+]
+
+// Lead sources
+const LEAD_SOURCES = [
+  { id: "aimedici", name: "AIMedici.it" },
+  { id: "aiquinto", name: "AIQuinto.it" },
+  { id: "aifidi", name: "AIFidi.it" }
+]
+
+// API function to fetch leads
+const fetchLeads = async (user, source) => {
+  if (!user) throw new Error("Utente non autenticato");
+  
+  try {
+    // Ottieni il token di Firebase dall'oggetto auth.currentUser
+    const { auth } = await import('@/auth/firebase');
+    if (!auth.currentUser) {
+      throw new Error("Sessione scaduta, effettua nuovamente l'accesso");
+    }
+    
+    const token = await auth.currentUser.getIdToken(true);
+    console.log("Token ottenuto con successo per il caricamento dei leads");
+    
+    const response = await fetch(`/api/leads/my-leads?source=${source}`, {
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) {
+      // Manejar posibles errores HTTP
+      if (response.status === 403) {
+        throw new Error(`No tienes permiso para ver leads de ${source}`);
+      } else if (response.status === 404) {
+        return []; // No hay leads
+      } else {
+        throw new Error(`Impossibile caricare i leads da ${source}`);
+      }
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Errore nel caricamento dei leads:", error);
+    if (error.message.includes("getIdToken is not a function") || error.message.includes("auth.currentUser")) {
+      throw new Error("Sessione scaduta. Per favore, aggiorna la pagina o effettua nuovamente l'accesso.");
+    }
+    throw error;
+  }
+}
+
+// DELETE - eliminar lead
+const deleteLead = async ({ id, token }) => {
+  const response = await fetch(`/api/leads/${id}`, {
+    method: 'DELETE',
+    headers: {
+      "Authorization": `Bearer ${token}`
+    }
+  });
+  
+  if (!response.ok) {
+    throw new Error('Errore durante l\'eliminazione del lead');
+  }
+  
+  return await response.json();
+}
+
+// PUT - actualizar estado del lead
+const updateLeadStatus = async ({ id, status, token }) => {
+  const response = await fetch(`/api/leads/${id}/status`, {
+    method: 'PUT',
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify({ status })
+  });
+  
+  if (!response.ok) {
+    throw new Error('Errore durante l\'aggiornamento dello stato');
+  }
+  
+  return await response.json();
+}
+
+// POST - agregar comentario al lead
+const addLeadComment = async ({ id, comment, token }) => {
+  const response = await fetch(`/api/leads/${id}/comments`, {
+    method: 'POST',
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify({ comment })
+  });
+  
+  if (!response.ok) {
+    throw new Error('Errore durante l\'aggiunta del commento');
+  }
+  
+  return await response.json();
+}
+
+export default function LeadsAgenti() {
+  const [search, setSearch] = useState("")
+  const { user } = useAuth()
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [leadToDelete, setLeadToDelete] = useState(null)
+  const [selectedLeads, setSelectedLeads] = useState([])
+  const [isMultiDeleteDialogOpen, setIsMultiDeleteDialogOpen] = useState(false)
+  const [currentSource, setCurrentSource] = useState(LEAD_SOURCES[0].id)
+  const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+  const [commentingLead, setCommentingLead] = useState(null);
+  const [commentText, setCommentText] = useState("");
+
+  // Use React Query to manage the leads data
+  const { 
+    data: leads = [], 
+    isLoading, 
+    isError, 
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['leads', currentSource],
+    queryFn: () => fetchLeads(user, currentSource),
+    enabled: !!user // Solo ejecutar si el usuario está autenticado
+  });
+
+  // Función para formatear fechas correctamente
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    
+    // Intentar crear un objeto Date
+    const date = new Date(dateString);
+    
+    // Verificar si la fecha es válida
+    if (isNaN(date.getTime())) {
+      return "-";
+    }
+    
+    // Formatear como DD/MM/YYYY
+    return date.toLocaleDateString('it-IT');
+  };
+
+  // Mutación para eliminar un lead
+  const deleteMutation = useMutation({
+    mutationFn: deleteLead,
+    onSuccess: () => {
+      toast({
+        title: "Lead eliminato",
+        description: "Il lead è stato eliminato con successo",
+        className: "rounded-xl",
+      });
+      queryClient.invalidateQueries({ queryKey: ['leads', currentSource] });
+    }
+  });
+
+  // Mutación para eliminar leads en masa
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (leadIds) => {
+      const { auth } = await import('@/auth/firebase');
+      const token = await auth.currentUser.getIdToken(true);
+      
+      return Promise.all(
+        leadIds.map(id => deleteLead({ id, token }))
+      );
+    },
+    onSuccess: () => {
+      toast({
+        title: "Leads eliminati",
+        description: "I leads selezionati sono stati eliminati con successo",
+        className: "rounded-xl",
+      });
+      setSelectedLeads([]);
+      queryClient.invalidateQueries({ queryKey: ['leads', currentSource] });
+    }
+  });
+
+  const handleDeleteClick = (leadId) => {
+    setLeadToDelete(leadId);
+    setIsDeleteDialogOpen(true);
+  }
+
+  const confirmDelete = () => {
+    if (leadToDelete) {
+      deleteMutation.mutate({ id: leadToDelete });
+      setIsDeleteDialogOpen(false);
+      setLeadToDelete(null);
+    }
+  }
+
+  const handleSelectLead = (leadId, isChecked) => {
+    if (isChecked) {
+      setSelectedLeads([...selectedLeads, leadId]);
+    } else {
+      setSelectedLeads(selectedLeads.filter(id => id !== leadId));
+    }
+  }
+
+  const handleSelectAll = (isChecked) => {
+    if (isChecked) {
+      setSelectedLeads(filteredLeads.map(lead => lead.id));
+    } else {
+      setSelectedLeads([]);
+    }
+  }
+
+  const confirmBulkDelete = () => {
+    if (selectedLeads.length > 0) {
+      bulkDeleteMutation.mutate(selectedLeads);
+      setIsMultiDeleteDialogOpen(false);
+    }
+  }
+
+  const handleSourceChange = (newSource) => {
+    setCurrentSource(newSource);
+    setSelectedLeads([]);
+  }
+
+  const handleStatusChange = (leadId, status) => {
+    // Optimistic update for UI responsiveness
+    const updatedLeads = leads.map(lead => {
+      if (lead.id === leadId) {
+        return { ...lead, status };
+      }
+      return lead;
+    });
+    
+    // Update the cache optimistically
+    queryClient.setQueryData(['leads', currentSource], updatedLeads);
+    
+    // Call the API
+    (async () => {
+      try {
+        const { auth } = await import('@/auth/firebase');
+        const token = await auth.currentUser.getIdToken(true);
+        
+        await updateLeadStatus({ id: leadId, status, token });
+        
+        toast({
+          title: "Stato aggiornato",
+          description: `Lo stato è stato aggiornato a "${
+            STATUS_OPTIONS.find(option => option.value === status)?.label || status
+          }"`,
+          className: "rounded-xl",
+        });
+      } catch (error) {
+        console.error('Error updating status:', error);
+        
+        // Revert the cache on error
+        queryClient.invalidateQueries({ queryKey: ['leads', currentSource] });
+        
+        toast({
+          title: "Errore",
+          description: error.message || "Impossibile aggiornare lo stato",
+          variant: "destructive",
+          className: "rounded-xl",
+        });
+      }
+    })();
+  };
+
+  const handleEditComment = (lead) => {
+    setCommentingLead(lead);
+    setCommentText(lead.commenti || "");
+    setIsCommentModalOpen(true);
+  };
+  
+  const handleSaveComment = async () => {
+    if (!commentingLead) return;
+    
+    try {
+      const { auth } = await import('@/auth/firebase');
+      const token = await auth.currentUser.getIdToken(true);
+      
+      await addLeadComment({ 
+        id: commentingLead.id, 
+        comment: commentText, 
+        token 
+      });
+      
+      // Refresh leads to get updated comments
+      queryClient.invalidateQueries({ queryKey: ['leads', currentSource] });
+      
+      // Cerrar el modal
+      setIsCommentModalOpen(false);
+      setCommentingLead(null);
+      
+      toast({
+        title: "Commento salvato",
+        description: "Il commento è stato salvato con successo",
+        className: "rounded-xl",
+      });
+    } catch (error) {
+      console.error('Error saving comment:', error);
+      
+      toast({
+        title: "Errore",
+        description: error.message || "Impossibile salvare il commento",
+        variant: "destructive",
+        className: "rounded-xl",
+      });
+    }
+  };
+
+  const filteredLeads = (leads || []).filter(lead => {
+    const searchTerm = search.toLowerCase()
+    
+    // Campos comunes para todas las fuentes
+    const commonFieldsMatch = 
+      ((lead.firstName || '').toLowerCase().includes(searchTerm)) ||
+      ((lead.lastName || '').toLowerCase().includes(searchTerm)) ||
+      ((lead.email || '').toLowerCase().includes(searchTerm)) ||
+      ((lead.phone || '').toLowerCase().includes(searchTerm)) ||
+      ((lead.message || '').toLowerCase().includes(searchTerm));
+    
+    // Si no es AIQuinto o ya hemos encontrado coincidencia en campos comunes
+    if (currentSource !== 'aiquinto' && currentSource !== 'aifidi' || commonFieldsMatch) {
+      return commonFieldsMatch;
+    }
+    
+    if (currentSource === 'aiquinto') {
+      // Campos específicos de AIQuinto
+      return (
+        ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
+        ((lead.stipendioNetto || '').toString().toLowerCase().includes(searchTerm)) ||
+        ((lead.tipologiaDipendente || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.sottotipo || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.tipoContratto || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.provinciaResidenza || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.commenti || '').toLowerCase().includes(searchTerm))
+      );
+    } else if (currentSource === 'aifidi') {
+      // Campos específicos de AIFidi
+      return (
+        ((lead.scopoFinanziamento || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.nomeAzienda || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.cittaSedeLegale || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.cittaSedeOperativa || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
+        ((lead.commenti || '').toLowerCase().includes(searchTerm))
+      );
+    }
+  })
+
+  return (
+    <div className="flex flex-col items-center justify-start min-h-screen bg-gray-50 p-4">
+      <LogoHeader />
+      <Card className="w-full max-w-6xl shadow-lg mt-16">
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle className="text-3xl">I Miei Leads</CardTitle>
+              <CardDescription className="mb-2">
+                Visualizza e gestisci tutti i tuoi leads provenienti dai diversi siti
+              </CardDescription>
+            </div>
+            <div className="flex gap-2 mb-8 md:mb-0">
+              {selectedLeads.length > 0 && (
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  onClick={() => setIsMultiDeleteDialogOpen(true)}
+                  className="rounded-xl"
+                  disabled={bulkDeleteMutation.isPending}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Elimina ({selectedLeads.length})
+                </Button>
+              )}
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={() => refetch()}
+                className="rounded-xl"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          
+          <div className="-mb-4">
+            <LeadSourceTabs 
+              value={currentSource} 
+              onValueChange={handleSourceChange} 
+              allSources={LEAD_SOURCES}
+            />
+          </div>
+        </CardHeader>
+        
+        <CardContent className="px-4 pt-0">
+          <div className="relative mb-2">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Input
+              placeholder="Cerca per nome, cognome, email, telefono..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 rounded-xl"
+            />
+          </div>
+          
+          {isLoading ? (
+            <div className="text-center py-4">Caricamento...</div>
+          ) : isError ? (
+            <div className="text-center py-8 flex flex-col items-center">
+              <div className="bg-red-50 p-4 rounded-xl max-w-md mb-2">
+                <p className="text-red-800 font-medium mb-1">Si è verificato un problema</p>
+                <p className="text-red-600 text-sm">
+                  {error?.message?.includes("getIdToken") ? 
+                    "Sessione scaduta. Per favore, effettua nuovamente l'accesso." : 
+                    error?.message || `Impossibile caricare i leads`}
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => refetch()} 
+                className="mt-2 rounded-xl"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Riprova
+              </Button>
+            </div>
+          ) : (
+            <div className={`${currentSource === "aiquinto" ? "overflow-x-auto" : ""} overflow-y-auto max-h-[300px] shadow-inner`}>
+              <Table>
+                <TableHeader className="sticky top-0 bg-white z-10">
+                  <TableRow>
+                    <TableHead className="w-[40px] px-2">
+                      <Checkbox
+                        checked={filteredLeads.length > 0 && selectedLeads.length === filteredLeads.length}
+                        onCheckedChange={handleSelectAll}
+                        aria-label="Seleziona tutto"
+                        disabled={filteredLeads.length === 0}
+                      />
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap px-4 bg-white">Data</TableHead>
+                    <TableHead className="whitespace-nowrap px-4 bg-white">Nome</TableHead>
+                    <TableHead className="whitespace-nowrap px-4 bg-white">Cognome</TableHead>
+                    <TableHead className="whitespace-nowrap px-4 bg-white">Mail</TableHead>
+                    <TableHead className="whitespace-nowrap px-4 bg-white">Telefono</TableHead>
+                    
+                    {/* Source-specific columns */}
+                    {currentSource === "aiquinto" ? (
+                      <>
+                        <TableHead className="whitespace-nowrap px-4 bg-white">Importo Richiesto</TableHead>
+                        <TableHead className="whitespace-nowrap px-4 bg-white">Stipendio Netto</TableHead>
+                        <TableHead className="whitespace-nowrap px-4 bg-white">Tipologia</TableHead>
+                        <TableHead className="whitespace-nowrap px-4 bg-white">Sottotipo</TableHead>
+                        <TableHead className="whitespace-nowrap px-4 bg-white">Tipo Contratto</TableHead>
+                        <TableHead className="whitespace-nowrap px-4 bg-white">Provincia</TableHead>
+                      </>
+                    ) : currentSource === "aimedici" ? (
+                      <>
+                        <TableHead className="whitespace-nowrap px-4 bg-white">Scopo della richiesta</TableHead>
+                        <TableHead className="whitespace-nowrap px-4 bg-white">Importo Richiesto</TableHead>
+                        <TableHead className="whitespace-nowrap px-4 bg-white">Città di Residenza</TableHead>
+                        <TableHead className="whitespace-nowrap px-4 bg-white">Provincia di Residenza</TableHead>
+                      </>
+                    ) : (
+                      <>
+                        <TableHead className="whitespace-nowrap px-4 bg-white">Scopo del finanziamento</TableHead>
+                        <TableHead className="whitespace-nowrap px-4 bg-white">Nome Azienda</TableHead>
+                        <TableHead className="whitespace-nowrap px-4 bg-white">Città Sede Legale</TableHead>
+                        <TableHead className="whitespace-nowrap px-4 bg-white">Città Sede Operativa</TableHead>
+                        <TableHead className="whitespace-nowrap px-4 bg-white">Importo Richiesto</TableHead>
+                      </>
+                    )}
+                    
+                    {/* Final common columns */}
+                    <TableHead className="whitespace-nowrap px-4 bg-white">Privacy</TableHead>
+                    <TableHead className="whitespace-nowrap px-4 bg-white">Stato</TableHead>
+                    <TableHead className="whitespace-nowrap px-4 bg-white">Commenti</TableHead>
+                    <TableHead className="whitespace-nowrap px-4 text-right bg-white">Azioni</TableHead>
+                  </TableRow>
+                </TableHeader>
+                
+                <TableBody>
+                  {filteredLeads.length === 0 ? (
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell colSpan={currentSource === "aiquinto" ? 15 : currentSource === "aimedici" ? 13 : 14} className="h-32 text-center">
+                        <div className="py-6 px-4">
+                          <p className="text-gray-600 font-medium text-lg mb-3">Nessun lead trovato</p>
+                          <div className="max-w-md mx-auto bg-blue-50 rounded-lg p-4 border border-blue-100">
+                            <p className="text-blue-800 mb-2">Non ci sono ancora leads assegnati a te da {LEAD_SOURCES.find(source => source.id === currentSource)?.name}.</p>
+                            <p className="text-blue-700 text-sm">Torna presto, i nuovi leads verranno mostrati qui.</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredLeads.map((lead) => {
+                      const statusOption = STATUS_OPTIONS.find(opt => opt.value === lead.status) || STATUS_OPTIONS[0];
+                      
+                      return (
+                        <TableRow key={lead.id}>
+                          <TableCell className="p-2">
+                            <Checkbox
+                              checked={selectedLeads.includes(lead.id)}
+                              onCheckedChange={(checked) => handleSelectLead(lead.id, checked)}
+                              aria-label={`Seleziona lead ${lead.firstName} ${lead.lastName}`}
+                            />
+                          </TableCell>
+                          <TableCell className="py-3 px-4">{formatDate(lead.created_at)}</TableCell>
+                          <TableCell className="py-3 px-4">{lead.firstName || "-"}</TableCell>
+                          <TableCell className="py-3 px-4">{lead.lastName || "-"}</TableCell>
+                          <TableCell className="py-3 px-4">{lead.email || "-"}</TableCell>
+                          <TableCell className="py-3 px-4">{lead.phone || "-"}</TableCell>
+                          
+                          {/* Source-specific data */}
+                          {currentSource === "aiquinto" ? (
+                            <>
+                              <TableCell className="py-3 px-4">{lead.importoRichiesto || "-"}</TableCell>
+                              <TableCell className="py-3 px-4">{lead.stipendioNetto || "-"}</TableCell>
+                              <TableCell className="py-3 px-4">{lead.tipologiaDipendente || "-"}</TableCell>
+                              <TableCell className="py-3 px-4">{lead.sottotipo || "-"}</TableCell>
+                              <TableCell className="py-3 px-4">{lead.tipoContratto || "-"}</TableCell>
+                              <TableCell className="py-3 px-4">{lead.provinciaResidenza || "-"}</TableCell>
+                            </>
+                          ) : currentSource === "aimedici" ? (
+                            <>
+                              <TableCell className="py-3 px-4">{lead.scopoRichiesta || "-"}</TableCell>
+                              <TableCell className="py-3 px-4">{lead.importoRichiesto || "-"}</TableCell>
+                              <TableCell className="py-3 px-4">{lead.cittaResidenza || "-"}</TableCell>
+                              <TableCell className="py-3 px-4">{lead.provinciaResidenza || "-"}</TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="py-3 px-4">{lead.scopoFinanziamento || "-"}</TableCell>
+                              <TableCell className="py-3 px-4">{lead.nomeAzienda || "-"}</TableCell>
+                              <TableCell className="py-3 px-4">{lead.cittaSedeLegale || "-"}</TableCell>
+                              <TableCell className="py-3 px-4">{lead.cittaSedeOperativa || "-"}</TableCell>
+                              <TableCell className="py-3 px-4">{lead.importoRichiesto || "-"}</TableCell>
+                            </>
+                          )}
+                          
+                          {/* Final common data */}
+                          <TableCell className="py-3 px-4">{lead.privacyAccettata ? "Sì" : "No"}</TableCell>
+                          <TableCell className="py-3 px-4">
+                            <Select
+                              value={lead.status || "new"}
+                              onValueChange={(newStatus) => handleStatusChange(lead.id, newStatus)}
+                            >
+                              <SelectTrigger className="w-40 h-8">
+                                <SelectValue>
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ${statusOption.color}`}></div>
+                                    <span>{statusOption.label}</span>
+                                  </div>
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {STATUS_OPTIONS.map(option => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    <div className="flex items-center gap-2">
+                                      <div className={`w-3 h-3 rounded-full flex-shrink-0 ${option.color}`}></div>
+                                      <span>{option.label}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell className="py-3 px-4 min-w-[250px]">
+                            <CommentPreviewCell 
+                              lead={lead}
+                              onEdit={() => handleEditComment(lead)}
+                            />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteClick(lead.id)}
+                              className="h-8 w-8 rounded-xl text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Single delete confirmation dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="rounded-xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sei sicuro di voler eliminare questo lead?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Questa azione non può essere annullata. Il lead e tutti i dati associati saranno
+              eliminati permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Annulla</AlertDialogCancel>
+            <AlertDialogAction 
+              className="rounded-xl bg-red-600 hover:bg-red-700" 
+              onClick={confirmDelete}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? "Eliminazione..." : "Elimina"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk delete confirmation dialog */}
+      <AlertDialog open={isMultiDeleteDialogOpen} onOpenChange={setIsMultiDeleteDialogOpen}>
+        <AlertDialogContent className="rounded-xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sei sicuro di voler eliminare {selectedLeads.length} leads?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Questa azione non può essere annullata. Tutti i leads selezionati e i relativi dati saranno
+              eliminati permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Annulla</AlertDialogCancel>
+            <AlertDialogAction 
+              className="rounded-xl bg-red-600 hover:bg-red-700" 
+              onClick={confirmBulkDelete}
+              disabled={bulkDeleteMutation.isPending}
+            >
+              {bulkDeleteMutation.isPending ? "Eliminazione..." : `Elimina (${selectedLeads.length})`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Modal de comentarios */}
+      <Dialog open={isCommentModalOpen} onOpenChange={setIsCommentModalOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl">
+              {commentingLead?.commenti ? "Modifica commento" : "Aggiungi commento"}
+            </DialogTitle>
+            <DialogDescription>
+              {commentingLead ? (
+                <div className="mt-2 text-sm">
+                  Lead: <span className="font-medium">{commentingLead.firstName} {commentingLead.lastName}</span>
+                  {commentingLead.email && (
+                    <> - <span className="text-gray-500">{commentingLead.email}</span></>
+                  )}
+                </div>
+              ) : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <Textarea
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Inserisci i tuoi commenti qui..."
+              className="min-h-[200px] text-base p-4"
+              autoFocus
+            />
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsCommentModalOpen(false)}
+              className="rounded-xl"
+            >
+              Annulla
+            </Button>
+            <Button 
+              onClick={handleSaveComment} 
+              className="rounded-xl"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Salva commento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}

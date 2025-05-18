@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Form AImedici - Lead Submission</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #2563eb;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 10px;
+        }
+        .form-container {
+            background-color: #f9fafb;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #1d4ed8;
+        }
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+        }
+        .checkbox-container input {
+            width: auto;
+            margin-right: 10px;
+        }
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #d1fae5;
+            border: 1px solid #34d399;
+            color: #065f46;
+            display: block;
+        }
+        .error {
+            background-color: #fee2e2;
+            border: 1px solid #f87171;
+            color: #b91c1c;
+            display: block;
+        }
+        pre {
+            background-color: rgba(0, 0, 0, 0.05);
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Form AImedici - Lead Submission</h1>
+    <p>Questo form simula l'invio di una richiesta da AImedici.it al sistema di gestione leads.</p>
+    
+    <div class="form-container">
+        <form id="leadForm">
+            <input type="hidden" name="source" value="aimedici">
+            
+            <div class="form-group">
+                <label for="firstName">Nome*</label>
+                <input type="text" id="firstName" name="firstName" required placeholder="Es. Mario">
+            </div>
+            
+            <div class="form-group">
+                <label for="lastName">Cognome*</label>
+                <input type="text" id="lastName" name="lastName" required placeholder="Es. Rossi">
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email*</label>
+                <input type="email" id="email" name="email" required placeholder="Es. mario.rossi@example.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">Telefono</label>
+                <input type="tel" id="phone" name="phone" placeholder="Es. 3331234567">
+            </div>
+            
+            <div class="form-group">
+                <label for="scopoRichiesta">Scopo della richiesta*</label>
+                <select id="scopoRichiesta" name="scopoRichiesta" required>
+                    <option value="">Seleziona uno scopo</option>
+                    <option value="Consulenza specialistica">Consulenza specialistica</option>
+                    <option value="Intervento chirurgico">Intervento chirurgico</option>
+                    <option value="Visita di controllo">Visita di controllo</option>
+                    <option value="Diagnostica">Diagnostica (Radiografie, TAC, RMN)</option>
+                    <option value="Altro">Altro</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="importoRichiesto">Importo richiesto (€)</label>
+                <input type="number" id="importoRichiesto" name="importoRichiesto" placeholder="Es. 200">
+            </div>
+            
+            <div class="form-group">
+                <label for="cittaResidenza">Città di residenza</label>
+                <input type="text" id="cittaResidenza" name="cittaResidenza" placeholder="Es. Milano">
+            </div>
+            
+            <div class="form-group">
+                <label for="provinciaResidenza">Provincia di residenza</label>
+                <input type="text" id="provinciaResidenza" name="provinciaResidenza" placeholder="Es. MI" maxlength="2">
+            </div>
+            
+            <div class="form-group">
+                <label for="message">Messaggio/Dettagli</label>
+                <textarea id="message" name="message" rows="4" placeholder="Inserisci qui i dettagli della tua richiesta..."></textarea>
+            </div>
+            
+            <div class="form-group checkbox-container">
+                <input type="checkbox" id="privacyAccettata" name="privacyAccettata" required>
+                <label for="privacyAccettata">Accetto la privacy policy*</label>
+            </div>
+            
+            <button type="submit">Invia richiesta</button>
+        </form>
+    </div>
+    
+    <div id="response" class="response">
+        <h3 id="responseTitle"></h3>
+        <pre id="responseData"></pre>
+    </div>
+    
+    <script>
+        // Pre-fill form with test data
+        window.addEventListener('DOMContentLoaded', function() {
+            // Pre-fill personal data
+            document.getElementById('firstName').value = 'Laura';
+            document.getElementById('lastName').value = 'Bianchi';
+            document.getElementById('email').value = 'laura.bianchi@example.com';
+            document.getElementById('phone').value = '3399876543';
+            
+            // Pre-fill medical request information
+            document.getElementById('scopoRichiesta').value = 'Consulenza specialistica';
+            document.getElementById('importoRichiesto').value = '200';
+            document.getElementById('cittaResidenza').value = 'Roma';
+            document.getElementById('provinciaResidenza').value = 'RM';
+            document.getElementById('message').value = 'Richiesta di test per verifica form AImedici.';
+            
+            // Check privacy checkbox
+            document.getElementById('privacyAccettata').checked = true;
+        });
+
+        document.getElementById('leadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Get form data
+            const formData = new FormData(this);
+            const formDataObj = {};
+            
+            // Convert FormData to JSON object
+            formData.forEach((value, key) => {
+                // Handle checkbox
+                if (key === 'privacyAccettata') {
+                    formDataObj[key] = value === 'on';
+                } else {
+                    formDataObj[key] = value;
+                }
+            });
+            
+            // Show form data being sent
+            console.log('Sending data:', formDataObj);
+            
+            try {
+                // Send POST request to API
+                const response = await fetch('http://localhost:3000/api/leads/webhook', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': 'dev-api-key-123'
+                    },
+                    body: JSON.stringify(formDataObj)
+                });
+                
+                // Parse response
+                const responseData = await response.json();
+                
+                // Show response
+                const responseElement = document.getElementById('response');
+                const responseTitleElement = document.getElementById('responseTitle');
+                const responseDataElement = document.getElementById('responseData');
+                
+                if (response.ok) {
+                    responseElement.className = 'response success';
+                    responseTitleElement.textContent = 'Richiesta inviata con successo!';
+                } else {
+                    responseElement.className = 'response error';
+                    responseTitleElement.textContent = 'Errore nell\'invio della richiesta';
+                }
+                
+                responseDataElement.textContent = JSON.stringify(responseData, null, 2);
+            } catch (error) {
+                console.error('Error:', error);
+                
+                // Show error
+                const responseElement = document.getElementById('response');
+                const responseTitleElement = document.getElementById('responseTitle');
+                const responseDataElement = document.getElementById('responseData');
+                
+                responseElement.className = 'response error';
+                responseTitleElement.textContent = 'Errore di connessione';
+                responseDataElement.textContent = error.message;
+            }
+        });
+    </script>
+</body>
+</html> 
