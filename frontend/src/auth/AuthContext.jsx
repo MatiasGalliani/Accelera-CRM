@@ -7,7 +7,7 @@ import {
   onAuthStateChanged
 } from "firebase/auth";
 import { getFirestore, collection, query, where, getDocs, doc, getDoc, setDoc } from "firebase/firestore";
-import { API_BASE_URL, API_ENDPOINTS, ADMIN_EMAILS } from '@/config';
+import { API_BASE_URL, API_ENDPOINTS, ADMIN_EMAILS, getApiUrl } from '@/config';
 
 const AuthContext = createContext();
 
@@ -43,7 +43,7 @@ export function AuthProvider({ children }) {
           const idToken = await currentUser.getIdToken(true);
           console.log("ID token obtained, checking role with server");
           
-          const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CHECK_USER_ROLE}/${uid}`, {
+          const response = await fetch(getApiUrl(`${API_ENDPOINTS.CHECK_USER_ROLE}/${uid}`), {
             headers: {
               Authorization: `Bearer ${idToken}`
             }
@@ -93,7 +93,7 @@ export function AuthProvider({ children }) {
       const idToken = await currentUser.getIdToken(true);
       
       // Use the create-admin endpoint to ensure admin status
-      const response = await fetch(`/api/create-admin/${currentUser.email}`, {
+      const response = await fetch(getApiUrl(`${API_ENDPOINTS.CREATE_ADMIN}/${currentUser.email}`), {
         headers: {
           Authorization: `Bearer ${idToken}`
         }
@@ -139,7 +139,7 @@ export function AuthProvider({ children }) {
               
               // Try to ensure admin record exists
               console.log("Attempting to fix admin account");
-              const fixResponse = await fetch(`${API_BASE_URL}/api/fix-specific-account?email=${currentUser.email}`, {
+              const fixResponse = await fetch(getApiUrl(`/api/fix-specific-account?email=${currentUser.email}`), {
                 headers: {
                   Authorization: `Bearer ${idToken}`
                 }
@@ -147,7 +147,7 @@ export function AuthProvider({ children }) {
               
               if (!fixResponse.ok) {
                 console.log("Fix account failed, trying create-admin");
-                const createResponse = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CREATE_ADMIN}/${currentUser.email}`, {
+                const createResponse = await fetch(getApiUrl(`${API_ENDPOINTS.CREATE_ADMIN}/${currentUser.email}`), {
                   headers: {
                     Authorization: `Bearer ${idToken}`
                   }
@@ -184,6 +184,7 @@ export function AuthProvider({ children }) {
           
           console.log("Setting up user:", enhancedUser);
           setUser(enhancedUser);
+          
         } catch (error) {
           console.error("Error in auth state change:", error);
           // If error but admin email, set as admin
