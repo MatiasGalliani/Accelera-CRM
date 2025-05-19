@@ -21,9 +21,8 @@ export const API_ENDPOINTS = {
     WEBHOOKS: '/api/leads/webhook',
 };
 
-// Firebase Admin Emails
+// Firebase Admin Emails - all lowercase for consistent comparison
 export const ADMIN_EMAILS = [
     'admin@creditplan.it',
-    'it@creditplan.it', // Add the new admin email
-    // Add other admin emails here
-];
+    'it@creditplan.it',
+].map(email => email.toLowerCase()); // Ensure all emails are lowercase

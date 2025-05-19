@@ -15,47 +15,33 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Function to check if email is admin
+  const isAdminEmail = (email) => {
+    console.log("Checking if email is admin:", email);
+    console.log("Admin emails list:", ADMIN_EMAILS);
+    const isAdmin = email && ADMIN_EMAILS.includes(email.toLowerCase());
+    console.log("Is admin email?", isAdmin);
+    return isAdmin;
+  };
+
   // Function to check user's role and update the current user
   const checkUserRole = async (uid) => {
     try {
       // Check if this is a hardcoded admin first
       const currentUser = auth.currentUser;
-      if (currentUser && ADMIN_EMAILS.includes(currentUser.email?.toLowerCase())) {
+      console.log("Current user in checkUserRole:", currentUser?.email);
+      
+      if (currentUser && isAdminEmail(currentUser.email)) {
         console.log("Admin email detected in hardcoded list:", currentUser.email);
-        // Ensure admin record exists in backend
-        console.log("Ensuring admin record for:", currentUser.email);
-        try {
-          const idToken = await currentUser.getIdToken(true);
-          const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CREATE_ADMIN}/${currentUser.email}`, {
-            headers: {
-              Authorization: `Bearer ${idToken}`
-            }
-          });
-          
-          if (!response.ok) {
-            console.error("Error ensuring admin status:", response.status);
-            // Try the fix-specific-account endpoint as a fallback
-            const fixResponse = await fetch(`${API_BASE_URL}/api/fix-specific-account?email=${currentUser.email}`, {
-              headers: {
-                Authorization: `Bearer ${idToken}`
-              }
-            });
-            
-            if (!fixResponse.ok) {
-              console.error("Error fixing admin account:", fixResponse.status);
-            }
-          }
-        } catch (error) {
-          console.error("Server error when ensuring admin:", error);
-        }
         return 'admin';
       }
 
-      // Use the server API to check role instead of accessing Firestore directly
+      // Use the server API to check role
       if (currentUser) {
         try {
-          console.log("Checking admin status via server for:", currentUser.email);
+          console.log("Getting ID token for role check");
           const idToken = await currentUser.getIdToken(true);
+          console.log("ID token obtained, checking role with server");
           
           const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CHECK_USER_ROLE}/${uid}`, {
             headers: {
@@ -69,22 +55,19 @@ export function AuthProvider({ children }) {
             return data.role || 'agent';
           } else {
             console.error("Error from server when checking role:", response.status);
-            // If we get a 404, try to fix the account if it's a known admin
-            if (response.status === 404 && currentUser.email && ADMIN_EMAILS.includes(currentUser.email?.toLowerCase())) {
-              console.log("Attempting to fix admin account after 404");
-              const fixResponse = await fetch(`${API_BASE_URL}/api/fix-specific-account?email=${currentUser.email}`, {
-                headers: {
-                  Authorization: `Bearer ${idToken}`
-                }
-              });
-              
-              if (fixResponse.ok) {
-                return 'admin';
-              }
+            // If we get a 404 and it's an admin email, return admin
+            if (response.status === 404 && isAdminEmail(currentUser.email)) {
+              console.log("404 received but email is admin, returning admin role");
+              return 'admin';
             }
           }
         } catch (serverError) {
           console.error("Error calling server to check role:", serverError);
+          // If server error and admin email, return admin
+          if (isAdminEmail(currentUser.email)) {
+            console.log("Server error but email is admin, returning admin role");
+            return 'admin';
+          }
         }
       }
 
@@ -92,6 +75,11 @@ export function AuthProvider({ children }) {
       return 'agent';
     } catch (error) {
       console.error("Error checking user role:", error);
+      // If error and admin email, return admin
+      if (currentUser && isAdminEmail(currentUser.email)) {
+        console.log("Error occurred but email is admin, returning admin role");
+        return 'admin';
+      }
       return 'agent';
     }
   };
@@ -141,15 +129,16 @@ export function AuthProvider({ children }) {
         try {
           console.log("Auth state changed - user logged in:", currentUser.email);
           
-          // Special case for hardcoded admin emails - case insensitive check
-          if (ADMIN_EMAILS.includes(currentUser.email?.toLowerCase())) {
-            console.log("Admin email detected in hardcoded list!");
+          // Check if this is a hardcoded admin email
+          if (isAdminEmail(currentUser.email)) {
+            console.log("Admin email detected, setting up admin user");
             
-            // Try to ensure admin record exists via server
             try {
+              // Get fresh ID token
               const idToken = await currentUser.getIdToken(true);
               
-              // First try the fix-specific-account endpoint
+              // Try to ensure admin record exists
+              console.log("Attempting to fix admin account");
               const fixResponse = await fetch(`${API_BASE_URL}/api/fix-specific-account?email=${currentUser.email}`, {
                 headers: {
                   Authorization: `Bearer ${idToken}`
@@ -157,8 +146,7 @@ export function AuthProvider({ children }) {
               });
               
               if (!fixResponse.ok) {
-                console.log("Fix account failed, trying create-admin endpoint");
-                // If that fails, try the create-admin endpoint
+                console.log("Fix account failed, trying create-admin");
                 const createResponse = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CREATE_ADMIN}/${currentUser.email}`, {
                   headers: {
                     Authorization: `Bearer ${idToken}`
@@ -166,42 +154,41 @@ export function AuthProvider({ children }) {
                 });
                 
                 if (!createResponse.ok) {
-                  console.error("Both fix and create admin attempts failed");
+                  console.error("Both admin setup attempts failed");
                 }
               }
             } catch (error) {
-              console.error("Error ensuring admin status:", error);
+              console.error("Error setting up admin:", error);
             }
             
             // Set as admin regardless of server response
-            const enhancedUser = {
+            const adminUser = {
               ...currentUser,
               role: 'admin'
             };
-            
-            console.log("Setting hardcoded admin user:", enhancedUser);
-            setUser(enhancedUser);
+            console.log("Setting up admin user:", adminUser);
+            setUser(adminUser);
             setLoading(false);
             return;
           }
           
-          // For all other emails, check role via server
-          console.log("Checking role for user:", currentUser.uid);
+          // For non-admin emails, check role via server
+          console.log("Non-admin email, checking role via server");
           const role = await checkUserRole(currentUser.uid);
+          console.log("Role determined:", role);
           
-          console.log("Role determined from server:", role);
           const enhancedUser = {
             ...currentUser,
             role: role
           };
           
-          console.log("Setting user with role:", role);
+          console.log("Setting up user:", enhancedUser);
           setUser(enhancedUser);
         } catch (error) {
           console.error("Error in auth state change:", error);
-          // If this is a hardcoded admin email, set as admin even if server check fails
-          if (currentUser.email && ADMIN_EMAILS.includes(currentUser.email?.toLowerCase())) {
-            console.log("Error occurred but email is hardcoded admin, setting admin role");
+          // If error but admin email, set as admin
+          if (isAdminEmail(currentUser.email)) {
+            console.log("Error occurred but email is admin, setting admin role");
             setUser({
               ...currentUser,
               role: 'admin'
@@ -209,11 +196,12 @@ export function AuthProvider({ children }) {
           } else {
             setUser({
               ...currentUser,
-              role: 'agent' // Default to agent role on error
+              role: 'agent'
             });
           }
         }
       } else {
+        console.log("User logged out, clearing state");
         setUser(null);
       }
       setLoading(false);
@@ -222,18 +210,14 @@ export function AuthProvider({ children }) {
     return unsubscribe;
   }, []);
 
-  // Login
+  // Login function
   async function login(email, password) {
     try {
-      console.log("Logging in with email:", email);
+      console.log("Attempting login for:", email);
       const result = await signInWithEmailAndPassword(auth, email, password);
+      console.log("Login successful for:", email);
       
-      // Immediately check role after successful login to ensure proper permissions
-      if (result.user) {
-        console.log("Login successful, checking role...");
-        // The role will be checked and set by onAuthStateChanged
-      }
-      
+      // The role will be set by onAuthStateChanged
       return result;
     } catch (error) {
       console.error("Login error:", error);
@@ -241,12 +225,11 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // Logout
+  // Logout function
   async function logout() {
     try {
       console.log("Logging out user");
       await signOut(auth);
-      // User state will be set to null by onAuthStateChanged
     } catch (error) {
       console.error("Logout error:", error);
       throw error;
@@ -278,19 +261,25 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // While verifying auth state, don't render anything
   if (loading) {
     return null;
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, checkUserRole, forceSetAdmin, isAdmin: user?.role === 'admin' }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      logout, 
+      checkUserRole, 
+      isAdmin: user?.role === 'admin',
+      loading,
+      forceSetAdmin
+    }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-// Hook to easily consume the context
 export function useAuth() {
   return useContext(AuthContext);
 }
