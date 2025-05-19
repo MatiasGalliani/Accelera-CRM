@@ -282,7 +282,7 @@ export default function Agents() {
 
       console.log("Submitting data:", submissionData);
 
-      const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.AGENTS}`, {
+      const res = await fetch(getApiUrl(API_ENDPOINTS.AGENTS), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -340,7 +340,7 @@ export default function Agents() {
     try {
       console.log("Setting up initial pages for agent:", agentId, "pages:", pages);
       
-      const res = await fetch(`${API_BASE_URL}/api/agents/${agentId}/pages`, {
+      const res = await fetch(getApiUrl(`/api/agents/${agentId}/pages`), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
