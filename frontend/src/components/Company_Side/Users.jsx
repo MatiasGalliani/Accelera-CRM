@@ -26,7 +26,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { API_BASE_URL, API_ENDPOINTS } from '@/config';
+import { ookBASE_URL, API_ENDPOINTS } from '@/config';
 
 export default function Agents() {
   const { user, checkUserRole } = useAuth();

@@ -8,6 +8,8 @@ import { Lead, LeadDetail } from './models/leads-index.js';
 import sequelize from './config/database.js';
 import syncService from './services/syncService.js';
 import leadRoutes from './routes/leadRoutes.js';
+import agentRoutes from './routes/agentRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 import cors from 'cors';
 
 // Load environment variables from .env file
@@ -1172,6 +1174,10 @@ syncService.syncAllAgentsFromFirestore()
 
 // Registrar las rutas de leads
 app.use('/api/leads', leadRoutes);
+
+// Register routes
+app.use('/api/agents', agentRoutes);
+app.use('/api', authRoutes);
 
 // Modify server startup
 const PORT = process.env.PORT || 4000;
