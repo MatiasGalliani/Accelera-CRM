@@ -758,7 +758,7 @@ export default function Agents() {
 
                 {newAgent.role !== "admin" && (
                   <>
-                    <div className="space-y-2">
+                    <div className="space-y-2 mb-4">
                       <Label htmlFor="pages">Pagine</Label>
                       <Popover open={pageSelectOpen} onOpenChange={setPageSelectOpen}>
                         <PopoverTrigger asChild>
