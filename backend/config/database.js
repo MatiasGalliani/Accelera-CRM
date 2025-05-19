@@ -13,12 +13,26 @@ const sequelize = new Sequelize(
     dialect: 'postgres',
     logging: false, // Set to console.log to see SQL queries
     pool: {
-      max: 5,
+      max: 2,
       min: 0,
-      acquire: 30000,
+      acquire: 60000,
       idle: 10000
+    },
+    dialectOptions: {
+      connectTimeout: 60000,
+    },
+    retry: {
+      max: 3
     }
   }
 );
+
+sequelize.authenticate()
+  .then(() => {
+    console.log('Database connection established successfully.');
+  })
+  .catch(err => {
+    console.error('Unable to connect to the database:', err);
+  });
 
 export default sequelize;

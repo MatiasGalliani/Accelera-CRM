@@ -845,50 +845,66 @@ app.get('/api/verify-admin/:email', authenticate, async (req, res) => {
   }
 });
 
-// Add memory monitoring and management
-const monitorMemory = () => {
+// Add memory monitoring function
+function monitorMemory() {
   const used = process.memoryUsage();
-  const usage = {
-    rss: `${Math.round(used.rss / 1024 / 1024 * 100) / 100} MB`,
-    heapTotal: `${Math.round(used.heapTotal / 1024 / 1024 * 100) / 100} MB`,
-    heapUsed: `${Math.round(used.heapUsed / 1024 / 1024 * 100) / 100} MB`,
-    external: `${Math.round(used.external / 1024 / 1024 * 100) / 100} MB`,
-  };
-  
-  console.log('Memory Usage:', usage);
-  
-  // If memory usage is too high, trigger garbage collection
-  if (used.heapUsed > 500 * 1024 * 1024) { // 500MB threshold
-    try {
-      global.gc();
-      console.log('Garbage collection triggered');
-    } catch (e) {
-      console.log('Garbage collection not available');
-    }
+  console.log('Memory usage:');
+  for (let key in used) {
+    console.log(`${key}: ${Math.round(used[key] / 1024 / 1024 * 100) / 100} MB`);
   }
+}
+
+// Modify server startup
+const PORT = process.env.PORT || 4000;
+
+// Configure Sequelize connection pool
+sequelize.options.pool = {
+  max: 2,
+  min: 0,
+  acquire: 60000,
+  idle: 10000
 };
 
-// Monitor memory every 5 minutes
-setInterval(monitorMemory, 5 * 60 * 1000);
+// Sync database models before starting the server
+sequelize.sync({ alter: true })
+  .then(() => {
+    console.log('Database synchronized');
+    const server = app.listen(PORT, () => {
+      console.log(`Backend running on port ${PORT}`);
+      monitorMemory(); // Initial memory check
+    });
+    
+    // Add server error handling
+    server.on('error', (error) => {
+      console.error('Server error:', error);
+    });
 
-// Handle process signals
-process.on('SIGTERM', async () => {
-  console.log('Received SIGTERM signal. Starting graceful shutdown...');
-  try {
-    // Close database connections
-    await sequelize.close();
-    console.log('Database connections closed.');
-    
-    // Cleanup Firebase Admin
-    await admin.app().delete();
-    console.log('Firebase Admin SDK cleaned up.');
-    
-    process.exit(0);
-  } catch (error) {
-    console.error('Error during graceful shutdown:', error);
+    // Add keep-alive configuration
+    server.keepAliveTimeout = 65000;
+    server.headersTimeout = 66000;
+
+    // Monitor memory usage periodically
+    setInterval(monitorMemory, 300000); // Every 5 minutes
+
+    // Add graceful shutdown
+    process.on('SIGTERM', async () => {
+      console.log('Received SIGTERM signal. Starting graceful shutdown...');
+      server.close(async () => {
+        try {
+          await sequelize.close();
+          console.log('Database connections closed.');
+          process.exit(0);
+        } catch (error) {
+          console.error('Error during shutdown:', error);
+          process.exit(1);
+        }
+      });
+    });
+  })
+  .catch(err => {
+    console.error('Error syncing database:', err);
     process.exit(1);
-  }
-});
+  });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
@@ -1176,36 +1192,3 @@ syncService.syncAllAgentsFromFirestore()
 app.use('/api/leads', leadRoutes);
 app.use('/api/agents', agentRoutes);
 app.use('/api', authRoutes);
-
-// Modify server startup
-const PORT = process.env.PORT || 4000;
-
-// Configure Sequelize connection pool
-sequelize.options.pool = {
-  max: 5,
-  min: 0,
-  acquire: 30000,
-  idle: 10000
-};
-
-// Sync database models before starting the server
-sequelize.sync({ alter: true })
-  .then(() => {
-    console.log('Database synchronized');
-    const server = app.listen(PORT, () => {
-      console.log(`Backend running on https://accelera-crm-production.up.railway.app`);
-      monitorMemory(); // Initial memory check
-    });
-    
-    // Add server error handling
-    server.on('error', (error) => {
-      console.error('Server error:', error);
-    });
-
-    // Add keep-alive configuration
-    server.keepAliveTimeout = 65000; // Slightly higher than 60 seconds
-    server.headersTimeout = 66000; // Slightly higher than keepAliveTimeout
-  })
-  .catch(err => {
-    console.error('Error syncing database:', err);
-  });
