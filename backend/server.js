@@ -36,9 +36,11 @@ app.use(cors({
   origin: [
     'http://localhost:5173',  // Local development
     'http://localhost:3000',  // Local development alternative
-    'https://your-vercel-domain.vercel.app', // Add your Vercel domain here
-    /\.vercel\.app$/ // Allow all Vercel preview deployments
+    'https://accelera-crm.vercel.app', // Production domain
+    /\.vercel\.app$/  // Allow all Vercel preview deployments
   ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow these methods
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'], // Allow these headers
   credentials: true
 }));
 
