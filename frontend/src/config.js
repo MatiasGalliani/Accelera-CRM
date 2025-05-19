@@ -1,16 +1,19 @@
 const isDevelopment = import.meta.env.DEV;
 
-// Use environment variable for API URL, fallback to default for development
+// In development, use the proxy configured in vite.config.js
+// In production, use the full URL (removing any trailing slash)
 export const API_BASE_URL = isDevelopment 
   ? '' // Empty string uses the proxy in development
-  : (import.meta.env.VITE_API_URL || 'https://accelera-crm-production.up.railway.app').replace(/\/$/, '');
+  : 'https://accelera-crm-production.up.railway.app'.replace(/\/$/, '');
 
 // Helper function to build API URLs
 export const getApiUrl = (path) => {
   const base = API_BASE_URL || '';
   // Ensure path starts with / and there's no double slash
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  return `${base}${cleanPath}`;
+  // Ensure base URL doesn't end with a slash
+  const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+  return `${cleanBase}${cleanPath}`;
 };
 
 // API Endpoints (ensure they don't start with /)
