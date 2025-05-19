@@ -7,13 +7,9 @@ import {
   onAuthStateChanged
 } from "firebase/auth";
 import { getFirestore, collection, query, where, getDocs, doc, getDoc, setDoc } from "firebase/firestore";
+import { API_BASE_URL, API_ENDPOINTS, ADMIN_EMAILS } from '@/config';
 
 const AuthContext = createContext();
-
-// List of admin emails - hardcoded for simplicity and reliability
-const ADMIN_EMAILS = [
-  'admin@creditplan.it'
-];
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -26,6 +22,18 @@ export function AuthProvider({ children }) {
       const currentUser = auth.currentUser;
       if (currentUser && ADMIN_EMAILS.includes(currentUser.email)) {
         console.log("Admin email detected in hardcoded list:", currentUser.email);
+        // Ensure admin record exists in backend
+        console.log("Ensuring admin record for:", currentUser.email);
+        try {
+          const idToken = await currentUser.getIdToken(true);
+          await fetch(`${API_BASE_URL}${API_ENDPOINTS.CREATE_ADMIN}/${currentUser.email}`, {
+            headers: {
+              Authorization: `Bearer ${idToken}`
+            }
+          });
+        } catch (error) {
+          console.log("Server error when ensuring admin:", error.status);
+        }
         return 'admin';
       }
 
@@ -35,7 +43,7 @@ export function AuthProvider({ children }) {
           console.log("Checking admin status via server for:", currentUser.email);
           const idToken = await currentUser.getIdToken(true);
           
-          const response = await fetch(`/api/check-user-role/${uid}`, {
+          const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CHECK_USER_ROLE}/${uid}`, {
             headers: {
               Authorization: `Bearer ${idToken}`
             }
@@ -53,12 +61,11 @@ export function AuthProvider({ children }) {
         }
       }
 
-      // Default to agent role if everything fails
       console.log("No admin role found, defaulting to agent");
       return 'agent';
     } catch (error) {
-      console.error("Error checking role:", error);
-      return 'agent'; // Default to agent role on error
+      console.error("Error checking user role:", error);
+      return 'agent';
     }
   };
 

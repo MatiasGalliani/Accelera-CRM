@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
+import { API_BASE_URL, API_ENDPOINTS } from '@/config'
 
 // Status options for cases
 const STATUS_OPTIONS = [
@@ -62,7 +63,7 @@ const fetchCases = async (user) => {
     const token = await auth.currentUser.getIdToken(true);
     console.log("Token ottenuto con successo per il caricamento delle richieste");
     
-    const response = await fetch("/api/cases", {
+    const response = await fetch(`${API_BASE_URL}/api/cases`, {
       headers: {
         "Authorization": `Bearer ${token}`
       }
@@ -92,7 +93,7 @@ const fetchCases = async (user) => {
 // API function to delete a case
 const deleteCase = async ({ id, token }) => {
   try {
-    const response = await fetch(`/api/cases/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/api/cases/${id}`, {
       method: 'DELETE',
       headers: {
         "Authorization": `Bearer ${token}`
@@ -114,7 +115,7 @@ const deleteCase = async ({ id, token }) => {
 const updateCaseStatus = async ({ id, status, token }) => {
   try {
     // Note: This is a placeholder. You'll need to implement this endpoint on your backend
-    const response = await fetch(`/api/cases/${id}/status`, {
+    const response = await fetch(`${API_BASE_URL}/api/cases/${id}/status`, {
       method: 'PATCH',
       headers: {
         "Authorization": `Bearer ${token}`,

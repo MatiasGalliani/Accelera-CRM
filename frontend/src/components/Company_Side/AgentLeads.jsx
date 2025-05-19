@@ -58,6 +58,7 @@ import {
 } from "@/components/ui/dialog"
 import CommentPreviewCell from "./CommentPreviewCell"
 import LeadSourceTabs from "@/components/LeadSourceTabs"
+import { API_BASE_URL, API_ENDPOINTS } from '@/config'
 
 // Status options for leads
 const STATUS_OPTIONS = [
@@ -88,7 +89,7 @@ const fetchLeads = async (user, source) => {
     const token = await auth.currentUser.getIdToken(true);
     console.log("Token ottenuto con successo per il caricamento dei leads");
     
-    const response = await fetch(`/api/leads/my-leads?source=${source}`, {
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.LEADS}/my-leads?source=${source}`, {
       headers: {
         "Authorization": `Bearer ${token}`
       }
@@ -117,7 +118,7 @@ const fetchLeads = async (user, source) => {
 
 // DELETE - eliminar lead
 const deleteLead = async ({ id, token }) => {
-  const response = await fetch(`/api/leads/${id}`, {
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.LEADS}/${id}`, {
     method: 'DELETE',
     headers: {
       "Authorization": `Bearer ${token}`
@@ -133,7 +134,7 @@ const deleteLead = async ({ id, token }) => {
 
 // PUT - actualizar estado del lead
 const updateLeadStatus = async ({ id, status, token }) => {
-  const response = await fetch(`/api/leads/${id}/status`, {
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.LEADS}/${id}/status`, {
     method: 'PUT',
     headers: {
       "Content-Type": "application/json",
@@ -151,7 +152,7 @@ const updateLeadStatus = async ({ id, status, token }) => {
 
 // POST - agregar comentario al lead
 const addLeadComment = async ({ id, comment, token }) => {
-  const response = await fetch(`/api/leads/${id}/comments`, {
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.LEADS}/${id}/comments`, {
     method: 'POST',
     headers: {
       "Content-Type": "application/json",

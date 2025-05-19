@@ -44,6 +44,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { API_BASE_URL, API_ENDPOINTS } from '@/config';
 
 // Status options for leads
 const STATUS_OPTIONS = [
@@ -121,7 +122,7 @@ const fetchAllAgentLeads = async (user, source) => {
     const token = await auth.currentUser.getIdToken(true);
     
     // Fetch leads from API
-    const response = await fetch(`/api/leads/admin-leads?source=${source}`, {
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.LEADS}/admin-leads?source=${source}`, {
       headers: {
         "Authorization": `Bearer ${token}`
       }
@@ -602,7 +603,7 @@ export default function AdminLeads() {
     
     return Promise.all(
       leadIds.map(id => 
-        fetch(`/api/leads/${id}`, {
+        fetch(`${API_BASE_URL}${API_ENDPOINTS.LEADS}/${id}`, {
           method: 'DELETE',
           headers: {
             "Authorization": `Bearer ${token}`

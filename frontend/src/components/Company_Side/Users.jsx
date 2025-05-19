@@ -26,6 +26,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { API_BASE_URL, API_ENDPOINTS } from '@/config';
 
 export default function Agents() {
   const { user, checkUserRole } = useAuth();
@@ -281,7 +282,7 @@ export default function Agents() {
 
       console.log("Submitting data:", submissionData);
 
-      const res = await fetch("/api/agents", {
+      const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.AGENTS}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
