@@ -276,57 +276,75 @@ app.get('/api/firebase-users', authenticate, requireAdmin, async (req, res) => {
   try {
     // Verificamos que el usuario tenga rol de admin (opcional)
     const userRecord = req.user;
-    // Puedes descomentar esto si quieres restringir esta funcionalidad solo a administradores
-    /*
-    const userDoc = await db.collection('agents').where('uid', '==', userRecord.uid).limit(1).get();
-    if (userDoc.empty || userDoc.docs[0].data().role !== 'admin') {
-      return res.status(403).json({ message: 'Accesso negato: richiede privilegi di amministratore' });
-    }
-    */
     
     // Lista para almacenar todos los usuarios
     const users = [];
     
-    // Firebase Admin solo permite obtener usuarios por lotes (1000 a la vez)
-    // Utilizamos un método recursivo para obtener todos los usuarios
-    let nextPageToken;
-    
+    // Add rate limiting and pagination
     const fetchUsers = async (pageToken) => {
       try {
-        // Obtenemos los usuarios con paginación
-        const listUsersResult = await admin.auth().listUsers(1000, pageToken);
+        // Reduced batch size to prevent timeouts
+        const listUsersResult = await admin.auth().listUsers(100, pageToken);
         
-        // Agregamos los usuarios a la lista
-        listUsersResult.users.forEach((userRecord) => {
-          users.push({
-            uid: userRecord.uid,
-            email: userRecord.email,
-            displayName: userRecord.displayName,
-            photoURL: userRecord.photoURL,
-            disabled: userRecord.disabled,
-            emailVerified: userRecord.emailVerified,
-            metadata: userRecord.metadata
-          });
-        });
+        // Map only needed user data
+        const mappedUsers = listUsersResult.users.map(userRecord => ({
+          uid: userRecord.uid,
+          email: userRecord.email,
+          displayName: userRecord.displayName,
+          photoURL: userRecord.photoURL,
+          disabled: userRecord.disabled,
+          emailVerified: userRecord.emailVerified,
+          metadata: {
+            creationTime: userRecord.metadata.creationTime,
+            lastSignInTime: userRecord.metadata.lastSignInTime
+          }
+        }));
         
-        // Si hay más usuarios, continuamos obteniendo la siguiente página
+        users.push(...mappedUsers);
+        
+        // If there are more users, wait a bit before fetching next batch
         if (listUsersResult.pageToken) {
+          // Add delay between batches to prevent rate limiting
+          await new Promise(resolve => setTimeout(resolve, 1000));
           await fetchUsers(listUsersResult.pageToken);
         }
       } catch (error) {
-        console.error('Error listing users:', error);
+        console.error('Error listing users batch:', error);
         throw error;
       }
     };
     
-    // Iniciamos la obtención de usuarios
-    await fetchUsers();
-    
-    // Devolvemos los usuarios
-    res.json(users);
-  } catch (err) {
-    console.error('Error fetching Firebase users:', err);
-    res.status(500).json({ message: 'Server error', error: err.message });
+    // Start fetching users with improved error handling
+    try {
+      await fetchUsers();
+      console.log(`Successfully retrieved ${users.length} Firebase users`);
+      res.json(users);
+    } catch (fetchError) {
+      console.error('Error during user fetch process:', fetchError);
+      // Check for specific Firebase errors
+      if (fetchError.code === 'auth/internal-error') {
+        res.status(500).json({ 
+          message: 'Errore interno Firebase',
+          error: fetchError.message 
+        });
+      } else if (fetchError.code === 'auth/invalid-argument') {
+        res.status(400).json({ 
+          message: 'Parametri non validi',
+          error: fetchError.message 
+        });
+      } else {
+        res.status(500).json({ 
+          message: 'Errore durante il recupero degli utenti',
+          error: fetchError.message 
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error in /api/firebase-users:', error);
+    res.status(500).json({ 
+      message: 'Errore recupero utenti Firebase',
+      error: error.message 
+    });
   }
 });
 
@@ -1122,14 +1140,39 @@ syncService.syncAllAgentsFromFirestore()
 // Registrar las rutas de leads
 app.use('/api/leads', leadRoutes);
 
+// Add graceful shutdown handler
+process.on('SIGTERM', async () => {
+  console.log('Received SIGTERM signal. Starting graceful shutdown...');
+  try {
+    // Close database connections
+    await sequelize.close();
+    console.log('Database connections closed.');
+    
+    // Cleanup Firebase Admin
+    await admin.app().delete();
+    console.log('Firebase Admin SDK cleaned up.');
+    
+    process.exit(0);
+  } catch (error) {
+    console.error('Error during graceful shutdown:', error);
+    process.exit(1);
+  }
+});
+
+// Modify server startup
 const PORT = process.env.PORT || 4000;
 
 // Sync database models before starting the server
 sequelize.sync({ alter: true })
   .then(() => {
     console.log('Database synchronized');
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`Backend running on https://accelera-crm-production.up.railway.app`);
+    });
+    
+    // Add server error handling
+    server.on('error', (error) => {
+      console.error('Server error:', error);
     });
   })
   .catch(err => {
