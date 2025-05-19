@@ -80,13 +80,26 @@ const fetchLeads = async (user, source) => {
   if (!user) throw new Error("Utente non autenticato");
   
   try {
-    // Ottieni il token di Firebase dall'oggetto auth.currentUser
+    // Get Firebase token
     const { auth } = await import('@/auth/firebase');
     if (!auth.currentUser) {
       throw new Error("Sessione scaduta, effettua nuovamente l'accesso");
     }
     
-    const token = await auth.currentUser.getIdToken(true);
+    // Try to get token without force refresh first
+    let token;
+    try {
+      token = await auth.currentUser.getIdToken(false);
+    } catch (tokenError) {
+      console.error('Error getting cached token:', tokenError);
+      // Only try force refresh if not a quota error
+      if (!tokenError.message?.includes('quota')) {
+        token = await auth.currentUser.getIdToken(true);
+      } else {
+        throw new Error("Troppi tentativi. Attendi qualche minuto e riprova.");
+      }
+    }
+    
     console.log("Token ottenuto con successo per il caricamento dei leads");
     
     const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.LEADS}/my-leads?source=${source}`, {
@@ -96,11 +109,10 @@ const fetchLeads = async (user, source) => {
     });
     
     if (!response.ok) {
-      // Manejar posibles errores HTTP
-      if (response.status === 403) {
-        throw new Error(`No tienes permiso para ver leads de ${source}`);
+      if (response.status === 401 || response.status === 403) {
+        throw new Error("Sessione scaduta o non autorizzata. Effettua nuovamente l'accesso.");
       } else if (response.status === 404) {
-        return []; // No hay leads
+        return []; // No leads found
       } else {
         throw new Error(`Impossibile caricare i leads da ${source}`);
       }

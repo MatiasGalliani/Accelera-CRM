@@ -3,6 +3,7 @@ import { useAuth } from '@/auth/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import { API_BASE_URL, API_ENDPOINTS } from '@/config';
 
 export default function LeadSourceTabs({ value, onValueChange, allSources }) {
   const { user } = useAuth();
@@ -11,64 +12,90 @@ export default function LeadSourceTabs({ value, onValueChange, allSources }) {
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
+    let isMounted = true;
+    
     async function fetchAllowedSources() {
       try {
         if (!user) return;
         
-        // Obtener el token de autenticación
+        // Get authentication token
         const { auth } = await import('@/auth/firebase');
         if (!auth.currentUser) {
           throw new Error("Sessione scaduta, effettua nuovamente l'accesso");
         }
         
-        const token = await auth.currentUser.getIdToken(true);
+        // Try to get token without force refresh first
+        let token;
+        try {
+          token = await auth.currentUser.getIdToken(false);
+        } catch (tokenError) {
+          console.error('Error getting cached token:', tokenError);
+          // Only try force refresh if not a quota error
+          if (!tokenError.message?.includes('quota')) {
+            token = await auth.currentUser.getIdToken(true);
+          } else {
+            throw new Error("Troppi tentativi. Attendi qualche minuto e riprova.");
+          }
+        }
         
-        const response = await fetch('/api/leads/allowed-sources', {
+        const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.LEADS}/allowed-sources`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
         
         if (!response.ok) {
-          throw new Error('Error al obtener fuentes permitidas');
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Sessione scaduta o non autorizzata. Effettua nuovamente l'accesso.");
+          }
+          throw new Error('Errore nel caricamento delle fonti consentite');
         }
         
         const allowedSourceIds = await response.json();
         
-        // Filtrar las fuentes según los permisos
+        if (!isMounted) return;
+        
+        // Filter sources based on permissions
         if (allowedSourceIds.length > 0) {
           const filteredSources = allSources.filter(source => 
             allowedSourceIds.includes(source.id)
           );
           setAvailableSources(filteredSources);
           
-          // Si la fuente actual no está permitida, cambiar a la primera disponible
+          // If current source is not allowed, switch to first available
           if (!allowedSourceIds.includes(value)) {
             onValueChange(filteredSources[0].id);
           }
         } else {
-          // Si no hay fuentes permitidas, mostrar mensaje
           toast({
-            title: "Sin acceso",
-            description: "No tienes acceso a ninguna fuente de leads",
+            title: "Nessun accesso",
+            description: "Non hai accesso a nessuna fonte di leads",
             variant: "destructive"
           });
           setAvailableSources([]);
         }
       } catch (error) {
         console.error('Error fetching allowed sources:', error);
-        toast({
-          title: "Error",
-          description: error.message || "Error al cargar las fuentes permitidas",
-          variant: "destructive"
-        });
-        setAvailableSources([]);
+        if (isMounted) {
+          toast({
+            title: "Errore",
+            description: error.message || "Errore nel caricamento delle fonti consentite",
+            variant: "destructive"
+          });
+          setAvailableSources([]);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
     
     fetchAllowedSources();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [user, allSources, value, onValueChange, toast]);
   
   if (loading) {
@@ -79,12 +106,12 @@ export default function LeadSourceTabs({ value, onValueChange, allSources }) {
     );
   }
   
-  // Si no hay fuentes disponibles, no mostrar nada
+  // If no sources available, show nothing
   if (availableSources.length === 0) {
     return null;
   }
   
-  // Si solo hay una fuente disponible, mostrar solo el nombre
+  // If only one source available, just show the name
   if (availableSources.length === 1) {
     return (
       <div className="bg-primary text-primary-foreground rounded-md py-2 px-4 text-center font-semibold">
@@ -93,7 +120,7 @@ export default function LeadSourceTabs({ value, onValueChange, allSources }) {
     );
   }
   
-  // Si hay múltiples fuentes, mostrar las pestañas
+  // If multiple sources, show tabs
   return (
     <Tabs 
       value={value} 
