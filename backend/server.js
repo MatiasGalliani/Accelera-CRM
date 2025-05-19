@@ -843,25 +843,82 @@ app.get('/api/verify-admin/:email', authenticate, async (req, res) => {
   }
 });
 
+// Add memory monitoring and management
+const monitorMemory = () => {
+  const used = process.memoryUsage();
+  const usage = {
+    rss: `${Math.round(used.rss / 1024 / 1024 * 100) / 100} MB`,
+    heapTotal: `${Math.round(used.heapTotal / 1024 / 1024 * 100) / 100} MB`,
+    heapUsed: `${Math.round(used.heapUsed / 1024 / 1024 * 100) / 100} MB`,
+    external: `${Math.round(used.external / 1024 / 1024 * 100) / 100} MB`,
+  };
+  
+  console.log('Memory Usage:', usage);
+  
+  // If memory usage is too high, trigger garbage collection
+  if (used.heapUsed > 500 * 1024 * 1024) { // 500MB threshold
+    try {
+      global.gc();
+      console.log('Garbage collection triggered');
+    } catch (e) {
+      console.log('Garbage collection not available');
+    }
+  }
+};
+
+// Monitor memory every 5 minutes
+setInterval(monitorMemory, 5 * 60 * 1000);
+
+// Handle process signals
+process.on('SIGTERM', async () => {
+  console.log('Received SIGTERM signal. Starting graceful shutdown...');
+  try {
+    // Close database connections
+    await sequelize.close();
+    console.log('Database connections closed.');
+    
+    // Cleanup Firebase Admin
+    await admin.app().delete();
+    console.log('Firebase Admin SDK cleaned up.');
+    
+    process.exit(0);
+  } catch (error) {
+    console.error('Error during graceful shutdown:', error);
+    process.exit(1);
+  }
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  // Don't exit immediately, give time for cleanup
+  setTimeout(() => process.exit(1), 1000);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 // GET /api/check-user-role/:uid - Check a user's role
 app.get('/api/check-user-role/:uid', authenticate, async (req, res) => {
   try {
     const uid = req.params.uid;
     console.log(`Checking role for UID: ${uid}`);
     
-    // Verify that the user is checking their own role or is an admin
-    const isOwnUid = req.user.uid === uid;
+    // Get the user's email from the request
+    const userEmail = req.user.email;
+    console.log(`Checking role for email: ${userEmail}`);
     
-    if (!isOwnUid) {
-      // Only allow admins to check other users' roles
-      const adminCheck = await isUserAdmin(req.user.uid);
-      if (!adminCheck) {
-        console.log(`Unauthorized role check attempt by ${req.user.uid} for ${uid}`);
-        return res.status(403).json({ 
-          message: 'Unauthorized: You can only check your own role', 
-          role: 'agent' 
-        });
-      }
+    // Check for hardcoded admin emails first
+    const adminEmails = ['it@creditplan.it', 'admin@creditplan.it'].map(email => email.toLowerCase());
+    if (userEmail && adminEmails.includes(userEmail.toLowerCase())) {
+      console.log(`${userEmail} is in admin list, returning admin role`);
+      return res.json({ 
+        role: 'admin',
+        email: userEmail,
+        message: 'Admin role assigned from hardcoded list'
+      });
     }
     
     // Get the user from Firestore
@@ -872,25 +929,17 @@ app.get('/api/check-user-role/:uid', authenticate, async (req, res) => {
       .get();
     
     if (agentsSnapshot.empty) {
-      console.log(`No direct UID match found for ${uid}, trying email lookup`);
-      // Try looking up by email if we know it
-      if (req.user.email && isOwnUid) {
-        console.log(`Attempting email lookup for: ${req.user.email}`);
+      console.log(`No Firestore record found for UID: ${uid}`);
+      // Try looking up by email
+      if (userEmail) {
         const byEmailSnapshot = await db.collection('agents')
-          .where('email', '==', req.user.email)
+          .where('email', '==', userEmail)
           .limit(1)
           .get();
           
         if (!byEmailSnapshot.empty) {
           const agentData = byEmailSnapshot.docs[0].data();
           console.log(`Found agent by email: ${JSON.stringify(agentData)}`);
-          
-          // Update the document with the UID if it's missing
-          if (!agentData.uid) {
-            console.log(`Updating agent ${byEmailSnapshot.docs[0].id} with UID ${uid}`);
-            await byEmailSnapshot.docs[0].ref.update({ uid });
-          }
-          
           return res.json({ 
             role: agentData.role || 'agent',
             email: agentData.email,
@@ -899,38 +948,18 @@ app.get('/api/check-user-role/:uid', authenticate, async (req, res) => {
         }
       }
       
-      // Check for hardcoded admin emails
-      if (req.user.email) {
-        const adminEmails = [
-          'it@creditplan.it',
-          'admin@creditplan.it'
-          // Add other admin emails here if needed
-        ];
-        
-        if (adminEmails.includes(req.user.email.toLowerCase())) {
-          console.log(`Matched hardcoded admin email: ${req.user.email}`);
-          // Create or update the admin record
-          await verifyAndFixAdminStatus(req.user.email, uid);
-          return res.json({ 
-            role: 'admin', 
-            email: req.user.email,
-            message: 'Admin status verified and fixed'
-          });
-        }
-      }
-      
-      console.log(`No matching records found for ${uid}, defaulting to agent role`);
+      // If no record found, default to agent
+      console.log(`No matching records found, defaulting to agent role`);
       return res.json({ 
-        role: 'agent', 
-        message: 'User not found in database',
-        email: req.user.email
+        role: 'agent',
+        email: userEmail,
+        message: 'No admin record found'
       });
     }
     
     const agentData = agentsSnapshot.docs[0].data();
     console.log(`Found agent data: ${JSON.stringify(agentData)}`);
     
-    // Return the user's role
     return res.json({
       role: agentData.role || 'agent',
       email: agentData.email,
@@ -939,32 +968,12 @@ app.get('/api/check-user-role/:uid', authenticate, async (req, res) => {
   } catch (err) {
     console.error('Error checking user role:', err);
     res.status(500).json({ 
-      message: 'Server error when checking role', 
+      message: 'Server error when checking role',
       error: err.message,
       role: 'agent' // Default to agent on error
     });
   }
 });
-
-// Helper function to check if a user is an admin
-async function isUserAdmin(uid) {
-  try {
-    const agentsSnapshot = await db.collection('agents')
-      .where('uid', '==', uid)
-      .limit(1)
-      .get();
-    
-    if (agentsSnapshot.empty) {
-      return false;
-    }
-    
-    const agentData = agentsSnapshot.docs[0].data();
-    return agentData.role === 'admin';
-  } catch (error) {
-    console.error('Error checking admin status:', error);
-    return false;
-  }
-}
 
 // GET /api/fix-specific-account?email=it@creditplan.it - Fix a specific account issue
 app.get('/api/fix-specific-account', async (req, res) => {
@@ -1163,37 +1172,6 @@ syncService.syncAllAgentsFromFirestore()
 
 // Registrar las rutas de leads
 app.use('/api/leads', leadRoutes);
-
-// Add graceful shutdown handler
-process.on('SIGTERM', async () => {
-  console.log('Received SIGTERM signal. Starting graceful shutdown...');
-  try {
-    // Close database connections
-    await sequelize.close();
-    console.log('Database connections closed.');
-    
-    // Cleanup Firebase Admin
-    await admin.app().delete();
-    console.log('Firebase Admin SDK cleaned up.');
-    
-    process.exit(0);
-  } catch (error) {
-    console.error('Error during graceful shutdown:', error);
-    process.exit(1);
-  }
-});
-
-// Add memory monitoring
-const monitorMemory = () => {
-  const used = process.memoryUsage();
-  console.log('Memory usage:');
-  for (let key in used) {
-    console.log(`${key}: ${Math.round(used[key] / 1024 / 1024 * 100) / 100} MB`);
-  }
-};
-
-// Monitor memory every 5 minutes
-setInterval(monitorMemory, 5 * 60 * 1000);
 
 // Modify server startup
 const PORT = process.env.PORT || 4000;
