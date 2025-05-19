@@ -15,6 +15,7 @@ export default defineConfig({
         target: 'https://accelera-crm-production.up.railway.app',
         changeOrigin: true,
         secure: true,
+        rewrite: (path) => path
       },
     },
   },

@@ -20,19 +20,33 @@ export function AuthProvider({ children }) {
     try {
       // Check if this is a hardcoded admin first
       const currentUser = auth.currentUser;
-      if (currentUser && ADMIN_EMAILS.includes(currentUser.email)) {
+      if (currentUser && ADMIN_EMAILS.includes(currentUser.email?.toLowerCase())) {
         console.log("Admin email detected in hardcoded list:", currentUser.email);
         // Ensure admin record exists in backend
         console.log("Ensuring admin record for:", currentUser.email);
         try {
           const idToken = await currentUser.getIdToken(true);
-          await fetch(`${API_BASE_URL}${API_ENDPOINTS.CREATE_ADMIN}/${currentUser.email}`, {
+          const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CREATE_ADMIN}/${currentUser.email}`, {
             headers: {
               Authorization: `Bearer ${idToken}`
             }
           });
+          
+          if (!response.ok) {
+            console.error("Error ensuring admin status:", response.status);
+            // Try the fix-specific-account endpoint as a fallback
+            const fixResponse = await fetch(`${API_BASE_URL}/api/fix-specific-account?email=${currentUser.email}`, {
+              headers: {
+                Authorization: `Bearer ${idToken}`
+              }
+            });
+            
+            if (!fixResponse.ok) {
+              console.error("Error fixing admin account:", fixResponse.status);
+            }
+          }
         } catch (error) {
-          console.log("Server error when ensuring admin:", error.status);
+          console.error("Server error when ensuring admin:", error);
         }
         return 'admin';
       }
@@ -55,6 +69,19 @@ export function AuthProvider({ children }) {
             return data.role || 'agent';
           } else {
             console.error("Error from server when checking role:", response.status);
+            // If we get a 404, try to fix the account if it's a known admin
+            if (response.status === 404 && currentUser.email && ADMIN_EMAILS.includes(currentUser.email?.toLowerCase())) {
+              console.log("Attempting to fix admin account after 404");
+              const fixResponse = await fetch(`${API_BASE_URL}/api/fix-specific-account?email=${currentUser.email}`, {
+                headers: {
+                  Authorization: `Bearer ${idToken}`
+                }
+              });
+              
+              if (fixResponse.ok) {
+                return 'admin';
+              }
+            }
           }
         } catch (serverError) {
           console.error("Error calling server to check role:", serverError);

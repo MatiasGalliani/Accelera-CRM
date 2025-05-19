@@ -1,9 +1,12 @@
 const isDevelopment = import.meta.env.DEV;
 
+// In development, use the proxy configured in vite.config.js
+// In production, use the full URL
 export const API_BASE_URL = isDevelopment 
   ? '' // Empty string uses the proxy in development
   : 'https://accelera-crm-production.up.railway.app';
 
+// Helper function to build API URLs
 export const getApiUrl = (path) => {
   return `${API_BASE_URL}${path}`;
 };
@@ -18,8 +21,9 @@ export const API_ENDPOINTS = {
     WEBHOOKS: '/api/leads/webhook',
 };
 
-// Firebase Admin Emails (if needed)
+// Firebase Admin Emails
 export const ADMIN_EMAILS = [
     'admin@creditplan.it',
+    'it@creditplan.it', // Add the new admin email
     // Add other admin emails here
 ];

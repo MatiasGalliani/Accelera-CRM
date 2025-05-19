@@ -847,6 +847,7 @@ app.get('/api/verify-admin/:email', authenticate, async (req, res) => {
 app.get('/api/check-user-role/:uid', authenticate, async (req, res) => {
   try {
     const uid = req.params.uid;
+    console.log(`Checking role for UID: ${uid}`);
     
     // Verify that the user is checking their own role or is an admin
     const isOwnUid = req.user.uid === uid;
@@ -855,6 +856,7 @@ app.get('/api/check-user-role/:uid', authenticate, async (req, res) => {
       // Only allow admins to check other users' roles
       const adminCheck = await isUserAdmin(req.user.uid);
       if (!adminCheck) {
+        console.log(`Unauthorized role check attempt by ${req.user.uid} for ${uid}`);
         return res.status(403).json({ 
           message: 'Unauthorized: You can only check your own role', 
           role: 'agent' 
@@ -863,14 +865,17 @@ app.get('/api/check-user-role/:uid', authenticate, async (req, res) => {
     }
     
     // Get the user from Firestore
+    console.log(`Querying Firestore for user with UID: ${uid}`);
     const agentsSnapshot = await db.collection('agents')
       .where('uid', '==', uid)
       .limit(1)
       .get();
     
     if (agentsSnapshot.empty) {
+      console.log(`No direct UID match found for ${uid}, trying email lookup`);
       // Try looking up by email if we know it
       if (req.user.email && isOwnUid) {
+        console.log(`Attempting email lookup for: ${req.user.email}`);
         const byEmailSnapshot = await db.collection('agents')
           .where('email', '==', req.user.email)
           .limit(1)
@@ -878,6 +883,7 @@ app.get('/api/check-user-role/:uid', authenticate, async (req, res) => {
           
         if (!byEmailSnapshot.empty) {
           const agentData = byEmailSnapshot.docs[0].data();
+          console.log(`Found agent by email: ${JSON.stringify(agentData)}`);
           
           // Update the document with the UID if it's missing
           if (!agentData.uid) {
@@ -893,18 +899,36 @@ app.get('/api/check-user-role/:uid', authenticate, async (req, res) => {
         }
       }
       
-      // If we're checking hardcoded admin emails
-      if (req.user.email && [
-        'admin@creditplan.it' 
-        // Add other admin emails here if needed
-      ].includes(req.user.email)) {
-        return res.json({ role: 'admin', email: req.user.email });
+      // Check for hardcoded admin emails
+      if (req.user.email) {
+        const adminEmails = [
+          'it@creditplan.it',
+          'admin@creditplan.it'
+          // Add other admin emails here if needed
+        ];
+        
+        if (adminEmails.includes(req.user.email.toLowerCase())) {
+          console.log(`Matched hardcoded admin email: ${req.user.email}`);
+          // Create or update the admin record
+          await verifyAndFixAdminStatus(req.user.email, uid);
+          return res.json({ 
+            role: 'admin', 
+            email: req.user.email,
+            message: 'Admin status verified and fixed'
+          });
+        }
       }
       
-      return res.json({ role: 'agent', message: 'User not found in database' });
+      console.log(`No matching records found for ${uid}, defaulting to agent role`);
+      return res.json({ 
+        role: 'agent', 
+        message: 'User not found in database',
+        email: req.user.email
+      });
     }
     
     const agentData = agentsSnapshot.docs[0].data();
+    console.log(`Found agent data: ${JSON.stringify(agentData)}`);
     
     // Return the user's role
     return res.json({
