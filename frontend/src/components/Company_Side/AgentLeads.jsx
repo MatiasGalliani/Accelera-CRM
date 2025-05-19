@@ -58,7 +58,7 @@ import {
 } from "@/components/ui/dialog"
 import CommentPreviewCell from "./CommentPreviewCell"
 import LeadSourceTabs from "@/components/LeadSourceTabs"
-import { API_BASE_URL, API_ENDPOINTS } from '@/config'
+import { API_BASE_URL, API_ENDPOINTS, getApiUrl } from '@/config'
 
 // Status options for leads
 const STATUS_OPTIONS = [

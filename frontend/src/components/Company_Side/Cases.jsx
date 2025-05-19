@@ -39,7 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { API_BASE_URL, API_ENDPOINTS } from '@/config'
+import { API_BASE_URL, API_ENDPOINTS, getApiUrl } from '@/config'
 
 // Status options for cases
 const STATUS_OPTIONS = [

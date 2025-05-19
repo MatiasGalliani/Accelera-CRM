@@ -44,7 +44,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { API_BASE_URL, API_ENDPOINTS } from '@/config';
+import { API_BASE_URL, API_ENDPOINTS, getApiUrl } from '@/config';
 
 // Status options for leads
 const STATUS_OPTIONS = [
