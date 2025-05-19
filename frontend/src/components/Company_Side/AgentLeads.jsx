@@ -102,7 +102,7 @@ const fetchLeads = async (user, source) => {
     
     console.log("Token ottenuto con successo per il caricamento dei leads");
     
-    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.LEADS}/my-leads?source=${source}`, {
+    const response = await fetch(getApiUrl(`${API_ENDPOINTS.LEADS}/my-leads?source=${source}`), {
       headers: {
         "Authorization": `Bearer ${token}`
       }
@@ -121,16 +121,13 @@ const fetchLeads = async (user, source) => {
     return await response.json();
   } catch (error) {
     console.error("Errore nel caricamento dei leads:", error);
-    if (error.message.includes("getIdToken is not a function") || error.message.includes("auth.currentUser")) {
-      throw new Error("Sessione scaduta. Per favore, aggiorna la pagina o effettua nuovamente l'accesso.");
-    }
     throw error;
   }
 }
 
 // DELETE - eliminar lead
 const deleteLead = async ({ id, token }) => {
-  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.LEADS}/${id}`, {
+  const response = await fetch(getApiUrl(`${API_ENDPOINTS.LEADS}/${id}`), {
     method: 'DELETE',
     headers: {
       "Authorization": `Bearer ${token}`
@@ -146,7 +143,7 @@ const deleteLead = async ({ id, token }) => {
 
 // PUT - actualizar estado del lead
 const updateLeadStatus = async ({ id, status, token }) => {
-  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.LEADS}/${id}/status`, {
+  const response = await fetch(getApiUrl(`${API_ENDPOINTS.LEADS}/${id}/status`), {
     method: 'PUT',
     headers: {
       "Content-Type": "application/json",
@@ -164,7 +161,7 @@ const updateLeadStatus = async ({ id, status, token }) => {
 
 // POST - agregar comentario al lead
 const addLeadComment = async ({ id, comment, token }) => {
-  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.LEADS}/${id}/comments`, {
+  const response = await fetch(getApiUrl(`${API_ENDPOINTS.LEADS}/${id}/comments`), {
     method: 'POST',
     headers: {
       "Content-Type": "application/json",

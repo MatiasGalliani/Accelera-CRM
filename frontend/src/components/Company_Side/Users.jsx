@@ -118,7 +118,7 @@ export default function Agents() {
       }
       
       console.log("Claiming admin role for:", user.email);
-      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CREATE_ADMIN}/${user.email}`);
+      const response = await fetch(getApiUrl(`${API_ENDPOINTS.CREATE_ADMIN}/${user.email}`));
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to claim admin role");
@@ -219,7 +219,7 @@ export default function Agents() {
       if (!currentUser) throw new Error("Utente non autenticato");
       const idToken = await currentUser.getIdToken(true);
 
-      const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.AGENTS}`, {
+      const res = await fetch(getApiUrl(API_ENDPOINTS.AGENTS), {
         headers: { Authorization: `Bearer ${idToken}` },
       });
       if (!res.ok) throw new Error("Errore recupero agenti");
@@ -249,7 +249,7 @@ export default function Agents() {
       if (!currentUser) throw new Error("Utente non autenticato");
       const idToken = await currentUser.getIdToken(true);
 
-      const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.FIREBASE_USERS}`, {
+      const res = await fetch(getApiUrl(API_ENDPOINTS.FIREBASE_USERS), {
         headers: { Authorization: `Bearer ${idToken}` },
       });
       if (!res.ok) throw new Error("Errore recupero utenti Firebase");
@@ -514,7 +514,7 @@ export default function Agents() {
       const email = 'it@creditplan.it';
       
       console.log(`Fixing specific account: ${email}`);
-      const response = await fetch(`${API_BASE_URL}/api/fix-specific-account?email=${email}`);
+      const response = await fetch(getApiUrl(`/api/fix-specific-account?email=${email}`));
       
       if (!response.ok) {
         throw new Error('Riparazione fallita');
@@ -582,7 +582,7 @@ export default function Agents() {
         [`pages_${selectedAgentForPages.id || selectedAgentForPages.uid}`]: true 
       }));
       
-      const res = await fetch(`${API_BASE_URL}/api/agents/${selectedAgentForPages.id || selectedAgentForPages.uid}/pages`, {
+      const res = await fetch(getApiUrl(`/api/agents/${selectedAgentForPages.id || selectedAgentForPages.uid}/pages`), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

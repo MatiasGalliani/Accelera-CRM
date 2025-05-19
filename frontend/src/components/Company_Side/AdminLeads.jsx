@@ -109,9 +109,6 @@ const CommentViewerCell = ({ lead }) => {
 const fetchAllAgentLeads = async (user, source) => {
   if (!user) throw new Error("Utente non autenticato");
   
-  // For testing/development, uncomment the next line to use test data
-  // return { leads: getTestAgentLeads(source), total: getTestAgentLeads(source).length, page: 1, totalPages: 1 };
-  
   try {
     // Get Firebase token
     const { auth } = await import('@/auth/firebase');
@@ -122,7 +119,7 @@ const fetchAllAgentLeads = async (user, source) => {
     const token = await auth.currentUser.getIdToken(true);
     
     // Fetch leads from API
-    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.LEADS}/admin-leads?source=${source}`, {
+    const response = await fetch(getApiUrl(`${API_ENDPOINTS.LEADS}/admin-leads?source=${source}`), {
       headers: {
         "Authorization": `Bearer ${token}`
       }
