@@ -3,7 +3,7 @@ import { useAuth } from '@/auth/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { API_BASE_URL, API_ENDPOINTS } from '@/config';
+import { API_BASE_URL, API_ENDPOINTS, getApiUrl } from '@/config';
 
 export default function LeadSourceTabs({ value, onValueChange, allSources }) {
   const { user } = useAuth();
@@ -38,7 +38,7 @@ export default function LeadSourceTabs({ value, onValueChange, allSources }) {
           }
         }
         
-        const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.LEADS}/allowed-sources`, {
+        const response = await fetch(getApiUrl(`${API_ENDPOINTS.LEADS}/allowed-sources`), {
           headers: {
             'Authorization': `Bearer ${token}`
           }
