@@ -15,7 +15,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 // CRM API configuration
 const CRM_WEBHOOK_URL = process.env.CRM_WEBHOOK_URL || '/api/leads/webhook';
-const CRM_BASE_URL = process.env.CRM_BASE_URL || 'https://your-crm-base-url.com';
+const CRM_BASE_URL = process.env.CRM_BASE_URL || 'https://accelera-crm-production.up.railway.app';
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
 const FIREBASE_AUTH_EMAIL = process.env.FIREBASE_AUTH_EMAIL;
 const FIREBASE_AUTH_PASSWORD = process.env.FIREBASE_AUTH_PASSWORD;
@@ -376,5 +376,5 @@ AIQuinto`;
 });
 
 app.listen(PORT, () => {
-    console.log('Server running on port', PORT);
+    console.log('Server running on https://accelera-crm-production.up.railway.app');
 }); 

@@ -25,7 +25,7 @@ async function testSubmitLead() {
 
   try {
     // Exactly the same request a real website would make
-    const response = await fetch('http://localhost:3000/api/leads/webhook', {
+    const response = await fetch('https://accelera-crm-production.up.railway.app/api/leads/webhook', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

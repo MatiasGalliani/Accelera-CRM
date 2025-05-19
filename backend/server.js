@@ -1129,7 +1129,7 @@ sequelize.sync({ alter: true })
   .then(() => {
     console.log('Database synchronized');
     app.listen(PORT, () => {
-      console.log(`Backend running on http://localhost:${PORT}`);
+      console.log(`Backend running on https://accelera-crm-production.up.railway.app`);
     });
   })
   .catch(err => {
