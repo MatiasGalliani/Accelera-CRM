@@ -1172,10 +1172,8 @@ syncService.syncAllAgentsFromFirestore()
     console.error('Error en sincronización inicial:', error);
   });
 
-// Registrar las rutas de leads
-app.use('/api/leads', leadRoutes);
-
 // Register routes
+app.use('/api/leads', leadRoutes);
 app.use('/api/agents', agentRoutes);
 app.use('/api', authRoutes);
 
