@@ -118,7 +118,7 @@ export default function Agents() {
       }
       
       console.log("Claiming admin role for:", user.email);
-      const response = await fetch(`/api/create-admin/${user.email}`);
+      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CREATE_ADMIN}/${user.email}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to claim admin role");
@@ -135,7 +135,7 @@ export default function Agents() {
       toast({ 
         title: "Admin role granted", 
         description: "Per garantire l'attivazione completa dei privilegi di amministratore, per favore esci e accedi nuovamente.",
-        duration: 10000, // Show for 10 seconds
+        duration: 10000,
       });
       
       // Force refresh the agent list
@@ -219,7 +219,7 @@ export default function Agents() {
       if (!currentUser) throw new Error("Utente non autenticato");
       const idToken = await currentUser.getIdToken(true);
 
-      const res = await fetch("/api/agents", {
+      const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.AGENTS}`, {
         headers: { Authorization: `Bearer ${idToken}` },
       });
       if (!res.ok) throw new Error("Errore recupero agenti");
@@ -249,7 +249,7 @@ export default function Agents() {
       if (!currentUser) throw new Error("Utente non autenticato");
       const idToken = await currentUser.getIdToken(true);
 
-      const res = await fetch("/api/firebase-users", {
+      const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.FIREBASE_USERS}`, {
         headers: { Authorization: `Bearer ${idToken}` },
       });
       if (!res.ok) throw new Error("Errore recupero utenti Firebase");
@@ -340,7 +340,7 @@ export default function Agents() {
     try {
       console.log("Setting up initial pages for agent:", agentId, "pages:", pages);
       
-      const res = await fetch(`/api/agents/${agentId}/pages`, {
+      const res = await fetch(`${API_BASE_URL}/api/agents/${agentId}/pages`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -369,7 +369,6 @@ export default function Agents() {
   };
 
   async function deleteAgent(agent) {
-    // Set this specific agent as being deleted
     const agentId = agent.id || agent.uid;
     setDeletingAgents(prev => ({ ...prev, [agentId]: true }));
     
@@ -390,7 +389,7 @@ export default function Agents() {
         console.log("Attempting to delete Firebase user with UID:", agent.uid);
         try {
           // Use the uid as parameter for Firebase deletion
-          const deleteUserRes = await fetch(`/api/agents/firebase-user/${agent.uid}`, {
+          const deleteUserRes = await fetch(`${API_BASE_URL}/api/agents/firebase-user/${agent.uid}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${idToken}` },
           });
@@ -398,21 +397,19 @@ export default function Agents() {
           if (!deleteUserRes.ok) {
             const errorText = await deleteUserRes.text();
             console.error("Error deleting Firebase user:", errorText);
-            // Don't throw error immediately, we'll still try to delete from Firestore if needed
           } else {
             console.log("Firebase user deleted successfully");
             firebaseDeleted = true;
           }
         } catch (fbError) {
           console.error("Error during Firebase user deletion:", fbError);
-          // Don't throw error immediately, we'll still try to delete from Firestore if needed
         }
       }
 
       // If agent has a Firestore record (has id)
       if (agent.id && !agent.isFirebaseOnly) {
         console.log("Attempting to delete Firestore agent with ID:", agent.id);
-        const res = await fetch(`/api/agents/${agent.id}`, {
+        const res = await fetch(`${API_BASE_URL}/api/agents/${agent.id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${idToken}` },
         });
@@ -420,25 +417,21 @@ export default function Agents() {
         if (!res.ok) {
           const errorText = await res.text();
           console.error("Error deleting Firestore agent:", errorText);
-          // Don't throw error here, we may have still deleted the Firebase user
         } else {
           console.log("Firestore agent deleted successfully");
           firestoreDeleted = true;
         }
       }
 
-      // Refresh both data sources regardless of the result
-      // This ensures our UI stays in sync with the server state
+      // Refresh both data sources
       await Promise.all([fetchAgents(), fetchFirebaseUsers()]);
       
-      // Show appropriate toast message based on deletion results
       if (firebaseDeleted || firestoreDeleted) {
         toast({ 
           title: "Agente eliminato", 
           description: "Operazione completata con successo!"
         });
       } else {
-        // If neither deletion was successful, show error
         toast({ 
           title: "Attenzione", 
           description: "L'operazione potrebbe non essere stata completata. Verificare la lista aggiornata.", 
@@ -448,17 +441,13 @@ export default function Agents() {
       
     } catch (err) {
       console.error("Agent deletion error:", err);
-      
-      // Refresh the data anyway to make sure our UI is in sync
       await Promise.all([fetchAgents(), fetchFirebaseUsers()]);
-      
       toast({ 
         title: "Errore", 
         description: `Si è verificato un errore durante l'eliminazione. La lista è stata aggiornata.`, 
         variant: "destructive" 
       });
     } finally {
-      // Remove the deleting state for this agent
       setDeletingAgents(prev => {
         const newState = { ...prev };
         delete newState[agentId];
@@ -479,7 +468,7 @@ export default function Agents() {
       setDeletingAgents(prev => ({ ...prev, [`verify_${agent.id || agent.uid}`]: true }));
       
       console.log(`Verifying admin status for: ${agent.email}`);
-      const response = await fetch(`/api/verify-admin/${agent.email}`, {
+      const response = await fetch(`${API_BASE_URL}/api/verify-admin/${agent.email}`, {
         headers: {
           Authorization: `Bearer ${idToken}`,
         },
@@ -522,10 +511,10 @@ export default function Agents() {
   const fixSpecificAccount = async () => {
     try {
       setClaimingAdmin(true);
-      const email = 'it@creditplan.it'; // Hardcoded for this specific case
+      const email = 'it@creditplan.it';
       
       console.log(`Fixing specific account: ${email}`);
-      const response = await fetch(`/api/fix-specific-account?email=${email}`);
+      const response = await fetch(`${API_BASE_URL}/api/fix-specific-account?email=${email}`);
       
       if (!response.ok) {
         throw new Error('Riparazione fallita');
@@ -540,7 +529,6 @@ export default function Agents() {
         duration: 10000,
       });
       
-      // Refresh the agent list
       await Promise.all([fetchAgents(), fetchFirebaseUsers()]);
     } catch (error) {
       console.error("Error fixing account:", error);
@@ -589,14 +577,12 @@ export default function Agents() {
       console.log("Saving pages for agent:", selectedAgentForPages);
       console.log("Pages to save:", editingPages);
 
-      // Set a loading state
       setDeletingAgents(prev => ({ 
         ...prev, 
         [`pages_${selectedAgentForPages.id || selectedAgentForPages.uid}`]: true 
       }));
       
-      // Make API call to update the agent's pages
-      const res = await fetch(`/api/agents/${selectedAgentForPages.id || selectedAgentForPages.uid}/pages`, {
+      const res = await fetch(`${API_BASE_URL}/api/agents/${selectedAgentForPages.id || selectedAgentForPages.uid}/pages`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -604,7 +590,6 @@ export default function Agents() {
         },
         body: JSON.stringify({ 
           pages: editingPages,
-          // Sync leadSources with pages for compatibility
           leadSources: editingPages
         }),
       });
@@ -618,7 +603,6 @@ export default function Agents() {
       const result = await res.json();
       console.log("Update result:", result);
       
-      // Update the local agents state to reflect the changes
       setAgents(prevAgents => 
         prevAgents.map(agent => 
           agent.id === selectedAgentForPages.id || agent.uid === selectedAgentForPages.uid
@@ -632,14 +616,12 @@ export default function Agents() {
         description: "Le pagine dell'agente e le assegnazioni lead sono state aggiornate con successo."
       });
       
-      // Close dialog and refresh agent list
       setShowPagesDialog(false);
       await fetchAgents();
     } catch (err) {
       console.error("Error updating pages:", err);
       toast({ title: "Errore", description: err.message, variant: "destructive" });
     } finally {
-      // Clear loading state
       setDeletingAgents(prev => {
         const newState = { ...prev };
         delete newState[`pages_${selectedAgentForPages.id || selectedAgentForPages.uid}`];
