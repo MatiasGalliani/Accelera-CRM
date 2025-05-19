@@ -1183,8 +1183,28 @@ process.on('SIGTERM', async () => {
   }
 });
 
+// Add memory monitoring
+const monitorMemory = () => {
+  const used = process.memoryUsage();
+  console.log('Memory usage:');
+  for (let key in used) {
+    console.log(`${key}: ${Math.round(used[key] / 1024 / 1024 * 100) / 100} MB`);
+  }
+};
+
+// Monitor memory every 5 minutes
+setInterval(monitorMemory, 5 * 60 * 1000);
+
 // Modify server startup
 const PORT = process.env.PORT || 4000;
+
+// Configure Sequelize connection pool
+sequelize.options.pool = {
+  max: 5,
+  min: 0,
+  acquire: 30000,
+  idle: 10000
+};
 
 // Sync database models before starting the server
 sequelize.sync({ alter: true })
@@ -1192,12 +1212,17 @@ sequelize.sync({ alter: true })
     console.log('Database synchronized');
     const server = app.listen(PORT, () => {
       console.log(`Backend running on https://accelera-crm-production.up.railway.app`);
+      monitorMemory(); // Initial memory check
     });
     
     // Add server error handling
     server.on('error', (error) => {
       console.error('Server error:', error);
     });
+
+    // Add keep-alive configuration
+    server.keepAliveTimeout = 65000; // Slightly higher than 60 seconds
+    server.headersTimeout = 66000; // Slightly higher than keepAliveTimeout
   })
   .catch(err => {
     console.error('Error syncing database:', err);

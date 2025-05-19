@@ -141,18 +141,45 @@ export function AuthProvider({ children }) {
         try {
           console.log("Auth state changed - user logged in:", currentUser.email);
           
-          // Special case for hardcoded admin emails
-          if (ADMIN_EMAILS.includes(currentUser.email)) {
+          // Special case for hardcoded admin emails - case insensitive check
+          if (ADMIN_EMAILS.includes(currentUser.email?.toLowerCase())) {
             console.log("Admin email detected in hardcoded list!");
             
-            // Ensure admin record exists via server
-            await ensureAdminRecord(currentUser);
+            // Try to ensure admin record exists via server
+            try {
+              const idToken = await currentUser.getIdToken(true);
+              
+              // First try the fix-specific-account endpoint
+              const fixResponse = await fetch(`${API_BASE_URL}/api/fix-specific-account?email=${currentUser.email}`, {
+                headers: {
+                  Authorization: `Bearer ${idToken}`
+                }
+              });
+              
+              if (!fixResponse.ok) {
+                console.log("Fix account failed, trying create-admin endpoint");
+                // If that fails, try the create-admin endpoint
+                const createResponse = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CREATE_ADMIN}/${currentUser.email}`, {
+                  headers: {
+                    Authorization: `Bearer ${idToken}`
+                  }
+                });
+                
+                if (!createResponse.ok) {
+                  console.error("Both fix and create admin attempts failed");
+                }
+              }
+            } catch (error) {
+              console.error("Error ensuring admin status:", error);
+            }
             
+            // Set as admin regardless of server response
             const enhancedUser = {
               ...currentUser,
               role: 'admin'
             };
             
+            console.log("Setting hardcoded admin user:", enhancedUser);
             setUser(enhancedUser);
             setLoading(false);
             return;
@@ -172,10 +199,19 @@ export function AuthProvider({ children }) {
           setUser(enhancedUser);
         } catch (error) {
           console.error("Error in auth state change:", error);
-          setUser({
-            ...currentUser,
-            role: 'agent' // Default to agent role on error
-          });
+          // If this is a hardcoded admin email, set as admin even if server check fails
+          if (currentUser.email && ADMIN_EMAILS.includes(currentUser.email?.toLowerCase())) {
+            console.log("Error occurred but email is hardcoded admin, setting admin role");
+            setUser({
+              ...currentUser,
+              role: 'admin'
+            });
+          } else {
+            setUser({
+              ...currentUser,
+              role: 'agent' // Default to agent role on error
+            });
+          }
         }
       } else {
         setUser(null);
