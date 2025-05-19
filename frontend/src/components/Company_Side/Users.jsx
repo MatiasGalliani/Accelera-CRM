@@ -882,26 +882,6 @@ export default function Agents() {
                                   </p>
                                 </div>
                                 <div className="flex space-x-2">
-                                  {/* Verify Admin button - only for admin accounts */}
-                                  {!agent.isFirebaseOnly && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className={`rounded-xl text-xs h-7 transition-colors ${isVerifying ? 'bg-blue-100 hover:bg-blue-100' : ''}`}
-                                      onClick={() => verifyAdminStatus(agent)}
-                                      disabled={isVerifying || isDeleting}
-                                    >
-                                      {isVerifying ? (
-                                        <div className="flex items-center space-x-1">
-                                          <Loader2 className="h-3 w-3 animate-spin" />
-                                          <span>Verifica...</span>
-                                        </div>
-                                      ) : (
-                                        <span>Verifica Admin</span>
-                                      )}
-                                    </Button>
-                                  )}
-                                  
                                   <Button
                                     variant="destructive"
                                     size="sm"
