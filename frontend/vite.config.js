@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 // This matches the Railway CRM_BASE_URL exactly
-const TARGET_URL = 'https://accelera-crm-production.up.railway.app/';
+const TARGET_URL = 'https://accelera-crm-production.up.railway.app';
 
 export default defineConfig({
   plugins: [react()],

@@ -31,8 +31,16 @@ const db = admin.firestore();
 const app = express();
 // Parse JSON bodies
 app.use(bodyParser.json());
-// Enable CORS
-app.use(cors());
+// Enable CORS with specific origin
+app.use(cors({
+  origin: [
+    'http://localhost:5173',  // Local development
+    'http://localhost:3000',  // Local development alternative
+    'https://your-vercel-domain.vercel.app', // Add your Vercel domain here
+    /\.vercel\.app$/ // Allow all Vercel preview deployments
+  ],
+  credentials: true
+}));
 
 // Add API key verification middleware
 const verifyApiKey = (req, res, next) => {

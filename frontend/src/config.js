@@ -1,10 +1,9 @@
 const isDevelopment = import.meta.env.DEV;
 
-// In development, use the proxy configured in vite.config.js
-// In production, use the full URL (removing any trailing slash)
+// Use environment variable for API URL, fallback to default for development
 export const API_BASE_URL = isDevelopment 
   ? '' // Empty string uses the proxy in development
-  : 'https://accelera-crm-production.up.railway.app'.replace(/\/$/, '');
+  : (import.meta.env.VITE_API_URL || 'https://accelera-crm-production.up.railway.app').replace(/\/$/, '');
 
 // Helper function to build API URLs
 export const getApiUrl = (path) => {
