@@ -1200,3 +1200,37 @@ syncService.syncAllAgentsFromFirestore()
 app.use('/api/leads', leadRoutes);
 app.use('/api/agents', agentRoutes);
 app.use('/api', authRoutes);
+
+// Add health check endpoint
+app.get('/health', (req, res) => {
+  const status = {
+    server: 'up',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    database: sequelize.authenticate()
+      .then(() => 'connected')
+      .catch(() => 'disconnected'),
+    environment: process.env.NODE_ENV || 'development'
+  };
+  
+  Promise.resolve(status.database)
+    .then(dbStatus => {
+      status.database = dbStatus;
+      res.json(status);
+    })
+    .catch(err => {
+      status.database = 'error';
+      res.status(500).json(status);
+    });
+});
+
+// Add status monitoring middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} - ${res.statusCode} - ${duration}ms`);
+  });
+  next();
+});
