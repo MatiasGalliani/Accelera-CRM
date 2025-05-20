@@ -17,6 +17,7 @@ import Agents from "./components/Company_Side/Users"
 import Cases from "./components/Company_Side/Cases"
 import LeadsAgenti from "./components/Company_Side/AgentLeads"
 import AdminLeads from "./components/Company_Side/AdminLeads"
+import AdminCases from "./components/Company_Side/AdminCases"
 
 // Create a client
 const queryClient = new QueryClient({
@@ -60,6 +61,7 @@ export default function App() {
           <Route element={<AdminRoute />}>
             <Route path="/agents" element={<Agents />} />
             <Route path="/admin-leads" element={<AdminLeads />} />
+            <Route path="/admin-cases" element={<AdminCases />} />
           </Route>
           
           <Route path="/my-cases" element={<PrivateRoute><Cases /></PrivateRoute>} />

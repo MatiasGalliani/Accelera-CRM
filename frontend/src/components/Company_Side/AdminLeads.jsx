@@ -677,7 +677,7 @@ export default function AdminLeads() {
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle className="text-3xl">Leads degli agenti</CardTitle>
+              <CardTitle className="text-3xl">Leads degli agenti 📝</CardTitle>
               <CardDescription className="mb-2">
                 Monitora tutti i leads assegnati agli agenti
               </CardDescription>
@@ -770,26 +770,17 @@ export default function AdminLeads() {
             
             {LEAD_SOURCES.map(source => (
               <TabsContent key={source.id} value={source.id}>
-                <div className="flex items-center mb-2 relative rounded-xl border border-input bg-background">
-                  <Search className="absolute left-3 text-gray-400 h-4 w-4" />
-                  <Input
-                    placeholder="Cerca per agente, nome, email, telefono, stato..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10 rounded-xl border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                  />
-                </div>
-                
-                <div className="flex items-center text-sm text-muted-foreground mb-4">
-                  <span className="mr-2">Lead totali: {filteredLeads.length}</span>
-                  {filteredLeads.length > 0 && search.trim() && (
-                    <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs">
-                      Filtrati da {data.leads.length} totali
-                    </span>
-                  )}
-                </div>
-                
-                <CardContent className="px-0 pt-4">
+                <CardContent className="px-4 pt-0">
+                  <div className="relative mb-2">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <Input
+                      placeholder="Cerca per nome, cognome, email, telefono..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="pl-10 rounded-xl"
+                    />
+                  </div>
+
                   {isLoading ? (
                     <div className="text-center py-10 flex flex-col items-center">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
@@ -819,150 +810,145 @@ export default function AdminLeads() {
                       <p className="text-gray-400 text-sm mb-4">Non ci sono ancora leads provenienti da {source.name}.</p>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
-                      <Table className="min-w-full">
-                        <TableHeader className="sticky top-0 bg-white z-10">
-                          <TableRow>
-                            <TableHead className="w-[30px]">
-                              <Checkbox 
-                                checked={allSelected} 
-                                onCheckedChange={toggleSelectAll}
-                                aria-label="Select all" 
-                              />
-                            </TableHead>
-                            <TableHead className="whitespace-nowrap px-4 bg-gray-50">Data</TableHead>
-                            <TableHead className="whitespace-nowrap px-4 font-bold bg-blue-50">Agente</TableHead>
-                            <TableHead className="whitespace-nowrap px-4 bg-gray-50">Nome</TableHead>
-                            <TableHead className="whitespace-nowrap px-4 bg-gray-50">Cognome</TableHead>
-                            <TableHead className="whitespace-nowrap px-4 bg-gray-50">Mail</TableHead>
-                            <TableHead className="whitespace-nowrap px-4 bg-gray-50">Telefono</TableHead>
-                            
-                            {/* Source-specific columns */}
-                            {source.id === "aiquinto" && (
-                              <>
-                                <TableHead className="whitespace-nowrap px-4 bg-gray-50">Importo Richiesto</TableHead>
-                                <TableHead className="whitespace-nowrap px-4 bg-gray-50">Stipendio Netto</TableHead>
-                                <TableHead className="whitespace-nowrap px-4 bg-gray-50">Tipologia</TableHead>
-                                <TableHead className="whitespace-nowrap px-4 bg-gray-50">Sottotipo</TableHead>
-                                <TableHead className="whitespace-nowrap px-4 bg-gray-50">Tipo Contratto</TableHead>
-                                <TableHead className="whitespace-nowrap px-4 bg-gray-50">Provincia</TableHead>
-                              </>
-                            )}
-                            
-                            {source.id === "aimedici" && (
-                              <>
-                                <TableHead className="whitespace-nowrap px-4 bg-gray-50">Scopo della richiesta</TableHead>
-                                <TableHead className="whitespace-nowrap px-4 bg-gray-50">Importo Richiesto</TableHead>
-                                <TableHead className="whitespace-nowrap px-4 bg-gray-50">Città di Residenza</TableHead>
-                                <TableHead className="whitespace-nowrap px-4 bg-gray-50">Provincia di Residenza</TableHead>
-                              </>
-                            )}
-                            
-                            {source.id === "aifidi" && (
-                              <>
-                                <TableHead className="whitespace-nowrap px-4 bg-gray-50">Scopo del finanziamento</TableHead>
-                                <TableHead className="whitespace-nowrap px-4 bg-gray-50">Nome Azienda</TableHead>
-                                <TableHead className="whitespace-nowrap px-4 bg-gray-50">Città Sede Legale</TableHead>
-                                <TableHead className="whitespace-nowrap px-4 bg-gray-50">Città Sede Operativa</TableHead>
-                                <TableHead className="whitespace-nowrap px-4 bg-gray-50">Importo Richiesto</TableHead>
-                              </>
-                            )}
-                            
-                            {/* Final common columns */}
-                            <TableHead className="whitespace-nowrap px-4 bg-gray-50">Privacy</TableHead>
-                            <TableHead className="whitespace-nowrap px-4 bg-green-50">Stato</TableHead>
-                            <TableHead className="whitespace-nowrap px-4 bg-yellow-50 min-w-[250px]">Commenti</TableHead>
-                            <TableHead className="whitespace-nowrap px-4 bg-gray-50">Azioni</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredLeads.map((lead, index) => {
-                            const statusOption = getStatusInfo(lead.status);
-                            
-                            return (
-                              <TableRow key={lead.id || index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                                <TableCell className="py-3 px-4">
-                                  <Checkbox 
-                                    checked={selectedLeads.includes(lead.id)} 
-                                    onCheckedChange={() => toggleSelect(lead.id)}
-                                    aria-label={`Select lead ${lead.firstName} ${lead.lastName}`} 
-                                  />
-                                </TableCell>
-                                <TableCell className="py-3 px-4">{new Date(lead.createdAt).toLocaleDateString('it-IT')}</TableCell>
-                                <TableCell className="py-3 px-4 font-medium">
-                                  {lead.agentName ? (
-                                    <div className="bg-blue-50 px-2 py-1 rounded text-blue-700 inline-block">
-                                      {lead.agentName}
-                                    </div>
-                                  ) : (
-                                    <div className="bg-red-50 px-2 py-1 rounded text-red-700 inline-block">
-                                      Non assegnato
-                                    </div>
+                    <div className="relative border rounded-lg">
+                      <div className="overflow-auto max-h-[calc(100vh-400px)]">
+                        <table className="w-full border-collapse">
+                          <thead className="sticky top-0 bg-white z-20">
+                            <tr className="border-b [&>th]:whitespace-nowrap [&>th]:px-4 [&>th]:py-3 [&>th]:font-medium [&>th]:text-sm [&>th]:text-gray-600">
+                              <th className="w-[40px] px-2">
+                                <Checkbox
+                                  checked={filteredLeads.length > 0 && selectedLeads.length === filteredLeads.length}
+                                  onCheckedChange={toggleSelectAll}
+                                  aria-label="Seleziona tutto"
+                                  disabled={filteredLeads.length === 0}
+                                />
+                              </th>
+                              <th>Data</th>
+                              <th className="bg-blue-50">Agente</th>
+                              <th>Nome</th>
+                              <th>Cognome</th>
+                              <th>Mail</th>
+                              <th>Telefono</th>
+
+                              {/* Source-specific columns */}
+                              {source.id === "aiquinto" && (
+                                <>
+                                  <th>Importo Richiesto</th>
+                                  <th>Stipendio Netto</th>
+                                  <th>Tipologia</th>
+                                  <th>Sottotipo</th>
+                                  <th>Tipo Contratto</th>
+                                  <th>Provincia</th>
+                                  <th>Mese ed anno di assunzione</th>
+                                  <th>Numero dipendenti</th>
+                                </>
+                              )}
+                              
+                              {source.id === "aimedici" && (
+                                <>
+                                  <th>Scopo della richiesta</th>
+                                  <th>Importo Richiesto</th>
+                                  <th>Città di Residenza</th>
+                                  <th>Provincia di Residenza</th>
+                                </>
+                              )}
+                              
+                              {source.id === "aifidi" && (
+                                <>
+                                  <th>Scopo del finanziamento</th>
+                                  <th>Nome Azienda</th>
+                                  <th>Città Sede Legale</th>
+                                  <th>Città Sede Operativa</th>
+                                  <th>Importo Richiesto</th>
+                                </>
+                              )}
+                              
+                              {/* Final common columns */}
+                              <th>Privacy</th>
+                              <th className="bg-green-50">Stato</th>
+                              <th className="bg-yellow-50 min-w-[250px]">Commenti</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredLeads.map((lead, index) => {
+                              const statusOption = getStatusInfo(lead.status);
+                              
+                              return (
+                                <tr key={lead.id || index} className="border-b hover:bg-gray-50">
+                                  <td className="p-2">
+                                    <Checkbox 
+                                      checked={selectedLeads.includes(lead.id)} 
+                                      onCheckedChange={() => toggleSelect(lead.id)}
+                                      aria-label={`Select lead ${lead.firstName} ${lead.lastName}`} 
+                                    />
+                                  </td>
+                                  <td className="py-3 px-4">{new Date(lead.createdAt).toLocaleDateString('it-IT')}</td>
+                                  <td className="py-3 px-4 font-medium">
+                                    {lead.agentName ? (
+                                      <div className="bg-blue-50 px-2 py-1 rounded text-blue-700 inline-block">
+                                        {lead.agentName}
+                                      </div>
+                                    ) : (
+                                      <div className="bg-red-50 px-2 py-1 rounded text-red-700 inline-block">
+                                        Non assegnato
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="py-3 px-4">{lead.firstName || "-"}</td>
+                                  <td className="py-3 px-4">{lead.lastName || "-"}</td>
+                                  <td className="py-3 px-4">{lead.email || "-"}</td>
+                                  <td className="py-3 px-4">{lead.phone || "-"}</td>
+                                  
+                                  {/* Source-specific data */}
+                                  {source.id === "aiquinto" && (
+                                    <>
+                                      <td className="py-3 px-4">{lead.details?.requestedAmount || "-"}</td>
+                                      <td className="py-3 px-4">{lead.details?.netSalary || "-"}</td>
+                                      <td className="py-3 px-4">{lead.details?.employeeType || "-"}</td>
+                                      <td className="py-3 px-4">{lead.details?.employmentSubtype || "-"}</td>
+                                      <td className="py-3 px-4">{lead.details?.contractType || "-"}</td>
+                                      <td className="py-3 px-4">{lead.details?.residenceProvince || "-"}</td>
+                                      <td className="py-3 px-4">{lead.details?.employmentDate || "-"}</td>
+                                      <td className="py-3 px-4">{lead.details?.employeeCount || "-"}</td>
+                                    </>
                                   )}
-                                </TableCell>
-                                <TableCell className="py-3 px-4">{lead.firstName || "-"}</TableCell>
-                                <TableCell className="py-3 px-4">{lead.lastName || "-"}</TableCell>
-                                <TableCell className="py-3 px-4">{lead.email || "-"}</TableCell>
-                                <TableCell className="py-3 px-4">{lead.phone || "-"}</TableCell>
-                                
-                                {/* Source-specific data */}
-                                {source.id === "aiquinto" && (
-                                  <>
-                                    <TableCell className="py-3 px-4">{lead.details?.requestedAmount || "-"}</TableCell>
-                                    <TableCell className="py-3 px-4">{lead.details?.netSalary || "-"}</TableCell>
-                                    <TableCell className="py-3 px-4">{lead.details?.employeeType || "-"}</TableCell>
-                                    <TableCell className="py-3 px-4">{lead.details?.employmentSubtype || "-"}</TableCell>
-                                    <TableCell className="py-3 px-4">{lead.details?.contractType || "-"}</TableCell>
-                                    <TableCell className="py-3 px-4">{lead.details?.residenceProvince || "-"}</TableCell>
-                                  </>
-                                )}
-                                
-                                {source.id === "aimedici" && (
-                                  <>
-                                    <TableCell className="py-3 px-4">{lead.details?.financingPurpose || "-"}</TableCell>
-                                    <TableCell className="py-3 px-4">{lead.details?.requestedAmount || "-"}</TableCell>
-                                    <TableCell className="py-3 px-4">{lead.details?.residenceCity || "-"}</TableCell>
-                                    <TableCell className="py-3 px-4">{lead.details?.residenceProvince || "-"}</TableCell>
-                                  </>
-                                )}
-                                
-                                {source.id === "aifidi" && (
-                                  <>
-                                    <TableCell className="py-3 px-4">{lead.details?.financingPurpose || "-"}</TableCell>
-                                    <TableCell className="py-3 px-4">{lead.details?.companyName || "-"}</TableCell>
-                                    <TableCell className="py-3 px-4">{lead.details?.legalCity || "-"}</TableCell>
-                                    <TableCell className="py-3 px-4">{lead.details?.operationalCity || "-"}</TableCell>
-                                    <TableCell className="py-3 px-4">{lead.details?.requestedAmount || "-"}</TableCell>
-                                  </>
-                                )}
-                                
-                                {/* Final common data */}
-                                <TableCell className="py-3 px-4">{lead.privacyAccettata ? "Sì" : "No"}</TableCell>
-                                <TableCell className="py-3 px-4">
-                                  <div className="flex items-center gap-2">
-                                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ${statusOption.color}`}></div>
-                                    <span>{statusOption.label}</span>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="py-3 px-4 min-w-[250px]">
-                                  <CommentViewerCell lead={lead} />
-                                </TableCell>
-                                <TableCell className="py-3 px-4">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 rounded-full hover:bg-gray-100"
-                                    onClick={() => handleAssignLead(lead)}
-                                    title="Assegna lead"
-                                  >
-                                    <UserCog className="h-4 w-4" />
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
+                                  
+                                  {source.id === "aimedici" && (
+                                    <>
+                                      <td className="py-3 px-4">{lead.details?.financingPurpose || "-"}</td>
+                                      <td className="py-3 px-4">{lead.details?.requestedAmount || "-"}</td>
+                                      <td className="py-3 px-4">{lead.details?.residenceCity || "-"}</td>
+                                      <td className="py-3 px-4">{lead.details?.residenceProvince || "-"}</td>
+                                    </>
+                                  )}
+                                  
+                                  {source.id === "aifidi" && (
+                                    <>
+                                      <td className="py-3 px-4">{lead.details?.financingPurpose || "-"}</td>
+                                      <td className="py-3 px-4">{lead.details?.companyName || "-"}</td>
+                                      <td className="py-3 px-4">{lead.details?.legalCity || "-"}</td>
+                                      <td className="py-3 px-4">{lead.details?.operationalCity || "-"}</td>
+                                      <td className="py-3 px-4">{lead.details?.requestedAmount || "-"}</td>
+                                    </>
+                                  )}
+                                  
+                                  {/* Final common data */}
+                                  <td className="py-3 px-4">{lead.privacyAccettata ? "Sì" : "No"}</td>
+                                  <td className="py-3 px-4">
+                                    <div className="flex items-center gap-2">
+                                      <div className={`w-3 h-3 rounded-full flex-shrink-0 ${statusOption.color}`}></div>
+                                      <span>{statusOption.label}</span>
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-4 min-w-[250px]">
+                                    <CommentViewerCell lead={lead} />
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
                 </CardContent>

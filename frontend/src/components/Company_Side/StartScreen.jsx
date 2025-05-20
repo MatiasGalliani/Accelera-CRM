@@ -39,46 +39,50 @@ export default function StartScreen() {
             toHour: 6,
         },
     ]
-
-    // Base actions for all users
-    const commonActions = [
+    
+    // Agent-only actions
+    const agentActions = [
         {
-            title: "Pre Istruttoria Documenti AI",
-            description: "Procedi con la richiesta iniziale dei documenti",
-            to: "/client-type"
+            title: "Miei Leads 📝",
+            description: "Visualizza i leads assegnati a te",
+            to: "/my-leads"
         },
         {
-            title: "Richieste Documentali",
+            title: "Richieste Documentali📃",
             description: "Visualizza tutte le tue richieste documentali",
             to: "/my-cases"
+        },
+        {
+            title: "Pre Istruttoria Documenti IA 🤖",
+            description: "Procedi con la richiesta iniziale dei documenti",
+            to: "/client-type"
         }
     ];
-    
-    // Agent-only action
-    const agentAction = {
-        title: "Miei Leads",
-        description: "Visualizza i leads assegnati a te",
-        to: "/my-leads"
-    };
+
     
     // Admin-only actions
     const adminActions = [
         {
-            title: "Gestione utenti",
+            title: "Gestione utenti 🧑‍💼👩‍💼",
             description: "Gestione degli utenti",
             to: "/agents"
         },
         {
-            title: "Leads degli agenti",
+            title: "Leads degli agenti 📝",
             description: "Visualizza i leads degli agenti",
             to: "/admin-leads"
+        },
+        {
+            title: "Richieste Documentali📃",
+            description: "Visualizza tutte le richieste documentali degli agenti",
+            to: "/admin-cases"
         }
     ];
     
     // Use different actions based on user role
     const actions = isAdmin 
-        ? [...commonActions, ...adminActions] 
-        : [...commonActions, agentAction];
+        ? [...adminActions]
+        : [...agentActions];
     
     console.log("StartScreen - Admin status:", isAdmin);
 

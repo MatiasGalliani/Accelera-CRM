@@ -365,7 +365,7 @@ export default function Cases() {
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle className="text-3xl">Richieste Documentali</CardTitle>
+              <CardTitle className="text-3xl">Richieste Documentali 📃</CardTitle>
               <CardDescription className="mb-2">
                 Visualizza e gestisci tutte le richieste di documenti
               </CardDescription>

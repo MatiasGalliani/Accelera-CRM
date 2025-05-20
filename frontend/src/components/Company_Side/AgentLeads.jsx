@@ -18,7 +18,7 @@ import {
   CardContent,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Search, RefreshCw, Trash2, PencilLine, Save } from "lucide-react"
+import { Search, RefreshCw, Trash2, PencilLine, Save, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import LogoHeader from "./LogoHeader"
 import {
@@ -78,14 +78,14 @@ const LEAD_SOURCES = [
 // API function to fetch leads
 const fetchLeads = async (user, source) => {
   if (!user) throw new Error("Utente non autenticato");
-  
+
   try {
     // Get Firebase token
     const { auth } = await import('@/auth/firebase');
     if (!auth.currentUser) {
       throw new Error("Sessione scaduta, effettua nuovamente l'accesso");
     }
-    
+
     // Try to get token without force refresh first
     let token;
     try {
@@ -99,15 +99,15 @@ const fetchLeads = async (user, source) => {
         throw new Error("Troppi tentativi. Attendi qualche minuto e riprova.");
       }
     }
-    
+
     console.log("Token ottenuto con successo per il caricamento dei leads");
-    
+
     const response = await fetch(getApiUrl(`${API_ENDPOINTS.LEADS}/my-leads?source=${source}`), {
       headers: {
         "Authorization": `Bearer ${token}`
       }
     });
-    
+
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
         throw new Error("Sessione scaduta o non autorizzata. Effettua nuovamente l'accesso.");
@@ -133,11 +133,11 @@ const deleteLead = async ({ id, token }) => {
       "Authorization": `Bearer ${token}`
     }
   });
-  
+
   if (!response.ok) {
     throw new Error('Errore durante l\'eliminazione del lead');
   }
-  
+
   return await response.json();
 }
 
@@ -151,11 +151,11 @@ const updateLeadStatus = async ({ id, status, token }) => {
     },
     body: JSON.stringify({ status })
   });
-  
+
   if (!response.ok) {
     throw new Error('Errore durante l\'aggiornamento dello stato');
   }
-  
+
   return await response.json();
 }
 
@@ -169,11 +169,11 @@ const addLeadComment = async ({ id, comment, token }) => {
     },
     body: JSON.stringify({ comment })
   });
-  
+
   if (!response.ok) {
     throw new Error('Errore durante l\'aggiunta del commento');
   }
-  
+
   return await response.json();
 }
 
@@ -192,10 +192,10 @@ export default function LeadsAgenti() {
   const [commentText, setCommentText] = useState("");
 
   // Use React Query to manage the leads data
-  const { 
-    data: leads = [], 
-    isLoading, 
-    isError, 
+  const {
+    data: leads = [],
+    isLoading,
+    isError,
     error,
     refetch
   } = useQuery({
@@ -207,15 +207,15 @@ export default function LeadsAgenti() {
   // Función para formatear fechas correctamente
   const formatDate = (dateString) => {
     if (!dateString) return "-";
-    
+
     // Intentar crear un objeto Date
     const date = new Date(dateString);
-    
+
     // Verificar si la fecha es válida
     if (isNaN(date.getTime())) {
       return "-";
     }
-    
+
     // Formatear como DD/MM/YYYY
     return date.toLocaleDateString('it-IT');
   };
@@ -238,7 +238,7 @@ export default function LeadsAgenti() {
     mutationFn: async (leadIds) => {
       const { auth } = await import('@/auth/firebase');
       const token = await auth.currentUser.getIdToken(true);
-      
+
       return Promise.all(
         leadIds.map(id => deleteLead({ id, token }))
       );
@@ -303,31 +303,30 @@ export default function LeadsAgenti() {
       }
       return lead;
     });
-    
+
     // Update the cache optimistically
     queryClient.setQueryData(['leads', currentSource], updatedLeads);
-    
+
     // Call the API
     (async () => {
       try {
         const { auth } = await import('@/auth/firebase');
         const token = await auth.currentUser.getIdToken(true);
-        
+
         await updateLeadStatus({ id: leadId, status, token });
-        
+
         toast({
           title: "Stato aggiornato",
-          description: `Lo stato è stato aggiornato a "${
-            STATUS_OPTIONS.find(option => option.value === status)?.label || status
-          }"`,
+          description: `Lo stato è stato aggiornato a "${STATUS_OPTIONS.find(option => option.value === status)?.label || status
+            }"`,
           className: "rounded-xl",
         });
       } catch (error) {
         console.error('Error updating status:', error);
-        
+
         // Revert the cache on error
         queryClient.invalidateQueries({ queryKey: ['leads', currentSource] });
-        
+
         toast({
           title: "Errore",
           description: error.message || "Impossibile aggiornare lo stato",
@@ -343,27 +342,27 @@ export default function LeadsAgenti() {
     setCommentText(lead.commenti || "");
     setIsCommentModalOpen(true);
   };
-  
+
   const handleSaveComment = async () => {
     if (!commentingLead) return;
-    
+
     try {
       const { auth } = await import('@/auth/firebase');
       const token = await auth.currentUser.getIdToken(true);
-      
-      await addLeadComment({ 
-        id: commentingLead.id, 
-        comment: commentText, 
-        token 
+
+      await addLeadComment({
+        id: commentingLead.id,
+        comment: commentText,
+        token
       });
-      
+
       // Refresh leads to get updated comments
       queryClient.invalidateQueries({ queryKey: ['leads', currentSource] });
-      
+
       // Cerrar el modal
       setIsCommentModalOpen(false);
       setCommentingLead(null);
-      
+
       toast({
         title: "Commento salvato",
         description: "Il commento è stato salvato con successo",
@@ -371,7 +370,7 @@ export default function LeadsAgenti() {
       });
     } catch (error) {
       console.error('Error saving comment:', error);
-      
+
       toast({
         title: "Errore",
         description: error.message || "Impossibile salvare il commento",
@@ -383,20 +382,20 @@ export default function LeadsAgenti() {
 
   const filteredLeads = (leads || []).filter(lead => {
     const searchTerm = search.toLowerCase()
-    
+
     // Campos comunes para todas las fuentes
-    const commonFieldsMatch = 
+    const commonFieldsMatch =
       ((lead.firstName || '').toLowerCase().includes(searchTerm)) ||
       ((lead.lastName || '').toLowerCase().includes(searchTerm)) ||
       ((lead.email || '').toLowerCase().includes(searchTerm)) ||
       ((lead.phone || '').toLowerCase().includes(searchTerm)) ||
       ((lead.message || '').toLowerCase().includes(searchTerm));
-    
+
     // Si no es AIQuinto o ya hemos encontrado coincidencia en campos comunes
     if (currentSource !== 'aiquinto' && currentSource !== 'aifidi' || commonFieldsMatch) {
       return commonFieldsMatch;
     }
-    
+
     if (currentSource === 'aiquinto') {
       // Campos específicos de AIQuinto
       return (
@@ -406,6 +405,8 @@ export default function LeadsAgenti() {
         ((lead.sottotipo || '').toLowerCase().includes(searchTerm)) ||
         ((lead.tipoContratto || '').toLowerCase().includes(searchTerm)) ||
         ((lead.provinciaResidenza || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.meseAnnoAssunzione || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.numeroDipendenti || '').toLowerCase().includes(searchTerm)) ||
         ((lead.commenti || '').toLowerCase().includes(searchTerm))
       );
     } else if (currentSource === 'aifidi') {
@@ -428,15 +429,15 @@ export default function LeadsAgenti() {
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle className="text-3xl">I Miei Leads</CardTitle>
+              <CardTitle className="text-3xl">I Miei Leads 📝</CardTitle>
               <CardDescription className="mb-2">
                 Visualizza e gestisci tutti i tuoi leads provenienti dai diversi siti
               </CardDescription>
             </div>
             <div className="flex gap-2 mb-8 md:mb-0">
               {selectedLeads.length > 0 && (
-                <Button 
-                  variant="destructive" 
+                <Button
+                  variant="destructive"
                   size="sm"
                   onClick={() => setIsMultiDeleteDialogOpen(true)}
                   className="rounded-xl"
@@ -446,9 +447,9 @@ export default function LeadsAgenti() {
                   Elimina ({selectedLeads.length})
                 </Button>
               )}
-              <Button 
-                variant="outline" 
-                size="icon" 
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={() => refetch()}
                 className="rounded-xl"
               >
@@ -456,16 +457,16 @@ export default function LeadsAgenti() {
               </Button>
             </div>
           </div>
-          
+
           <div className="-mb-4">
-            <LeadSourceTabs 
-              value={currentSource} 
-              onValueChange={handleSourceChange} 
+            <LeadSourceTabs
+              value={currentSource}
+              onValueChange={handleSourceChange}
               allSources={LEAD_SOURCES}
             />
           </div>
         </CardHeader>
-        
+
         <CardContent className="px-4 pt-0">
           <div className="relative mb-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -476,7 +477,7 @@ export default function LeadsAgenti() {
               className="pl-10 rounded-xl"
             />
           </div>
-          
+
           {isLoading ? (
             <div className="text-center py-4">Caricamento...</div>
           ) : isError ? (
@@ -484,14 +485,14 @@ export default function LeadsAgenti() {
               <div className="bg-red-50 p-4 rounded-xl max-w-md mb-2">
                 <p className="text-red-800 font-medium mb-1">Si è verificato un problema</p>
                 <p className="text-red-600 text-sm">
-                  {error?.message?.includes("getIdToken") ? 
-                    "Sessione scaduta. Per favore, effettua nuovamente l'accesso." : 
+                  {error?.message?.includes("getIdToken") ?
+                    "Sessione scaduta. Per favore, effettua nuovamente l'accesso." :
                     error?.message || `Impossibile caricare i leads`}
                 </p>
               </div>
-              <Button 
-                variant="outline" 
-                onClick={() => refetch()} 
+              <Button
+                variant="outline"
+                onClick={() => refetch()}
                 className="mt-2 rounded-xl"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
@@ -517,7 +518,7 @@ export default function LeadsAgenti() {
                       <th>Cognome</th>
                       <th>Mail</th>
                       <th>Telefono</th>
-                      
+
                       {/* Source-specific columns */}
                       {currentSource === "aiquinto" ? (
                         <>
@@ -526,7 +527,9 @@ export default function LeadsAgenti() {
                           <th>Tipologia</th>
                           <th>Sottotipo</th>
                           <th>Tipo Contratto</th>
-                          <th>Provincia</th>
+                          <th>Provincia di Residenza</th>
+                          <th>Mese ed anno di assunzione</th>
+                          <th>Numero dipendenti</th>
                         </>
                       ) : currentSource === "aimedici" ? (
                         <>
@@ -544,12 +547,14 @@ export default function LeadsAgenti() {
                           <th>Importo Richiesto</th>
                         </>
                       )}
-                      
+
                       {/* Final common columns */}
                       <th>Privacy</th>
                       <th>Stato</th>
                       <th>Commenti</th>
-                      <th className="text-right">Azioni</th>
+                      <th>
+                        IA 🤖
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -568,7 +573,7 @@ export default function LeadsAgenti() {
                     ) : (
                       filteredLeads.map((lead) => {
                         const statusOption = STATUS_OPTIONS.find(opt => opt.value === lead.status) || STATUS_OPTIONS[0];
-                        
+
                         return (
                           <tr key={lead.id} className="border-b hover:bg-gray-50">
                             <td className="p-2">
@@ -583,7 +588,7 @@ export default function LeadsAgenti() {
                             <td className="py-3 px-4">{lead.lastName || "-"}</td>
                             <td className="py-3 px-4">{lead.email || "-"}</td>
                             <td className="py-3 px-4">{lead.phone || "-"}</td>
-                            
+
                             {/* Source-specific data */}
                             {currentSource === "aiquinto" ? (
                               <>
@@ -593,6 +598,8 @@ export default function LeadsAgenti() {
                                 <td className="py-3 px-4">{lead.sottotipo || "-"}</td>
                                 <td className="py-3 px-4">{lead.tipoContratto || "-"}</td>
                                 <td className="py-3 px-4">{lead.provinciaResidenza || "-"}</td>
+                                <td className="py-3 px-4">{lead.meseAnnoAssunzione || "-"}</td>
+                                <td className="py-3 px-4">{lead.numeroDipendenti || "-"}</td>
                               </>
                             ) : currentSource === "aimedici" ? (
                               <>
@@ -610,7 +617,7 @@ export default function LeadsAgenti() {
                                 <td className="py-3 px-4">{lead.importoRichiesto || "-"}</td>
                               </>
                             )}
-                            
+
                             {/* Final common data */}
                             <td className="py-3 px-4">{lead.privacyAccettata ? "Sì" : "No"}</td>
                             <td className="py-3 px-4">
@@ -639,19 +646,21 @@ export default function LeadsAgenti() {
                               </Select>
                             </td>
                             <td className="py-3 px-4 min-w-[250px]">
-                              <CommentPreviewCell 
+                              <CommentPreviewCell
                                 lead={lead}
                                 onEdit={() => handleEditComment(lead)}
                               />
                             </td>
                             <td className="text-right">
                               <Button
-                                variant="ghost"
-                                size="icon"
+                                disabled
+                                variant="default"
+                                size="sm"
                                 onClick={() => handleDeleteClick(lead.id)}
-                                className="h-8 w-8 rounded-xl text-red-500 hover:text-red-700 hover:bg-red-50"
+                                className=" text-white hover:text-white rounded-xl mx-10"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                Richiedere Documenti
+                                <ArrowRight className="h-4 w-4" />
                               </Button>
                             </td>
                           </tr>
@@ -678,8 +687,8 @@ export default function LeadsAgenti() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-xl">Annulla</AlertDialogCancel>
-            <AlertDialogAction 
-              className="rounded-xl bg-red-600 hover:bg-red-700" 
+            <AlertDialogAction
+              className="rounded-xl bg-red-600 hover:bg-red-700"
               onClick={confirmDelete}
               disabled={deleteMutation.isPending}
             >
@@ -701,8 +710,8 @@ export default function LeadsAgenti() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-xl">Annulla</AlertDialogCancel>
-            <AlertDialogAction 
-              className="rounded-xl bg-red-600 hover:bg-red-700" 
+            <AlertDialogAction
+              className="rounded-xl bg-red-600 hover:bg-red-700"
               onClick={confirmBulkDelete}
               disabled={bulkDeleteMutation.isPending}
             >
@@ -742,15 +751,15 @@ export default function LeadsAgenti() {
           </div>
 
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsCommentModalOpen(false)}
               className="rounded-xl"
             >
               Annulla
             </Button>
-            <Button 
-              onClick={handleSaveComment} 
+            <Button
+              onClick={handleSaveComment}
               className="rounded-xl"
             >
               <Save className="h-4 w-4 mr-2" />
