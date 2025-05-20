@@ -499,10 +499,10 @@ export default function LeadsAgenti() {
               </Button>
             </div>
           ) : (
-            <div className={`${currentSource === "aiquinto" ? "overflow-x-auto" : ""} overflow-y-auto max-h-[300px] shadow-inner`}>
+            <div className="relative border rounded-lg">
               <Table>
-                <TableHeader className="sticky top-0 bg-white z-10">
-                  <TableRow>
+                <TableHeader>
+                  <TableRow className="sticky top-0 bg-white z-20 border-b">
                     <TableHead className="w-[40px] px-2">
                       <Checkbox
                         checked={filteredLeads.length > 0 && selectedLeads.length === filteredLeads.length}
@@ -511,155 +511,158 @@ export default function LeadsAgenti() {
                         disabled={filteredLeads.length === 0}
                       />
                     </TableHead>
-                    <TableHead className="whitespace-nowrap px-4 bg-white">Data</TableHead>
-                    <TableHead className="whitespace-nowrap px-4 bg-white">Nome</TableHead>
-                    <TableHead className="whitespace-nowrap px-4 bg-white">Cognome</TableHead>
-                    <TableHead className="whitespace-nowrap px-4 bg-white">Mail</TableHead>
-                    <TableHead className="whitespace-nowrap px-4 bg-white">Telefono</TableHead>
+                    <TableHead className="whitespace-nowrap px-4">Data</TableHead>
+                    <TableHead className="whitespace-nowrap px-4">Nome</TableHead>
+                    <TableHead className="whitespace-nowrap px-4">Cognome</TableHead>
+                    <TableHead className="whitespace-nowrap px-4">Mail</TableHead>
+                    <TableHead className="whitespace-nowrap px-4">Telefono</TableHead>
                     
                     {/* Source-specific columns */}
                     {currentSource === "aiquinto" ? (
                       <>
-                        <TableHead className="whitespace-nowrap px-4 bg-white">Importo Richiesto</TableHead>
-                        <TableHead className="whitespace-nowrap px-4 bg-white">Stipendio Netto</TableHead>
-                        <TableHead className="whitespace-nowrap px-4 bg-white">Tipologia</TableHead>
-                        <TableHead className="whitespace-nowrap px-4 bg-white">Sottotipo</TableHead>
-                        <TableHead className="whitespace-nowrap px-4 bg-white">Tipo Contratto</TableHead>
-                        <TableHead className="whitespace-nowrap px-4 bg-white">Provincia</TableHead>
+                        <TableHead className="whitespace-nowrap px-4">Importo Richiesto</TableHead>
+                        <TableHead className="whitespace-nowrap px-4">Stipendio Netto</TableHead>
+                        <TableHead className="whitespace-nowrap px-4">Tipologia</TableHead>
+                        <TableHead className="whitespace-nowrap px-4">Sottotipo</TableHead>
+                        <TableHead className="whitespace-nowrap px-4">Tipo Contratto</TableHead>
+                        <TableHead className="whitespace-nowrap px-4">Provincia</TableHead>
                       </>
                     ) : currentSource === "aimedici" ? (
                       <>
-                        <TableHead className="whitespace-nowrap px-4 bg-white">Scopo della richiesta</TableHead>
-                        <TableHead className="whitespace-nowrap px-4 bg-white">Importo Richiesto</TableHead>
-                        <TableHead className="whitespace-nowrap px-4 bg-white">Città di Residenza</TableHead>
-                        <TableHead className="whitespace-nowrap px-4 bg-white">Provincia di Residenza</TableHead>
+                        <TableHead className="whitespace-nowrap px-4">Scopo della richiesta</TableHead>
+                        <TableHead className="whitespace-nowrap px-4">Importo Richiesto</TableHead>
+                        <TableHead className="whitespace-nowrap px-4">Città di Residenza</TableHead>
+                        <TableHead className="whitespace-nowrap px-4">Provincia di Residenza</TableHead>
                       </>
                     ) : (
                       <>
-                        <TableHead className="whitespace-nowrap px-4 bg-white">Scopo del finanziamento</TableHead>
-                        <TableHead className="whitespace-nowrap px-4 bg-white">Nome Azienda</TableHead>
-                        <TableHead className="whitespace-nowrap px-4 bg-white">Città Sede Legale</TableHead>
-                        <TableHead className="whitespace-nowrap px-4 bg-white">Città Sede Operativa</TableHead>
-                        <TableHead className="whitespace-nowrap px-4 bg-white">Importo Richiesto</TableHead>
+                        <TableHead className="whitespace-nowrap px-4">Scopo del finanziamento</TableHead>
+                        <TableHead className="whitespace-nowrap px-4">Nome Azienda</TableHead>
+                        <TableHead className="whitespace-nowrap px-4">Città Sede Legale</TableHead>
+                        <TableHead className="whitespace-nowrap px-4">Città Sede Operativa</TableHead>
+                        <TableHead className="whitespace-nowrap px-4">Importo Richiesto</TableHead>
                       </>
                     )}
                     
                     {/* Final common columns */}
-                    <TableHead className="whitespace-nowrap px-4 bg-white">Privacy</TableHead>
-                    <TableHead className="whitespace-nowrap px-4 bg-white">Stato</TableHead>
-                    <TableHead className="whitespace-nowrap px-4 bg-white">Commenti</TableHead>
-                    <TableHead className="whitespace-nowrap px-4 text-right bg-white">Azioni</TableHead>
+                    <TableHead className="whitespace-nowrap px-4">Privacy</TableHead>
+                    <TableHead className="whitespace-nowrap px-4">Stato</TableHead>
+                    <TableHead className="whitespace-nowrap px-4">Commenti</TableHead>
+                    <TableHead className="whitespace-nowrap px-4 text-right">Azioni</TableHead>
                   </TableRow>
                 </TableHeader>
-                
-                <TableBody>
-                  {filteredLeads.length === 0 ? (
-                    <TableRow className="hover:bg-transparent">
-                      <TableCell colSpan={currentSource === "aiquinto" ? 15 : currentSource === "aimedici" ? 13 : 14} className="h-32 text-center">
-                        <div className="py-6 px-4">
-                          <p className="text-gray-600 font-medium text-lg mb-3">Nessun lead trovato</p>
-                          <div className="max-w-md mx-auto bg-blue-50 rounded-lg p-4 border border-blue-100">
-                            <p className="text-blue-800 mb-2">Non ci sono ancora leads assegnati a te da {LEAD_SOURCES.find(source => source.id === currentSource)?.name}.</p>
-                            <p className="text-blue-700 text-sm">Torna presto, i nuovi leads verranno mostrati qui.</p>
-                          </div>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredLeads.map((lead) => {
-                      const statusOption = STATUS_OPTIONS.find(opt => opt.value === lead.status) || STATUS_OPTIONS[0];
-                      
-                      return (
-                        <TableRow key={lead.id}>
-                          <TableCell className="p-2">
-                            <Checkbox
-                              checked={selectedLeads.includes(lead.id)}
-                              onCheckedChange={(checked) => handleSelectLead(lead.id, checked)}
-                              aria-label={`Seleziona lead ${lead.firstName} ${lead.lastName}`}
-                            />
-                          </TableCell>
-                          <TableCell className="py-3 px-4">{formatDate(lead.created_at)}</TableCell>
-                          <TableCell className="py-3 px-4">{lead.firstName || "-"}</TableCell>
-                          <TableCell className="py-3 px-4">{lead.lastName || "-"}</TableCell>
-                          <TableCell className="py-3 px-4">{lead.email || "-"}</TableCell>
-                          <TableCell className="py-3 px-4">{lead.phone || "-"}</TableCell>
-                          
-                          {/* Source-specific data */}
-                          {currentSource === "aiquinto" ? (
-                            <>
-                              <TableCell className="py-3 px-4">{lead.importoRichiesto || "-"}</TableCell>
-                              <TableCell className="py-3 px-4">{lead.stipendioNetto || "-"}</TableCell>
-                              <TableCell className="py-3 px-4">{lead.tipologiaDipendente || "-"}</TableCell>
-                              <TableCell className="py-3 px-4">{lead.sottotipo || "-"}</TableCell>
-                              <TableCell className="py-3 px-4">{lead.tipoContratto || "-"}</TableCell>
-                              <TableCell className="py-3 px-4">{lead.provinciaResidenza || "-"}</TableCell>
-                            </>
-                          ) : currentSource === "aimedici" ? (
-                            <>
-                              <TableCell className="py-3 px-4">{lead.scopoRichiesta || "-"}</TableCell>
-                              <TableCell className="py-3 px-4">{lead.importoRichiesto || "-"}</TableCell>
-                              <TableCell className="py-3 px-4">{lead.cittaResidenza || "-"}</TableCell>
-                              <TableCell className="py-3 px-4">{lead.provinciaResidenza || "-"}</TableCell>
-                            </>
-                          ) : (
-                            <>
-                              <TableCell className="py-3 px-4">{lead.scopoFinanziamento || "-"}</TableCell>
-                              <TableCell className="py-3 px-4">{lead.nomeAzienda || "-"}</TableCell>
-                              <TableCell className="py-3 px-4">{lead.cittaSedeLegale || "-"}</TableCell>
-                              <TableCell className="py-3 px-4">{lead.cittaSedeOperativa || "-"}</TableCell>
-                              <TableCell className="py-3 px-4">{lead.importoRichiesto || "-"}</TableCell>
-                            </>
-                          )}
-                          
-                          {/* Final common data */}
-                          <TableCell className="py-3 px-4">{lead.privacyAccettata ? "Sì" : "No"}</TableCell>
-                          <TableCell className="py-3 px-4">
-                            <Select
-                              value={lead.status || "new"}
-                              onValueChange={(newStatus) => handleStatusChange(lead.id, newStatus)}
-                            >
-                              <SelectTrigger className="w-40 h-8">
-                                <SelectValue>
-                                  <div className="flex items-center gap-2">
-                                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ${statusOption.color}`}></div>
-                                    <span>{statusOption.label}</span>
-                                  </div>
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                {STATUS_OPTIONS.map(option => (
-                                  <SelectItem key={option.value} value={option.value}>
-                                    <div className="flex items-center gap-2">
-                                      <div className={`w-3 h-3 rounded-full flex-shrink-0 ${option.color}`}></div>
-                                      <span>{option.label}</span>
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell className="py-3 px-4 min-w-[250px]">
-                            <CommentPreviewCell 
-                              lead={lead}
-                              onEdit={() => handleEditComment(lead)}
-                            />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteClick(lead.id)}
-                              className="h-8 w-8 rounded-xl text-red-500 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
               </Table>
+              <div className="overflow-y-auto max-h-[calc(100vh-400px)]">
+                <Table>
+                  <TableBody>
+                    {filteredLeads.length === 0 ? (
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={currentSource === "aiquinto" ? 15 : currentSource === "aimedici" ? 13 : 14} className="h-32 text-center">
+                          <div className="py-6 px-4">
+                            <p className="text-gray-600 font-medium text-lg mb-3">Nessun lead trovato</p>
+                            <div className="max-w-md mx-auto bg-blue-50 rounded-lg p-4 border border-blue-100">
+                              <p className="text-blue-800 mb-2">Non ci sono ancora leads assegnati a te da {LEAD_SOURCES.find(source => source.id === currentSource)?.name}.</p>
+                              <p className="text-blue-700 text-sm">Torna presto, i nuovi leads verranno mostrati qui.</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredLeads.map((lead) => {
+                        const statusOption = STATUS_OPTIONS.find(opt => opt.value === lead.status) || STATUS_OPTIONS[0];
+                        
+                        return (
+                          <TableRow key={lead.id}>
+                            <TableCell className="p-2">
+                              <Checkbox
+                                checked={selectedLeads.includes(lead.id)}
+                                onCheckedChange={(checked) => handleSelectLead(lead.id, checked)}
+                                aria-label={`Seleziona lead ${lead.firstName} ${lead.lastName}`}
+                              />
+                            </TableCell>
+                            <TableCell className="py-3 px-4">{formatDate(lead.created_at)}</TableCell>
+                            <TableCell className="py-3 px-4">{lead.firstName || "-"}</TableCell>
+                            <TableCell className="py-3 px-4">{lead.lastName || "-"}</TableCell>
+                            <TableCell className="py-3 px-4">{lead.email || "-"}</TableCell>
+                            <TableCell className="py-3 px-4">{lead.phone || "-"}</TableCell>
+                            
+                            {/* Source-specific data */}
+                            {currentSource === "aiquinto" ? (
+                              <>
+                                <TableCell className="py-3 px-4">{lead.importoRichiesto || "-"}</TableCell>
+                                <TableCell className="py-3 px-4">{lead.stipendioNetto || "-"}</TableCell>
+                                <TableCell className="py-3 px-4">{lead.tipologiaDipendente || "-"}</TableCell>
+                                <TableCell className="py-3 px-4">{lead.sottotipo || "-"}</TableCell>
+                                <TableCell className="py-3 px-4">{lead.tipoContratto || "-"}</TableCell>
+                                <TableCell className="py-3 px-4">{lead.provinciaResidenza || "-"}</TableCell>
+                              </>
+                            ) : currentSource === "aimedici" ? (
+                              <>
+                                <TableCell className="py-3 px-4">{lead.scopoRichiesta || "-"}</TableCell>
+                                <TableCell className="py-3 px-4">{lead.importoRichiesto || "-"}</TableCell>
+                                <TableCell className="py-3 px-4">{lead.cittaResidenza || "-"}</TableCell>
+                                <TableCell className="py-3 px-4">{lead.provinciaResidenza || "-"}</TableCell>
+                              </>
+                            ) : (
+                              <>
+                                <TableCell className="py-3 px-4">{lead.scopoFinanziamento || "-"}</TableCell>
+                                <TableCell className="py-3 px-4">{lead.nomeAzienda || "-"}</TableCell>
+                                <TableCell className="py-3 px-4">{lead.cittaSedeLegale || "-"}</TableCell>
+                                <TableCell className="py-3 px-4">{lead.cittaSedeOperativa || "-"}</TableCell>
+                                <TableCell className="py-3 px-4">{lead.importoRichiesto || "-"}</TableCell>
+                              </>
+                            )}
+                            
+                            {/* Final common data */}
+                            <TableCell className="py-3 px-4">{lead.privacyAccettata ? "Sì" : "No"}</TableCell>
+                            <TableCell className="py-3 px-4">
+                              <Select
+                                value={lead.status || "new"}
+                                onValueChange={(newStatus) => handleStatusChange(lead.id, newStatus)}
+                              >
+                                <SelectTrigger className="w-40 h-8">
+                                  <SelectValue>
+                                    <div className="flex items-center gap-2">
+                                      <div className={`w-3 h-3 rounded-full flex-shrink-0 ${statusOption.color}`}></div>
+                                      <span>{statusOption.label}</span>
+                                    </div>
+                                  </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {STATUS_OPTIONS.map(option => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                      <div className="flex items-center gap-2">
+                                        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${option.color}`}></div>
+                                        <span>{option.label}</span>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell className="py-3 px-4 min-w-[250px]">
+                              <CommentPreviewCell 
+                                lead={lead}
+                                onEdit={() => handleEditComment(lead)}
+                              />
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteClick(lead.id)}
+                                className="h-8 w-8 rounded-xl text-red-500 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </CardContent>
