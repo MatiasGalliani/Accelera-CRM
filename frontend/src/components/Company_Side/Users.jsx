@@ -869,7 +869,7 @@ export default function Agents() {
                           
                           return (
                             <Card key={agentId} className="p-3">
-                              <div className="flex justify-between items-center">
+                              <div className="flex flex-col md:flex-row md:justify-between md:items-center">
                                 <div>
                                   <h3 className="font-semibold text-sm">
                                     {agent.firstName} {agent.lastName}
@@ -881,7 +881,7 @@ export default function Agents() {
                                       : "Ruolo: Amministratore"}
                                   </p>
                                 </div>
-                                <div className="flex space-x-2">
+                                <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 mt-3 md:mt-0">
                                   <Button
                                     variant="destructive"
                                     size="sm"
@@ -921,7 +921,7 @@ export default function Agents() {
                           
                           return (
                             <Card key={agentId} className="p-3">
-                              <div className="flex justify-between items-center">
+                              <div className="flex flex-col md:flex-row md:justify-between md:items-center">
                                 <div>
                                   <h3 className="font-semibold text-sm">
                                     {agent.firstName} {agent.lastName}
@@ -933,7 +933,7 @@ export default function Agents() {
                                       : "Ruolo: Agente"}
                                   </p>
                                 </div>
-                                <div className="flex space-x-2">                        
+                                <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 mt-3 md:mt-0">                        
                                   <Button
                                     variant="outline"
                                     size="sm"
