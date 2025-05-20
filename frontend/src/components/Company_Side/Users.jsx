@@ -869,7 +869,7 @@ export default function Agents() {
                           
                           return (
                             <Card key={agentId} className="p-3">
-                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                              <div className="flex justify-between items-center">
                                 <div>
                                   <h3 className="font-semibold text-sm">
                                     {agent.firstName} {agent.lastName}
@@ -881,8 +881,7 @@ export default function Agents() {
                                       : "Ruolo: Amministratore"}
                                   </p>
                                 </div>
-                                
-                                <div className="flex flex-col sm:flex-row gap-2">
+                                <div className="flex space-x-2">
                                   <Button
                                     variant="destructive"
                                     size="sm"
@@ -922,7 +921,7 @@ export default function Agents() {
                           
                           return (
                             <Card key={agentId} className="p-3">
-                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                              <div className="flex justify-between items-center">
                                 <div>
                                   <h3 className="font-semibold text-sm">
                                     {agent.firstName} {agent.lastName}
@@ -934,8 +933,7 @@ export default function Agents() {
                                       : "Ruolo: Agente"}
                                   </p>
                                 </div>
-                                
-                                <div className="flex flex-col sm:flex-row gap-2">
+                                <div className="flex space-x-2">                        
                                   <Button
                                     variant="outline"
                                     size="sm"
