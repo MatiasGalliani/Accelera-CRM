@@ -500,64 +500,62 @@ export default function LeadsAgenti() {
             </div>
           ) : (
             <div className="relative border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow className="sticky top-0 bg-white z-20 border-b">
-                    <TableHead className="w-[40px] px-2">
-                      <Checkbox
-                        checked={filteredLeads.length > 0 && selectedLeads.length === filteredLeads.length}
-                        onCheckedChange={handleSelectAll}
-                        aria-label="Seleziona tutto"
-                        disabled={filteredLeads.length === 0}
-                      />
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap px-4">Data</TableHead>
-                    <TableHead className="whitespace-nowrap px-4">Nome</TableHead>
-                    <TableHead className="whitespace-nowrap px-4">Cognome</TableHead>
-                    <TableHead className="whitespace-nowrap px-4">Mail</TableHead>
-                    <TableHead className="whitespace-nowrap px-4">Telefono</TableHead>
-                    
-                    {/* Source-specific columns */}
-                    {currentSource === "aiquinto" ? (
-                      <>
-                        <TableHead className="whitespace-nowrap px-4">Importo Richiesto</TableHead>
-                        <TableHead className="whitespace-nowrap px-4">Stipendio Netto</TableHead>
-                        <TableHead className="whitespace-nowrap px-4">Tipologia</TableHead>
-                        <TableHead className="whitespace-nowrap px-4">Sottotipo</TableHead>
-                        <TableHead className="whitespace-nowrap px-4">Tipo Contratto</TableHead>
-                        <TableHead className="whitespace-nowrap px-4">Provincia</TableHead>
-                      </>
-                    ) : currentSource === "aimedici" ? (
-                      <>
-                        <TableHead className="whitespace-nowrap px-4">Scopo della richiesta</TableHead>
-                        <TableHead className="whitespace-nowrap px-4">Importo Richiesto</TableHead>
-                        <TableHead className="whitespace-nowrap px-4">Città di Residenza</TableHead>
-                        <TableHead className="whitespace-nowrap px-4">Provincia di Residenza</TableHead>
-                      </>
-                    ) : (
-                      <>
-                        <TableHead className="whitespace-nowrap px-4">Scopo del finanziamento</TableHead>
-                        <TableHead className="whitespace-nowrap px-4">Nome Azienda</TableHead>
-                        <TableHead className="whitespace-nowrap px-4">Città Sede Legale</TableHead>
-                        <TableHead className="whitespace-nowrap px-4">Città Sede Operativa</TableHead>
-                        <TableHead className="whitespace-nowrap px-4">Importo Richiesto</TableHead>
-                      </>
-                    )}
-                    
-                    {/* Final common columns */}
-                    <TableHead className="whitespace-nowrap px-4">Privacy</TableHead>
-                    <TableHead className="whitespace-nowrap px-4">Stato</TableHead>
-                    <TableHead className="whitespace-nowrap px-4">Commenti</TableHead>
-                    <TableHead className="whitespace-nowrap px-4 text-right">Azioni</TableHead>
-                  </TableRow>
-                </TableHeader>
-              </Table>
-              <div className="overflow-y-auto max-h-[calc(100vh-400px)]">
-                <Table>
-                  <TableBody>
+              <div className="overflow-auto max-h-[calc(100vh-400px)]">
+                <table className="w-full border-collapse">
+                  <thead className="sticky top-0 bg-white z-20">
+                    <tr className="border-b [&>th]:whitespace-nowrap [&>th]:px-4 [&>th]:py-3 [&>th]:font-medium [&>th]:text-sm [&>th]:text-gray-600">
+                      <th className="w-[40px] px-2">
+                        <Checkbox
+                          checked={filteredLeads.length > 0 && selectedLeads.length === filteredLeads.length}
+                          onCheckedChange={handleSelectAll}
+                          aria-label="Seleziona tutto"
+                          disabled={filteredLeads.length === 0}
+                        />
+                      </th>
+                      <th>Data</th>
+                      <th>Nome</th>
+                      <th>Cognome</th>
+                      <th>Mail</th>
+                      <th>Telefono</th>
+                      
+                      {/* Source-specific columns */}
+                      {currentSource === "aiquinto" ? (
+                        <>
+                          <th>Importo Richiesto</th>
+                          <th>Stipendio Netto</th>
+                          <th>Tipologia</th>
+                          <th>Sottotipo</th>
+                          <th>Tipo Contratto</th>
+                          <th>Provincia</th>
+                        </>
+                      ) : currentSource === "aimedici" ? (
+                        <>
+                          <th>Scopo della richiesta</th>
+                          <th>Importo Richiesto</th>
+                          <th>Città di Residenza</th>
+                          <th>Provincia di Residenza</th>
+                        </>
+                      ) : (
+                        <>
+                          <th>Scopo del finanziamento</th>
+                          <th>Nome Azienda</th>
+                          <th>Città Sede Legale</th>
+                          <th>Città Sede Operativa</th>
+                          <th>Importo Richiesto</th>
+                        </>
+                      )}
+                      
+                      {/* Final common columns */}
+                      <th>Privacy</th>
+                      <th>Stato</th>
+                      <th>Commenti</th>
+                      <th className="text-right">Azioni</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     {filteredLeads.length === 0 ? (
-                      <TableRow className="hover:bg-transparent">
-                        <TableCell colSpan={currentSource === "aiquinto" ? 15 : currentSource === "aimedici" ? 13 : 14} className="h-32 text-center">
+                      <tr className="hover:bg-transparent">
+                        <td colSpan={currentSource === "aiquinto" ? 15 : currentSource === "aimedici" ? 13 : 14} className="h-32 text-center">
                           <div className="py-6 px-4">
                             <p className="text-gray-600 font-medium text-lg mb-3">Nessun lead trovato</p>
                             <div className="max-w-md mx-auto bg-blue-50 rounded-lg p-4 border border-blue-100">
@@ -565,57 +563,57 @@ export default function LeadsAgenti() {
                               <p className="text-blue-700 text-sm">Torna presto, i nuovi leads verranno mostrati qui.</p>
                             </div>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                      </tr>
                     ) : (
                       filteredLeads.map((lead) => {
                         const statusOption = STATUS_OPTIONS.find(opt => opt.value === lead.status) || STATUS_OPTIONS[0];
                         
                         return (
-                          <TableRow key={lead.id}>
-                            <TableCell className="p-2">
+                          <tr key={lead.id} className="border-b hover:bg-gray-50">
+                            <td className="p-2">
                               <Checkbox
                                 checked={selectedLeads.includes(lead.id)}
                                 onCheckedChange={(checked) => handleSelectLead(lead.id, checked)}
                                 aria-label={`Seleziona lead ${lead.firstName} ${lead.lastName}`}
                               />
-                            </TableCell>
-                            <TableCell className="py-3 px-4">{formatDate(lead.created_at)}</TableCell>
-                            <TableCell className="py-3 px-4">{lead.firstName || "-"}</TableCell>
-                            <TableCell className="py-3 px-4">{lead.lastName || "-"}</TableCell>
-                            <TableCell className="py-3 px-4">{lead.email || "-"}</TableCell>
-                            <TableCell className="py-3 px-4">{lead.phone || "-"}</TableCell>
+                            </td>
+                            <td className="py-3 px-4">{formatDate(lead.created_at)}</td>
+                            <td className="py-3 px-4">{lead.firstName || "-"}</td>
+                            <td className="py-3 px-4">{lead.lastName || "-"}</td>
+                            <td className="py-3 px-4">{lead.email || "-"}</td>
+                            <td className="py-3 px-4">{lead.phone || "-"}</td>
                             
                             {/* Source-specific data */}
                             {currentSource === "aiquinto" ? (
                               <>
-                                <TableCell className="py-3 px-4">{lead.importoRichiesto || "-"}</TableCell>
-                                <TableCell className="py-3 px-4">{lead.stipendioNetto || "-"}</TableCell>
-                                <TableCell className="py-3 px-4">{lead.tipologiaDipendente || "-"}</TableCell>
-                                <TableCell className="py-3 px-4">{lead.sottotipo || "-"}</TableCell>
-                                <TableCell className="py-3 px-4">{lead.tipoContratto || "-"}</TableCell>
-                                <TableCell className="py-3 px-4">{lead.provinciaResidenza || "-"}</TableCell>
+                                <td className="py-3 px-4">{lead.importoRichiesto || "-"}</td>
+                                <td className="py-3 px-4">{lead.stipendioNetto || "-"}</td>
+                                <td className="py-3 px-4">{lead.tipologiaDipendente || "-"}</td>
+                                <td className="py-3 px-4">{lead.sottotipo || "-"}</td>
+                                <td className="py-3 px-4">{lead.tipoContratto || "-"}</td>
+                                <td className="py-3 px-4">{lead.provinciaResidenza || "-"}</td>
                               </>
                             ) : currentSource === "aimedici" ? (
                               <>
-                                <TableCell className="py-3 px-4">{lead.scopoRichiesta || "-"}</TableCell>
-                                <TableCell className="py-3 px-4">{lead.importoRichiesto || "-"}</TableCell>
-                                <TableCell className="py-3 px-4">{lead.cittaResidenza || "-"}</TableCell>
-                                <TableCell className="py-3 px-4">{lead.provinciaResidenza || "-"}</TableCell>
+                                <td className="py-3 px-4">{lead.scopoRichiesta || "-"}</td>
+                                <td className="py-3 px-4">{lead.importoRichiesto || "-"}</td>
+                                <td className="py-3 px-4">{lead.cittaResidenza || "-"}</td>
+                                <td className="py-3 px-4">{lead.provinciaResidenza || "-"}</td>
                               </>
                             ) : (
                               <>
-                                <TableCell className="py-3 px-4">{lead.scopoFinanziamento || "-"}</TableCell>
-                                <TableCell className="py-3 px-4">{lead.nomeAzienda || "-"}</TableCell>
-                                <TableCell className="py-3 px-4">{lead.cittaSedeLegale || "-"}</TableCell>
-                                <TableCell className="py-3 px-4">{lead.cittaSedeOperativa || "-"}</TableCell>
-                                <TableCell className="py-3 px-4">{lead.importoRichiesto || "-"}</TableCell>
+                                <td className="py-3 px-4">{lead.scopoFinanziamento || "-"}</td>
+                                <td className="py-3 px-4">{lead.nomeAzienda || "-"}</td>
+                                <td className="py-3 px-4">{lead.cittaSedeLegale || "-"}</td>
+                                <td className="py-3 px-4">{lead.cittaSedeOperativa || "-"}</td>
+                                <td className="py-3 px-4">{lead.importoRichiesto || "-"}</td>
                               </>
                             )}
                             
                             {/* Final common data */}
-                            <TableCell className="py-3 px-4">{lead.privacyAccettata ? "Sì" : "No"}</TableCell>
-                            <TableCell className="py-3 px-4">
+                            <td className="py-3 px-4">{lead.privacyAccettata ? "Sì" : "No"}</td>
+                            <td className="py-3 px-4">
                               <Select
                                 value={lead.status || "new"}
                                 onValueChange={(newStatus) => handleStatusChange(lead.id, newStatus)}
@@ -639,14 +637,14 @@ export default function LeadsAgenti() {
                                   ))}
                                 </SelectContent>
                               </Select>
-                            </TableCell>
-                            <TableCell className="py-3 px-4 min-w-[250px]">
+                            </td>
+                            <td className="py-3 px-4 min-w-[250px]">
                               <CommentPreviewCell 
                                 lead={lead}
                                 onEdit={() => handleEditComment(lead)}
                               />
-                            </TableCell>
-                            <TableCell className="text-right">
+                            </td>
+                            <td className="text-right">
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -655,13 +653,13 @@ export default function LeadsAgenti() {
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
-                            </TableCell>
-                          </TableRow>
+                            </td>
+                          </tr>
                         );
                       })
                     )}
-                  </TableBody>
-                </Table>
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
