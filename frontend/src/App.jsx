@@ -1,9 +1,11 @@
+import React, { useEffect } from "react";
 import { useForm, FormProvider } from "react-hook-form"
-import { Routes, Route } from "react-router-dom"
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { Outlet, useNavigation } from "react-router-dom"
+import { QueryClient, QueryClientProvider, useIsFetching } from "@tanstack/react-query"
 import PrivateRoute from "./auth/PrivateRoute"
 import AdminRoute from "./components/Company_Side/AdminRoute"
 import AgentOnlyRoute from "./components/Company_Side/AgentOnlyRoute"
+import LoadingSpinner from "./components/LoadingSpinner"
 
 import Login from "./auth/Login"
 import StartScreen from "./components/Company_Side/StartScreen"
@@ -29,44 +31,43 @@ const queryClient = new QueryClient({
   },
 })
 
-export default function App() {
+// New inner component to access QueryClient context for useIsFetching
+function AppContent() {
   const methods = useForm({
     defaultValues: {
-      clients: [{ firstName: "", lastName: "", email: "" }],    // Start with exactly one empty client
+      clients: [{ firstName: "", lastName: "", email: "" }],
       type: "",
       products: []
     },
     mode: "onChange"
   })
+  const navigation = useNavigation();
+  const isFetching = useIsFetching(); // Get TanStack Query's fetching state
+
+  useEffect(() => {
+    const initialSpinner = document.getElementById('initial-spinner');
+    if (initialSpinner) {
+      initialSpinner.remove();
+    }
+  }, []); // Empty dependency array ensures this runs only once on mount
+
+  console.log("Navigation state:", navigation.state); // Log navigation state
+  console.log("TanStack Query isFetching:", isFetching); // Log isFetching state
 
   return (
+    <FormProvider {...methods}>
+      {/* <LoadingSpinner /> */}
+      {(isFetching > 0 || navigation.state === "loading") && <LoadingSpinner />}
+      <Outlet />
+    </FormProvider>
+  );
+}
+
+export default function App() {
+  // Shell component that provides QueryClient context
+  return (
     <QueryClientProvider client={queryClient}>
-      <FormProvider {...methods}>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/" element={<PrivateRoute><StartScreen /></PrivateRoute>} />
-          <Route path="/client-data" element={<PrivateRoute><ClientData /></PrivateRoute>} />
-          <Route path="/client-type" element={<PrivateRoute><ClientType /></PrivateRoute>} />
-          <Route path="/products-private" element={<PrivateRoute><ProductsPrivate /></PrivateRoute>} />
-          <Route path="/products-business" element={<PrivateRoute><ProductsBusiness /></PrivateRoute>} />
-          <Route path="/review" element={<PrivateRoute><Review /></PrivateRoute>} />
-          <Route path="/success" element={<PrivateRoute><Success /></PrivateRoute>} />
-          
-          {/* Agent-only route for Leads management */}
-          <Route element={<AgentOnlyRoute />}>
-            <Route path="/my-leads" element={<LeadsAgenti />} />
-          </Route>
-          
-          {/* Admin routes */}
-          <Route element={<AdminRoute />}>
-            <Route path="/agents" element={<Agents />} />
-            <Route path="/admin-leads" element={<AdminLeads />} />
-            <Route path="/admin-cases" element={<AdminCases />} />
-          </Route>
-          
-          <Route path="/my-cases" element={<PrivateRoute><Cases /></PrivateRoute>} />
-        </Routes>
-      </FormProvider>
+      <AppContent />
     </QueryClientProvider>
   )
 }
