@@ -502,6 +502,9 @@ export default function AdminLeads() {
   const [selectedLeads, setSelectedLeads] = useState([])
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
+  // AIQuinto specific tabs state
+  const [aiquintoTab, setAiquintoTab] = useState(AIQUINTO_TABS.DIPENDENTI)
+
   // Query the leads data
   const { 
     data = { leads: [] }, // Initialize with expected structure
@@ -773,6 +776,18 @@ export default function AdminLeads() {
                 </TabsTrigger>
               ))}
             </TabsList>
+
+            {/* AIQuinto specific tabs */}
+            {currentSource === "aiquinto" && (
+              <div className="mt-4 mb-4">
+                <Tabs value={aiquintoTab} onValueChange={setAiquintoTab} defaultValue={AIQUINTO_TABS.DIPENDENTI}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value={AIQUINTO_TABS.DIPENDENTI}>Dipendenti</TabsTrigger>
+                    <TabsTrigger value={AIQUINTO_TABS.PENSIONATI}>Pensionati</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+            )}
             
             {LEAD_SOURCES.map(source => (
               <TabsContent key={source.id} value={source.id}>
@@ -813,7 +828,10 @@ export default function AdminLeads() {
                   ) : filteredLeads.length === 0 ? (
                     <div className="text-center py-8">
                       <p className="text-gray-500 mb-2">Nessun lead trovato</p>
-                      <p className="text-gray-400 text-sm mb-4">Non ci sono ancora leads provenienti da {source.name}.</p>
+                      <p className="text-gray-400 text-sm mb-4">
+                        Non ci sono ancora leads provenienti da {source.name}
+                        {source.id === "aiquinto" ? ` - ${aiquintoTab === AIQUINTO_TABS.DIPENDENTI ? "Dipendenti" : "Pensionati"}` : ""}.
+                      </p>
                     </div>
                   ) : (
                     <div className="relative border rounded-lg">
@@ -838,6 +856,7 @@ export default function AdminLeads() {
 
                               {/* Source-specific columns */}
                               {source.id === "aiquinto" && (
+                                aiquintoTab === AIQUINTO_TABS.DIPENDENTI ? (
                                 <>
                                   <th>Importo Richiesto</th>
                                   <th>Stipendio Netto</th>
@@ -848,6 +867,16 @@ export default function AdminLeads() {
                                   <th>Mese ed anno di assunzione</th>
                                   <th>Numero dipendenti</th>
                                 </>
+                                ) : ( /* Pensionati */
+                                <>
+                                  <th>Importo Richiesto</th>
+                                  <th>Pensione Netta Mensile</th>
+                                  <th>Ente Pensionistico</th>
+                                  <th>Tipologia di Pensione</th>
+                                  <th>Data di Nascita</th>
+                                  <th>Provincia di Residenza</th>
+                                </>
+                                )
                               )}
                               
                               {source.id === "aimedici" && (
@@ -876,82 +905,113 @@ export default function AdminLeads() {
                             </tr>
                           </thead>
                           <tbody>
-                            {filteredLeads.map((lead, index) => {
-                              const statusOption = getStatusInfo(lead.status);
-                              
-                              return (
-                                <tr key={lead.id || index} className="border-b hover:bg-gray-50">
-                                  <td className="p-2">
-                                    <Checkbox 
-                                      checked={selectedLeads.includes(lead.id)} 
-                                      onCheckedChange={() => toggleSelect(lead.id)}
-                                      aria-label={`Select lead ${lead.firstName} ${lead.lastName}`} 
-                                    />
-                                  </td>
-                                  <td className="py-3 px-4">{new Date(lead.createdAt).toLocaleDateString('it-IT')}</td>
-                                  <td className="py-3 px-4 font-medium">
-                                    {lead.agentName ? (
-                                      <div className="bg-blue-50 px-2 py-1 rounded text-blue-700 inline-block">
-                                        {lead.agentName}
-                                      </div>
-                                    ) : (
-                                      <div className="bg-red-50 px-2 py-1 rounded text-red-700 inline-block">
-                                        Non assegnato
-                                      </div>
+                            {filteredLeads.length === 0 ? (
+                               <tr>
+                                 <td colSpan={15} className="h-32 text-center">
+                                   <div className="py-6 px-4">
+                                     <p className="text-gray-600 font-medium text-lg mb-3">Nessun lead trovato</p>
+                                     <div className="max-w-md mx-auto bg-blue-50 rounded-lg p-4 border border-blue-100">
+                                       <p className="text-blue-800 mb-2">
+                                         Non ci sono ancora leads provenienti da {source.name}
+                                         {source.id === "aiquinto" ? ` - ${aiquintoTab === AIQUINTO_TABS.DIPENDENTI ? "Dipendenti" : "Pensionati"}` : ""}.
+                                       </p>
+                                       <p className="text-blue-700 text-sm">Torna presto, i nuovi leads verranno mostrati qui.</p>
+                                     </div>
+                                   </div>
+                                 </td>
+                               </tr>
+                            ) : (
+                              filteredLeads.map((lead, index) => {
+                                const statusOption = getStatusInfo(lead.status);
+                                const colSpanValue = source.id === "aiquinto" 
+                                  ? (aiquintoTab === AIQUINTO_TABS.DIPENDENTI ? 15 : 13) 
+                                  : source.id === "aimedici" ? 13 : 14;
+                                
+                                return (
+                                  <tr key={lead.id || index} className="border-b hover:bg-gray-50">
+                                    <td className="p-4">
+                                      <Checkbox 
+                                        checked={selectedLeads.includes(lead.id)} 
+                                        onCheckedChange={() => toggleSelect(lead.id)}
+                                        aria-label={`Select lead ${lead.firstName} ${lead.lastName}`} 
+                                      />
+                                    </td>
+                                    <td className="py-3 px-4">{new Date(lead.createdAt).toLocaleDateString('it-IT')}</td>
+                                    <td className="py-3 px-4 font-medium">
+                                      {lead.agentName ? (
+                                        <div className="bg-blue-50 px-2 py-1 rounded text-blue-700 inline-block">
+                                          {lead.agentName}
+                                        </div>
+                                      ) : (
+                                        <div className="bg-red-50 px-2 py-1 rounded text-red-700 inline-block">
+                                          Non assegnato
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td className="py-3 px-4">{lead.firstName || "-"}</td>
+                                    <td className="py-3 px-4">{lead.lastName || "-"}</td>
+                                    <td className="py-3 px-4">{lead.email || "-"}</td>
+                                    <td className="py-3 px-4">{lead.phone || "-"}</td>
+                                    
+                                    {/* Source-specific data */}
+                                    {source.id === "aiquinto" && (
+                                      aiquintoTab === AIQUINTO_TABS.DIPENDENTI ? (
+                                        <>
+                                          <td className="py-3 px-4">{lead.details?.requestedAmount || "-"}</td>
+                                          <td className="py-3 px-4">{lead.details?.netSalary || "-"}</td>
+                                          <td className="py-3 px-4">{lead.details?.employeeType || "-"}</td>
+                                          <td className="py-3 px-4">{lead.details?.employmentSubtype || "-"}</td>
+                                          <td className="py-3 px-4">{lead.details?.contractType || "-"}</td>
+                                          <td className="py-3 px-4">{lead.details?.residenceProvince || "-"}</td>
+                                          <td className="py-3 px-4">{lead.details?.employmentDate || "-"}</td>
+                                          <td className="py-3 px-4">{lead.details?.employeeCount || "-"}</td>
+                                        </>
+                                      ) : ( /* Pensionati */
+                                        <>
+                                          <td className="py-3 px-4">{lead.details?.requestedAmount || "-"}</td>
+                                          <td className="py-3 px-4">{lead.details?.netPensionAmount || "-"}</td>
+                                          <td className="py-3 px-4">{lead.details?.pensionProvider || "-"}</td>
+                                          <td className="py-3 px-4">{lead.details?.pensionType || "-"}</td>
+                                          <td className="py-3 px-4">{lead.details?.birthDate ? new Date(lead.details.birthDate).toLocaleDateString('it-IT') : "-"}</td>
+                                          <td className="py-3 px-4">{lead.details?.residenceProvince || "-"}</td>
+                                        </>
+                                      )
                                     )}
-                                  </td>
-                                  <td className="py-3 px-4">{lead.firstName || "-"}</td>
-                                  <td className="py-3 px-4">{lead.lastName || "-"}</td>
-                                  <td className="py-3 px-4">{lead.email || "-"}</td>
-                                  <td className="py-3 px-4">{lead.phone || "-"}</td>
-                                  
-                                  {/* Source-specific data */}
-                                  {source.id === "aiquinto" && (
-                                    <>
-                                      <td className="py-3 px-4">{lead.details?.requestedAmount || "-"}</td>
-                                      <td className="py-3 px-4">{lead.details?.netSalary || "-"}</td>
-                                      <td className="py-3 px-4">{lead.details?.employeeType || "-"}</td>
-                                      <td className="py-3 px-4">{lead.details?.employmentSubtype || "-"}</td>
-                                      <td className="py-3 px-4">{lead.details?.contractType || "-"}</td>
-                                      <td className="py-3 px-4">{lead.details?.residenceProvince || "-"}</td>
-                                      <td className="py-3 px-4">{lead.details?.employmentDate || "-"}</td>
-                                      <td className="py-3 px-4">{lead.details?.employeeCount || "-"}</td>
-                                    </>
-                                  )}
-                                  
-                                  {source.id === "aimedici" && (
-                                    <>
-                                      <td className="py-3 px-4">{lead.details?.financingPurpose || "-"}</td>
-                                      <td className="py-3 px-4">{lead.details?.requestedAmount || "-"}</td>
-                                      <td className="py-3 px-4">{lead.details?.residenceCity || "-"}</td>
-                                      <td className="py-3 px-4">{lead.details?.residenceProvince || "-"}</td>
-                                    </>
-                                  )}
-                                  
-                                  {source.id === "aifidi" && (
-                                    <>
-                                      <td className="py-3 px-4">{lead.details?.financingPurpose || "-"}</td>
-                                      <td className="py-3 px-4">{lead.details?.companyName || "-"}</td>
-                                      <td className="py-3 px-4">{lead.details?.legalCity || "-"}</td>
-                                      <td className="py-3 px-4">{lead.details?.operationalCity || "-"}</td>
-                                      <td className="py-3 px-4">{lead.details?.requestedAmount || "-"}</td>
-                                    </>
-                                  )}
-                                  
-                                  {/* Final common data */}
-                                  <td className="py-3 px-4">{lead.privacyAccettata ? "Sì" : "No"}</td>
-                                  <td className="py-3 px-4">
-                                    <div className="flex items-center gap-2">
-                                      <div className={`w-3 h-3 rounded-full flex-shrink-0 ${statusOption.color}`}></div>
-                                      <span>{statusOption.label}</span>
-                                    </div>
-                                  </td>
-                                  <td className="py-3 px-4 min-w-[250px]">
-                                    <CommentViewerCell lead={lead} />
-                                  </td>
-                                </tr>
-                              );
-                            })}
+                                    
+                                    {source.id === "aimedici" && (
+                                      <>
+                                        <td className="py-3 px-4">{lead.details?.financingPurpose || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.requestedAmount || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.residenceCity || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.residenceProvince || "-"}</td>
+                                      </>
+                                    )}
+                                    
+                                    {source.id === "aifidi" && (
+                                      <>
+                                        <td className="py-3 px-4">{lead.details?.financingPurpose || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.companyName || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.legalCity || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.operationalCity || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.requestedAmount || "-"}</td>
+                                      </>
+                                    )}
+                                    
+                                    {/* Final common data */}
+                                    <td className="py-3 px-4">{lead.privacyAccettata ? "Sì" : "No"}</td>
+                                    <td className="py-3 px-4">
+                                      <div className="flex items-center gap-2">
+                                        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${statusOption.color}`}></div>
+                                        <span>{statusOption.label}</span>
+                                      </div>
+                                    </td>
+                                    <td className="py-3 px-4 min-w-[250px]">
+                                      <CommentViewerCell lead={lead} />
+                                    </td>
+                                  </tr>
+                                );
+                              })
+                            )}
                           </tbody>
                         </table>
                       </div>
@@ -987,6 +1047,7 @@ export default function AdminLeads() {
               type="button" 
               variant="outline" 
               onClick={() => setIsDeleteDialogOpen(false)}
+              className="rounded-xl"
             >
               Annulla
             </Button>
@@ -995,6 +1056,7 @@ export default function AdminLeads() {
               variant="destructive"
               onClick={handleDelete}
               disabled={deleteMutation.isPending}
+              className="rounded-xl"
             >
               {deleteMutation.isPending ? (
                 <>
