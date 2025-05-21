@@ -46,6 +46,12 @@ import {
 } from "@/components/ui/select"
 import { API_BASE_URL, API_ENDPOINTS, getApiUrl } from '@/config';
 
+// AIQuinto specific tabs
+const AIQUINTO_TABS = {
+  DIPENDENTI: "dipendenti",
+  PENSIONATI: "pensionati"
+}
+
 // Status options for leads
 const STATUS_OPTIONS = [
   { value: "new", label: "Nuovo", color: "bg-blue-400" },

@@ -38,6 +38,9 @@ app.use(cors({
     'http://localhost:3000',  // Local development alternative
     'https://accelera-crm.vercel.app', // Production domain
     'https://accelera.creditplan.it', // Production custom domain
+    'https://aiquinto.it', // AIQuinto.it domain
+    'https://aimedici.it', // AIMedici.it domain
+    'https://aifidi.it', // AIFidi.it domain
     /\.vercel\.app$/  // Allow all Vercel preview deployments
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow these methods
