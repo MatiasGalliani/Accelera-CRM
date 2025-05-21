@@ -37,6 +37,7 @@ app.use(cors({
     'http://localhost:5173',  // Local development
     'http://localhost:3000',  // Local development alternative
     'https://accelera-crm.vercel.app', // Production domain
+    'https://accelera.creditplan.it', // Production custom domain
     /\.vercel\.app$/  // Allow all Vercel preview deployments
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow these methods
