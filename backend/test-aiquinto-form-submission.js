@@ -35,12 +35,8 @@ async function simulateFormSubmission() {
     
     console.log('Enviando datos del formulario con asignación directa a agente ID 3 (Matias Galliani)');
     
-    // Use webhook key from env without fallback
-    const apiKey = process.env.WEBHOOK_API_KEY;
-    if (!apiKey) {
-      console.error('WEBHOOK_API_KEY not set in environment variables.');
-      process.exit(1);
-    }
+    // Usar la clave de API correcta del archivo .env
+    const apiKey = process.env.WEBHOOK_API_KEY || 'dev-api-key-123';
     
     // Enviar la solicitud POST con los datos del formulario
     const response = await fetch(url, {

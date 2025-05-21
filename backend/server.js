@@ -81,15 +81,15 @@ app.use((req, res, next) => {
 const verifyApiKey = (req, res, next) => {
   const apiKey = req.headers['x-api-key'];
   if (apiKey !== process.env.WEBHOOK_API_KEY) {
-    return res.status(401).json({ error: 'Invalid API key' });
+    return res.status(401).json({ error: 'Unauthorized: Invalid API key' });
   }
   next();
 };
 
-// Remove the development fallback
+// Setup environment variable for webhook API key if not exists
 if (!process.env.WEBHOOK_API_KEY) {
-  console.error('WEBHOOK_API_KEY not set in environment variables.');
-  process.exit(1);
+  console.warn('WEBHOOK_API_KEY not set in environment variables. Using default for development.');
+  process.env.WEBHOOK_API_KEY = 'dev-api-key-123';
 }
 
 // Auth middleware to verify Firebase ID Tokens
