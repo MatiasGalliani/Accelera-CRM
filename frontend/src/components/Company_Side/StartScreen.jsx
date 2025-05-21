@@ -103,6 +103,7 @@ export default function StartScreen() {
         ) || greetings[0]
 
     return (
+        <div className="bg-gray-900">
         <div className="flex flex-col items-center min-h-screen bg-gray-50 p-4">
             <div className="absolute top-4 left-4">
                 <img src={logo} alt="Logo" className="w-32" />
@@ -162,6 +163,7 @@ export default function StartScreen() {
                     ))}
                 </div>
             )}
+        </div>
         </div>
     )
 }

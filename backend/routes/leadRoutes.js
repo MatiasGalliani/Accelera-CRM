@@ -15,7 +15,7 @@ router.post('/webhook', async (req, res) => {
     // Verificar la autenticación del webhook (token secreto, IP, etc.)
     const apiKey = req.headers['x-api-key'];
     if (apiKey !== process.env.WEBHOOK_API_KEY) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({ error: 'Invalid API key' });
     }
     
     const leadData = req.body;
