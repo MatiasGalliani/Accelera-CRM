@@ -1277,13 +1277,20 @@ app.get('/health', (req, res) => {
     memory: process.memoryUsage(),
     cors: {
       enabled: true,
-      allowedOrigins: allowedOrigins,
-      configuredForAIQuinto: allowedOrigins.includes('https://www.aiquinto.it')
+      allowedHosts: [
+        'localhost:5173',
+        'localhost:3000',
+        'accelera-crm.vercel.app',
+        'www.aiquinto.it',
+        '*.vercel.app'
+      ]
     },
     routes: {
-      'POST /api/forms/pensionato': 'For AIQuinto form submissions (Pensionato)',
-      'POST /api/forms/dipendente': 'For AIQuinto form submissions (Dipendente)',
-      'GET /health': 'This health check endpoint'
+      formRoutes: [
+        '/api/forms/pensionato',
+        '/api/forms/dipendente'
+      ],
+      healthRoute: '/health'
     },
     database: sequelize.authenticate()
       .then(() => 'connected')
@@ -1317,10 +1324,27 @@ app.options('*', (req, res) => {
   // Get the origin from the request
   const origin = req.headers.origin;
   
-  // Check if origin is allowed
-  if (origin && allowedOrigins.some(allowed => 
-    typeof allowed === 'string' ? allowed === origin : allowed.test(origin)
-  )) {
+  // Check if origin is allowed (using simpler code to avoid path-to-regexp errors)
+  let originAllowed = false;
+  
+  if (origin) {
+    // Check string origins
+    if (
+      origin === 'http://localhost:5173' || 
+      origin === 'http://localhost:3000' || 
+      origin === 'https://accelera-crm.vercel.app' ||
+      origin === 'https://www.aiquinto.it'
+    ) {
+      originAllowed = true;
+    }
+    
+    // Check regex pattern for vercel apps
+    if (!originAllowed && origin.endsWith('.vercel.app')) {
+      originAllowed = true;
+    }
+  }
+  
+  if (originAllowed) {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key');
