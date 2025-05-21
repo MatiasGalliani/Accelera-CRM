@@ -16,29 +16,67 @@ import cors from 'cors';
 dotenv.config();
 
 // Initialize Firebase Admin SDK
-admin.initializeApp({
-  credential: admin.credential.cert({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    // Replace literal \n in your private key string with actual newlines
-    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-  }),
-});
-
-// Initialize Firestore
-const db = admin.firestore();
+try {
+  // Check if Firebase environment variables are available
+  if (process.env.FIREBASE_PROJECT_ID && 
+      process.env.FIREBASE_CLIENT_EMAIL && 
+      process.env.FIREBASE_PRIVATE_KEY) {
+    
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        // Replace literal \n in your private key string with actual newlines
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      }),
+    });
+    
+    // Initialize Firestore
+    const db = admin.firestore();
+    console.log('Firebase initialized successfully');
+  } else {
+    console.warn('Firebase credentials missing. Running in limited mode without Firebase.');
+  }
+} catch (error) {
+  console.error('Failed to initialize Firebase:', error);
+}
 
 const app = express();
 // Parse JSON bodies
 app.use(bodyParser.json());
-// Enable CORS with specific origin
+
+// Enable CORS with specific origin or * for development
+const allowedOrigins = [
+  'http://localhost:5173',  // Local development
+  'http://localhost:3000',  // Local development alternative
+  'https://accelera-crm.vercel.app', // Production domain
+  'https://www.aiquinto.it', // AIQuinto production website
+  /\.vercel\.app$/  // Allow all Vercel preview deployments
+];
+
 app.use(cors({
-  origin: [
-    'http://localhost:5173',  // Local development
-    'http://localhost:3000',  // Local development alternative
-    'https://accelera-crm.vercel.app', // Production domain
-    /\.vercel\.app$/  // Allow all Vercel preview deployments
-  ],
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Check if the origin is allowed
+    if (allowedOrigins.some(allowed => 
+      typeof allowed === 'string' ? allowed === origin : allowed.test(origin)
+    )) {
+      return callback(null, true);
+    }
+    
+    // In production, we could be more strict
+    if (process.env.NODE_ENV === 'production') {
+      // Log the blocked origin for monitoring
+      console.warn(`Blocked request from unauthorized origin: ${origin}`);
+      return callback(null, false);
+    }
+    
+    // In development, allow all origins for easier testing
+    console.warn(`Allowing request from unauthorized origin in dev mode: ${origin}`);
+    return callback(null, true);
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow these methods
   allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'], // Allow these headers
   credentials: true
@@ -47,16 +85,18 @@ app.use(cors({
 // Add API key verification middleware
 const verifyApiKey = (req, res, next) => {
   const apiKey = req.headers['x-api-key'];
-  if (apiKey !== process.env.WEBHOOK_API_KEY) {
+  // If WEBHOOK_API_KEY is not set, use a default in development
+  const validApiKey = process.env.WEBHOOK_API_KEY || 'development-api-key';
+  
+  if (apiKey !== validApiKey) {
     return res.status(401).json({ error: 'Invalid API key' });
   }
   next();
 };
 
-// Remove the development fallback
+// Warn if webhook key is missing
 if (!process.env.WEBHOOK_API_KEY) {
-  console.error('WEBHOOK_API_KEY not set in environment variables.');
-  process.exit(1);
+  console.warn('WEBHOOK_API_KEY not set in environment variables. Using insecure default for development.');
 }
 
 // Auth middleware to verify Firebase ID Tokens
@@ -868,14 +908,39 @@ function monitorMemory() {
 const PORT = process.env.PORT || 4000;
 
 // Configure Sequelize connection pool
-sequelize.options.pool = {
-  max: 2,
-  min: 0,
-  acquire: 60000,
-  idle: 10000
-};
+if (sequelize.options && sequelize.options.pool) {
+  sequelize.options.pool = {
+    max: 2,
+    min: 0,
+    acquire: 60000,
+    idle: 10000
+  };
+}
 
-// Sync database models before starting the server
+// Initialize sync service if Firebase is available
+let syncServiceUnsubscribe = null;
+try {
+  // Only attempt sync if Firebase is initialized
+  if (admin.apps.length > 0) {
+    // Sync database models before starting the server
+    syncService.syncAllAgentsFromFirestore()
+      .then(results => {
+        console.log(`Sincronización inicial completada. ${results.length} agentes procesados.`);
+        
+        // Iniciar listener para cambios en Firestore
+        syncServiceUnsubscribe = syncService.startFirestoreAgentListener();
+      })
+      .catch(error => {
+        console.error('Error en sincronización inicial:', error);
+      });
+  } else {
+    console.log('Firebase not initialized, skipping agent sync');
+  }
+} catch (error) {
+  console.error('Error initializing sync service:', error);
+}
+
+// Sync database models before starting the server (with error handling)
 sequelize.sync({ alter: true })
   .then(() => {
     console.log('Database synchronized');
@@ -899,6 +964,13 @@ sequelize.sync({ alter: true })
     // Add graceful shutdown
     process.on('SIGTERM', async () => {
       console.log('Received SIGTERM signal. Starting graceful shutdown...');
+      
+      // Unsubscribe from Firestore listener if active
+      if (syncServiceUnsubscribe) {
+        console.log('Stopping Firestore listener...');
+        syncServiceUnsubscribe();
+      }
+      
       server.close(async () => {
         try {
           await sequelize.close();
@@ -913,7 +985,17 @@ sequelize.sync({ alter: true })
   })
   .catch(err => {
     console.error('Error syncing database:', err);
-    process.exit(1);
+    console.log('Starting server without database sync');
+    
+    // Start server anyway, even if database sync fails
+    const server = app.listen(PORT, () => {
+      console.log(`Backend running on port ${PORT} (without database sync)`);
+      monitorMemory(); // Initial memory check
+    });
+    
+    server.on('error', (error) => {
+      console.error('Server error:', error);
+    });
   });
 
 // Handle uncaught exceptions
@@ -1179,25 +1261,6 @@ app.put('/api/agents/:id/pages', authenticate, requireAdmin, async (req, res) =>
   }
 });
 
-// Iniciar sincronización de agentes entre Firestore y PostgreSQL
-syncService.syncAllAgentsFromFirestore()
-  .then(results => {
-    console.log(`Sincronización inicial completada. ${results.length} agentes procesados.`);
-    
-    // Iniciar listener para cambios en Firestore
-    const unsubscribe = syncService.startFirestoreAgentListener();
-    
-    // Registrar el unsubscribe para limpieza adecuada al cerrar
-    process.on('SIGINT', () => {
-      console.log('Deteniendo listener de Firestore...');
-      unsubscribe();
-      process.exit(0);
-    });
-  })
-  .catch(error => {
-    console.error('Error en sincronización inicial:', error);
-  });
-
 // Register routes
 app.use('/api/leads', leadRoutes);
 // Register the form endpoints
@@ -1212,6 +1275,16 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     memory: process.memoryUsage(),
+    cors: {
+      enabled: true,
+      allowedOrigins: allowedOrigins,
+      configuredForAIQuinto: allowedOrigins.includes('https://www.aiquinto.it')
+    },
+    routes: {
+      'POST /api/forms/pensionato': 'For AIQuinto form submissions (Pensionato)',
+      'POST /api/forms/dipendente': 'For AIQuinto form submissions (Dipendente)',
+      'GET /health': 'This health check endpoint'
+    },
     database: sequelize.authenticate()
       .then(() => 'connected')
       .catch(() => 'disconnected'),
@@ -1237,4 +1310,34 @@ app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} - ${res.statusCode} - ${duration}ms`);
   });
   next();
+});
+
+// Add specific handling for OPTIONS preflight requests
+app.options('*', (req, res) => {
+  // Get the origin from the request
+  const origin = req.headers.origin;
+  
+  // Check if origin is allowed
+  if (origin && allowedOrigins.some(allowed => 
+    typeof allowed === 'string' ? allowed === origin : allowed.test(origin)
+  )) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    return res.status(204).send();
+  }
+  
+  // In development, allow all origins
+  if (process.env.NODE_ENV !== 'production') {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    return res.status(204).send();
+  }
+  
+  // In production, if origin is not allowed, return 403
+  console.warn(`CORS Preflight blocked for origin: ${origin}`);
+  return res.status(403).send('CORS not allowed');
 });

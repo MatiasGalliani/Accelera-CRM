@@ -79,7 +79,11 @@ The API is configured to accept requests from:
 - http://localhost:5173
 - http://localhost:3000
 - https://accelera-crm.vercel.app
+- https://www.aiquinto.it
 - All *.vercel.app domains
+
+In development mode, requests from any origin are allowed for easier testing.
+In production mode, only the explicitly allowed origins can access the API.
 
 ## Testing
 
