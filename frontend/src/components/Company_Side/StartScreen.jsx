@@ -43,19 +43,21 @@ export default function StartScreen() {
     // Agent-only actions
     const agentActions = [
         {
-            title: "Miei Leads 📝",
+            title: "My Leads 📝",
             description: "Visualizza i leads assegnati a te",
-            to: "/my-leads"
+            to: "/my-leads",
         },
         {
             title: "Richieste Documentali📃",
             description: "Visualizza tutte le tue richieste documentali",
-            to: "/my-cases"
+            to: "/my-cases",
+            disabled: true
         },
         {
             title: "Pre Istruttoria Documenti IA 🤖",
             description: "Procedi con la richiesta iniziale dei documenti",
-            to: "/client-type"
+            to: "/client-type",
+            disabled: true
         }
     ];
 
@@ -103,6 +105,7 @@ export default function StartScreen() {
         ) || greetings[0]
 
     return (
+        <div className="bg-gray-900">
         <div className="flex flex-col items-center min-h-screen bg-gray-50 p-4">
             <div className="absolute top-4 left-4">
                 <img src={logo} alt="Logo" className="w-32" />
@@ -145,6 +148,7 @@ export default function StartScreen() {
                                 title={action.title}
                                 description={action.description}
                                 to={action.to}
+                                disabled={action.disabled}
                             />
                         </div>
                     ))}
@@ -157,11 +161,13 @@ export default function StartScreen() {
                             title={action.title}
                             description={action.description}
                             to={action.to}
+                            disabled={action.disabled}
                         />
                         </div>
                     ))}
                 </div>
             )}
+        </div>
         </div>
     )
 }
