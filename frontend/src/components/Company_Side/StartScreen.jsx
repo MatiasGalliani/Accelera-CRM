@@ -43,19 +43,21 @@ export default function StartScreen() {
     // Agent-only actions
     const agentActions = [
         {
-            title: "Miei Leads 📝",
+            title: "My Leads 📝",
             description: "Visualizza i leads assegnati a te",
-            to: "/my-leads"
+            to: "/my-leads",
         },
         {
             title: "Richieste Documentali📃",
             description: "Visualizza tutte le tue richieste documentali",
-            to: "/my-cases"
+            to: "/my-cases",
+            disabled: true
         },
         {
             title: "Pre Istruttoria Documenti IA 🤖",
             description: "Procedi con la richiesta iniziale dei documenti",
-            to: "/client-type"
+            to: "/client-type",
+            disabled: true
         }
     ];
 
@@ -146,6 +148,7 @@ export default function StartScreen() {
                                 title={action.title}
                                 description={action.description}
                                 to={action.to}
+                                disabled={action.disabled}
                             />
                         </div>
                     ))}
@@ -158,6 +161,7 @@ export default function StartScreen() {
                             title={action.title}
                             description={action.description}
                             to={action.to}
+                            disabled={action.disabled}
                         />
                         </div>
                     ))}

@@ -10,6 +10,7 @@ import syncService from './services/syncService.js';
 import leadRoutes from './routes/leadRoutes.js';
 import agentRoutes from './routes/agentRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import leadFormRoutes from './routes/leadFormRoutes.js';
 import cors from 'cors';
 
 // Load environment variables from .env file
@@ -1202,6 +1203,7 @@ syncService.syncAllAgentsFromFirestore()
 app.use('/api/leads', leadRoutes);
 app.use('/api/agents', agentRoutes);
 app.use('/api', authRoutes);
+app.use('/api/forms', leadFormRoutes);
 
 // Add health check endpoint
 app.get('/health', (req, res) => {
