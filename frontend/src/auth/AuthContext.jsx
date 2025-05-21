@@ -19,7 +19,11 @@ export function AuthProvider({ children }) {
   const isAdminEmail = (email) => {
     console.log("Checking if email is admin:", email);
     console.log("Admin emails list:", ADMIN_EMAILS);
-    const isAdmin = email && ADMIN_EMAILS.includes(email.toLowerCase());
+    // Make it robust: check if ADMIN_EMAILS is an array
+    const isAdmin = email && Array.isArray(ADMIN_EMAILS) && ADMIN_EMAILS.includes(email.toLowerCase());
+    if (!Array.isArray(ADMIN_EMAILS)) {
+      console.warn("ADMIN_EMAILS is not an array. Check configuration in @/config.js. Emails:", ADMIN_EMAILS);
+    }
     console.log("Is admin email?", isAdmin);
     return isAdmin;
   };
@@ -129,7 +133,6 @@ export function AuthProvider({ children }) {
         try {
           console.log("Auth state changed - user logged in:", currentUser.email);
           
-          // Check if this is a hardcoded admin email
           if (isAdminEmail(currentUser.email)) {
             console.log("Admin email detected, setting up admin user");
             
@@ -172,7 +175,6 @@ export function AuthProvider({ children }) {
             return;
           }
           
-          // For non-admin emails, check role via server
           console.log("Non-admin email, checking role via server");
           const role = await checkUserRole(currentUser.uid);
           console.log("Role determined:", role);
@@ -187,25 +189,20 @@ export function AuthProvider({ children }) {
           
         } catch (error) {
           console.error("Error in auth state change:", error);
-          // If error but admin email, set as admin
-          if (isAdminEmail(currentUser.email)) {
-            console.log("Error occurred but email is admin, setting admin role");
-            setUser({
-              ...currentUser,
-              role: 'admin'
-            });
-          } else {
-            setUser({
-              ...currentUser,
-              role: 'agent'
-            });
-          }
+          // Safer fallback: if any error occurs during role determination,
+          // set role to 'agent' to prevent locking out completely or an inconsistent state.
+          // Avoid calling isAdminEmail again here if it could be the source of the error.
+          console.warn("Fallback due to error during auth state change: setting user role to 'agent'. Review logs and ADMIN_EMAILS config.");
+          setUser({
+            ...currentUser, // currentUser should still be valid from onAuthStateChanged
+            role: 'agent' 
+          });
         }
       } else {
         console.log("User logged out, clearing state");
         setUser(null);
       }
-      setLoading(false);
+      setLoading(false); // Ensure loading is set to false in all paths
     });
     
     return unsubscribe;
@@ -267,15 +264,17 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      login, 
-      logout, 
-      checkUserRole, 
-      isAdmin: user?.role === 'admin',
-      loading,
-      forceSetAdmin
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        logout,
+        checkUserRole,
+        forceSetAdmin,
+        isAdminEmail,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

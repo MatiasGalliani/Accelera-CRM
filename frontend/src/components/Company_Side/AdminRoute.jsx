@@ -5,23 +5,27 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
 export default function AdminRoute() {
-  const { user, isAdmin } = useAuth();
+  const { user, loading, isAdminEmail } = useAuth();
   const { toast } = useToast();
 
+  const isAdmin = user && (user.role === 'admin' || isAdminEmail(user.email));
+
   useEffect(() => {
-    console.log("AdminRoute - Component rendered");
-    console.log("AdminRoute - User:", user);
-    console.log("AdminRoute - isAdmin:", isAdmin);
-  }, [user, isAdmin]);
+    // console.log("AdminRoute - User:", user, "isAdmin:", isAdmin, "loading:", loading);
+  }, [user, isAdmin, loading]);
+
+  if (loading) {
+    // console.log("AdminRoute: Auth state loading");
+    return null;
+  }
 
   if (user == null) {
-    console.log("AdminRoute: No user, redirecting to login");
-    // not logged in → send to login
+    // console.log("AdminRoute: No user, redirecting to login");
     return <Navigate to="/login" replace />;
   }
   
   if (!isAdmin) {
-    console.log("AdminRoute: Access denied, redirecting to home");
+    // console.log("AdminRoute: Access denied, redirecting to home");
     toast({
       title: 'Accesso negato',
       description: 'Non hai i permessi necessari per accedere a questa pagina.',
@@ -30,7 +34,6 @@ export default function AdminRoute() {
     return <Navigate to="/" replace />;
   }
   
-  console.log("AdminRoute: User is admin, rendering admin routes");
-  // user is admin → render child routes
+  // console.log("AdminRoute: User is admin, rendering admin routes");
   return <Outlet />;
 }

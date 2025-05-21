@@ -8,7 +8,10 @@ import { useState } from "react";
 
 export default function StartScreen() {
     const [searchQuery, setSearchQuery] = useState("");
-    const { user, logout, isAdmin } = useAuth();
+    const { user, logout, isAdminEmail, loading } = useAuth();
+    
+    // Calculate isAdmin. Handle user being null during initial load and ensure isAdminEmail is callable.
+    const isAdmin = user && !loading && (user.role === 'admin' || (typeof isAdminEmail === 'function' && isAdminEmail(user.email)));
     
     const greetings = [
         {
@@ -77,7 +80,8 @@ export default function StartScreen() {
         {
             title: "Richieste Documentali📃",
             description: "Visualizza tutte le richieste documentali degli agenti",
-            to: "/admin-cases"
+            to: "/admin-cases",
+            disabled: true
         }
     ];
     
@@ -86,7 +90,10 @@ export default function StartScreen() {
         ? [...adminActions]
         : [...agentActions];
     
-    console.log("StartScreen - Admin status:", isAdmin);
+    // console.log("StartScreen - User:", user);
+    // console.log("StartScreen - Calculated isAdmin status:", isAdmin);
+    // console.log("StartScreen - User role:", user?.role);
+    // console.log("StartScreen - Is admin email fn output:", user && typeof isAdminEmail === 'function' ? isAdminEmail(user.email) : "N/A (user or isAdminEmail not available)");
 
     // Filter actions based on search query
     const filteredActions = actions.filter(action => 
@@ -103,6 +110,14 @@ export default function StartScreen() {
             // Normal time range handling for other greetings
             (s.greeting !== 'Buonasera' && hour >= s.fromHour && hour < s.toHour)
         ) || greetings[0]
+
+    // Optional: Handle loading state for StartScreen to prevent rendering with incomplete data
+    if (loading) {
+        // You can return a loading spinner or null
+        // For example: return <div className="flex justify-center items-center min-h-screen"><p>Loading...</p></div>;
+        console.log("StartScreen: Auth state is loading...");
+        return null; // Or a more sophisticated loading indicator
+    }
 
     return (
         <div className="bg-gray-900">
