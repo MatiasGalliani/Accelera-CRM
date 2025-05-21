@@ -43,39 +43,11 @@ app.use(cors({
     /\.vercel\.app$/  // Allow all Vercel preview deployments
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow these methods
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'Origin', 'Accept'], // Allow these headers
-  exposedHeaders: ['Content-Length', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'], // Allow these headers
   credentials: true,
   preflightContinue: false,
-  optionsSuccessStatus: 204,
-  maxAge: 86400 // Preflight results can be cached for 24 hours
+  optionsSuccessStatus: 204
 }));
-
-// Add additional CORS headers middleware for redundancy
-app.use((req, res, next) => {
-  const allowedOrigins = [
-    'https://www.aiquinto.it',
-    'https://aiquinto.it',
-    'https://accelera-crm.vercel.app',
-    'http://localhost:5173',
-    'http://localhost:3000'
-  ];
-  
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-  
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key, Origin, Accept');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
-  }
-  
-  next();
-});
 
 // Add API key verification middleware
 const verifyApiKey = (req, res, next) => {

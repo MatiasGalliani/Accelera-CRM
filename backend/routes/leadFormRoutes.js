@@ -10,12 +10,6 @@ const router = express.Router();
  * @access  Public
  */
 router.post('/pensionato', async (req, res) => {
-  // Add CORS headers specifically for this route
-  res.header('Access-Control-Allow-Origin', req.headers.origin);
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key');
-
   try {
     const {
       nome,
@@ -30,21 +24,6 @@ router.post('/pensionato', async (req, res) => {
       entePensionistico,
       pensioneType,
     } = req.body;
-
-    // Add request body logging for debugging
-    console.log('Received pensionato form submission:', {
-      nome,
-      cognome,
-      mail,
-      telefono,
-      birthDate,
-      province,
-      privacyAccepted,
-      pensionAmount,
-      pensioneNetta,
-      entePensionistico,
-      pensioneType,
-    });
 
     // Validate required fields
     if (!nome || !cognome || !mail || !telefono || !privacyAccepted) {
