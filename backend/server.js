@@ -1200,6 +1200,8 @@ syncService.syncAllAgentsFromFirestore()
 
 // Register routes
 app.use('/api/leads', leadRoutes);
+// Register the form endpoints
+app.use('/api/forms', leadRoutes);
 app.use('/api/agents', agentRoutes);
 app.use('/api', authRoutes);
 

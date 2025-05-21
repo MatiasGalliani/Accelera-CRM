@@ -6,6 +6,119 @@ import { Agent, AgentLeadSource, Lead, LeadDetail, LeadNote, LeadStatusHistory }
 const router = express.Router();
 
 /**
+ * @route   POST /api/forms/pensionato
+ * @desc    Recibir lead de pensionato desde el formulario frontend
+ * @access  Public
+ */
+router.post('/pensionato', async (req, res) => {
+  try {
+    console.log('Received pensionato form submission:', req.body);
+    const {
+      nome,
+      cognome,
+      mail,
+      telefono,
+      birthDate,
+      province,
+      privacyAccepted,
+      pensionAmount,
+      pensioneNetta,
+      entePensionistico,
+      pensioneType
+    } = req.body;
+
+    // Transform form data to match lead structure
+    const leadData = {
+      source: 'aiquinto',
+      firstName: nome,
+      lastName: cognome,
+      email: mail,
+      phone: telefono,
+      message: `Pensionato: ${pensioneType}`,
+      importoRichiesto: pensionAmount,
+      stipendioNetto: pensioneNetta,
+      tipologiaDipendente: 'Pensionato',
+      sottotipo: pensioneType,
+      entePensionistico: entePensionistico,
+      provinciaResidenza: province,
+      dataNascita: birthDate,
+      privacyAccettata: privacyAccepted
+    };
+
+    // Create the lead
+    const lead = await leadService.createLead(leadData);
+
+    res.status(201).json({
+      success: true,
+      message: 'Lead creato con successo',
+      leadId: lead.id
+    });
+  } catch (error) {
+    console.error('Error processing pensionato form:', error);
+    res.status(500).json({ error: error.message || 'Error del servidor' });
+  }
+});
+
+/**
+ * @route   POST /api/forms/dipendente
+ * @desc    Recibir lead de dipendente desde el formulario frontend
+ * @access  Public
+ */
+router.post('/dipendente', async (req, res) => {
+  try {
+    console.log('Received dipendente form submission:', req.body);
+    const {
+      nome,
+      cognome,
+      mail,
+      telefono,
+      birthDate,
+      province,
+      privacyAccepted,
+      amountRequested,
+      netSalary,
+      depType,
+      secondarySelection,
+      contractType,
+      employmentDate,
+      numEmployees
+    } = req.body;
+
+    // Transform form data to match lead structure
+    const leadData = {
+      source: 'aiquinto',
+      firstName: nome,
+      lastName: cognome,
+      email: mail,
+      phone: telefono,
+      message: `Dipendente: ${depType} ${secondarySelection || ''}`,
+      importoRichiesto: amountRequested,
+      stipendioNetto: netSalary,
+      tipologiaDipendente: depType,
+      sottotipo: secondarySelection,
+      tipoContratto: contractType,
+      provinciaResidenza: province,
+      meseAnnoAssunzione: employmentDate,
+      numeroDipendenti: numEmployees,
+      dataNascita: birthDate,
+      privacyAccettata: privacyAccepted
+    };
+
+    // Create the lead
+    const lead = await leadService.createLead(leadData);
+
+    res.status(201).json({
+      success: true,
+      message: 'Lead creato con successo',
+      leadId: lead.id
+    });
+  } catch (error) {
+    console.error('Error processing dipendente form:', error);
+    res.status(500).json({ error: error.message || 'Error del servidor' });
+  }
+});
+
+/**
  * @route   POST /api/leads/webhook
  * @desc    Recibir lead desde una fuente externa
  * @access  Public (con clave API)

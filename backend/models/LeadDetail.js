@@ -71,6 +71,26 @@ const LeadDetail = sequelize.define('LeadDetail', {
     type: DataTypes.STRING(100),
     allowNull: true,
     field: 'operational_city'
+  },
+  employmentDate: {
+    type: DataTypes.STRING(10),
+    allowNull: true,
+    field: 'employment_date'
+  },
+  employeeCount: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    field: 'employee_count'
+  },
+  pensionEntity: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    field: 'pension_entity'
+  },
+  pensionType: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    field: 'pension_type'
   }
 }, {
   timestamps: true,

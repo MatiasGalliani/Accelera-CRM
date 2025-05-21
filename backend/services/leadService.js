@@ -57,7 +57,12 @@ export async function createLead(leadData) {
         employeeType: leadData.tipologiaDipendente || null,
         contractType: leadData.tipoContratto || null,
         employmentSubtype: leadData.sottotipo || null,
-        residenceProvince: leadData.provinciaResidenza || null
+        residenceProvince: leadData.provinciaResidenza || null,
+        birthDate: leadData.dataNascita || null,
+        employmentDate: leadData.meseAnnoAssunzione || null,
+        employeeCount: leadData.numeroDipendenti || null,
+        pensionEntity: leadData.entePensionistico || null,
+        pensionType: leadData.pensioneType || null
       }, { transaction });
     } else if (leadData.source === 'aimedici') {
       await LeadDetail.create({
@@ -327,7 +332,12 @@ function serializeLeads(leads) {
         'financingPurpose': 'scopoRichiesta',
         'companyName': 'nomeAzienda',
         'legalCity': 'cittaSedeLegale',
-        'operationalCity': 'cittaSedeOperativa'
+        'operationalCity': 'cittaSedeOperativa',
+        'birthDate': 'dataNascita',
+        'employmentDate': 'meseAnnoAssunzione',
+        'employeeCount': 'numeroDipendenti',
+        'pensionEntity': 'entePensionistico',
+        'pensionType': 'pensioneType'
       };
       
       // Transferir campos mapeados de detalles al objeto principal
