@@ -38,11 +38,15 @@ app.use(cors({
     'http://localhost:5173',  // Local development
     'http://localhost:3000',  // Local development alternative
     'https://accelera-crm.vercel.app', // Production domain
+    'https://www.aiquinto.it', // AIQuinto website
+    'https://aiquinto.it', // AIQuinto website without www
     /\.vercel\.app$/  // Allow all Vercel preview deployments
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow these methods
   allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'], // Allow these headers
-  credentials: true
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 
 // Add API key verification middleware
