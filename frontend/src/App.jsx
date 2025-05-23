@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider, useIsFetching } from "@tanstack/react
 import PrivateRoute from "./auth/PrivateRoute"
 import AdminRoute from "./components/Company_Side/AdminRoute"
 import AgentOnlyRoute from "./components/Company_Side/AgentOnlyRoute"
-import LoadingSpinner from "./components/LoadingSpinner"
+import SidePanel from "./components/SidePanel"
+import { useAuth } from "@/auth/AuthContext"
 
 import Login from "./auth/Login"
 import StartScreen from "./components/Company_Side/StartScreen"
@@ -43,6 +44,7 @@ function AppContent() {
   })
   const navigation = useNavigation();
   const isFetching = useIsFetching(); // Get TanStack Query's fetching state
+  const { user } = useAuth();
 
   useEffect(() => {
     const initialSpinner = document.getElementById('initial-spinner');
@@ -57,8 +59,17 @@ function AppContent() {
   return (
     <FormProvider {...methods}>
       {/* <LoadingSpinner /> */}
-      {(isFetching > 0 || navigation.state === "loading") && <LoadingSpinner />}
-      <Outlet />
+      {(isFetching > 0 || navigation.state === "loading")}
+      {user ? (
+        <div className="flex min-h-screen">
+          <SidePanel />
+          <div className="flex-1 bg-gray-50 lg:ml-64 overflow-y-auto h-screen">
+            <Outlet />
+          </div>
+        </div>
+      ) : (
+        <Outlet />
+      )}
     </FormProvider>
   );
 }

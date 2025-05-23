@@ -593,6 +593,68 @@ export async function assignLeadToSpecificAgent(leadId, agentId, adminFirebaseUi
   }
 }
 
+/**
+ * Get leads for a campaign manager
+ * @param {string} firebaseUid - Firebase UID of the campaign manager
+ * @param {string} source - Source to filter leads by
+ * @returns {Promise<Array>} - Array of leads
+ */
+export async function getCampaignManagerLeads(firebaseUid, source) {
+  try {
+    // First get the agent record to verify permissions
+    const agent = await Agent.findOne({
+      where: { firebaseUid },
+      include: [{
+        model: AgentLeadSource,
+        where: { source },
+        required: true
+      }]
+    });
+
+    if (!agent) {
+      throw new Error(`Non hai accesso ai leads della fonte ${source}`);
+    }
+
+    // Get all leads for this source
+    const leads = await Lead.findAll({
+      where: { source },
+      include: [
+        { 
+          model: LeadDetail, 
+          as: 'details',
+          required: false 
+        },
+        { 
+          model: Agent, 
+          as: 'assignedAgent',
+          attributes: ['id', 'firstName', 'lastName', 'email'],
+          required: false 
+        },
+        {
+          model: LeadNote,
+          as: 'notes',
+          limit: 50,
+          order: [['created_at', 'DESC']],
+          required: false
+        },
+        {
+          model: LeadStatusHistory,
+          as: 'statusHistory',
+          limit: 20,
+          order: [['created_at', 'DESC']],
+          required: false
+        }
+      ],
+      order: [['created_at', 'DESC']]
+    });
+
+    return serializeLeads(leads);
+  } catch (error) {
+    console.error('Error getting campaign manager leads:', error);
+    throw error;
+  }
+}
+
 export default {
   createLead,
   assignLeadToAgent,
@@ -600,5 +662,6 @@ export default {
   getAgentAllowedSources,
   updateLeadStatus,
   addLeadComment,
-  assignLeadToSpecificAgent
+  assignLeadToSpecificAgent,
+  getCampaignManagerLeads
 }; 

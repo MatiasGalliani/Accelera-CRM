@@ -133,8 +133,42 @@ export const requirePagePermission = (pageRoute) => {
   };
 };
 
+export const requireCampaignManager = async (req, res, next) => {
+  try {
+    const uid = req.user.uid;
+
+    // First check in Firestore (if exists)
+    const agentsSnapshot = await admin.firestore()
+      .collection('agents')
+      .where('uid', '==', uid)
+      .limit(1)
+      .get();
+
+    if (!agentsSnapshot.empty) {
+      const agentData = agentsSnapshot.docs[0].data();
+      if (agentData.role === 'campaign_manager') {
+        return next();
+      }
+    }
+
+    // Fallback to PostgreSQL check
+    const pgAgent = await Agent.findOne({ where: { firebaseUid: uid } });
+    if (pgAgent && pgAgent.role === 'campaign_manager') {
+      return next();
+    }
+
+    return res.status(403).json({
+      message: 'Accesso negato: richiede privilegi di campaign manager'
+    });
+  } catch (err) {
+    console.error('Campaign manager check error:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
 export default {
   authenticate,
   requireAdmin,
+  requireCampaignManager,
   requirePagePermission
 }; 

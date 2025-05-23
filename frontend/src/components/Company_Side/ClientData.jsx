@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/accordion"
 import { Plus, Trash2 } from "lucide-react"
 import { useEffect } from "react"
-import LogoHeader from "./LogoHeader"
 
 export default function ClientData() {
     const {
@@ -58,7 +57,6 @@ export default function ClientData() {
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
-            <LogoHeader />
             <Card className="w-full max-w-lg shadow-lg">
                 <form onSubmit={handleSubmit(onNext)}>
                     <CardHeader>

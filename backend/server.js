@@ -1137,7 +1137,7 @@ app.put('/api/agents/:id/lead-sources', authenticate, requireAdmin, async (req, 
 });
 
 // PUT /api/agents/:id/pages - Update an agent's pages (permissions)
-app.put('/api/agents/:id/pages', authenticate, requireAdmin, async (req, res) => {
+app.put('/api/agents/:id/pages', authenticate, async (req, res) => {
   try {
     const agentId = req.params.id;
     const { pages } = req.body;
@@ -1151,6 +1151,14 @@ app.put('/api/agents/:id/pages', authenticate, requireAdmin, async (req, res) =>
     
     if (!agentDoc.exists) {
       return res.status(404).json({ message: 'Agente non trovato' });
+    }
+
+    // Check if user is admin or if they're accessing their own pages
+    const isAdmin = await checkIsAdmin(req.user.uid);
+    const isOwnPages = agentDoc.data().uid === req.user.uid;
+    
+    if (!isAdmin && !isOwnPages) {
+      return res.status(403).json({ message: 'Non hai i permessi per modificare le pagine di questo agente' });
     }
     
     // UPDATE: Update both pages and leadSources to ensure round-robin consistency
@@ -1182,6 +1190,27 @@ app.put('/api/agents/:id/pages', authenticate, requireAdmin, async (req, res) =>
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+// Helper function to check if a user is admin
+async function checkIsAdmin(uid) {
+  // First check in Firestore
+  const agentsSnapshot = await db.collection('agents')
+    .where('uid', '==', uid)
+    .limit(1)
+    .get();
+
+  if (!agentsSnapshot.empty) {
+    const agentData = agentsSnapshot.docs[0].data();
+    if (agentData.role === 'admin') {
+      return true;
+    }
+  }
+
+  // Then check in PostgreSQL
+  const { Agent } = await import('./models/leads-index.js');
+  const pgAgent = await Agent.findOne({ where: { firebaseUid: uid } });
+  return pgAgent?.role === 'admin';
+}
 
 // Iniciar sincronización de agentes entre Firestore y PostgreSQL
 syncService.syncAllAgentsFromFirestore()

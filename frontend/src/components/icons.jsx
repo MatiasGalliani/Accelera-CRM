@@ -1,0 +1,40 @@
+import {
+  Home,
+  ClipboardList,
+  UserCheck,
+  FileText,
+  Menu,
+  X,
+  LogOut,
+} from "lucide-react"
+import {
+  Brain,
+  UserList,
+  House,
+  IdentificationCard,
+  Users,
+  SignOut,
+  Eye,
+  EyeSlash,
+  EyeClosed,
+  Megaphone,
+} from "@phosphor-icons/react"
+
+export const Icons = {
+  home: Home,
+  clipboardList: ClipboardList,
+  userCheck: UserCheck,
+  fileText: FileText,
+  menu: Menu,
+  x: X,
+  logOut: SignOut,
+  brain: Brain,
+  userList: UserList,
+  house: House,
+  files: IdentificationCard,
+  users: Users,
+  eye: Eye,
+  eyeSlash: EyeSlash,
+  eyeClosed: EyeClosed,
+  megaphone: Megaphone,
+} 

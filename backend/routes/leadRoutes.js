@@ -1,6 +1,6 @@
 import express from 'express';
 import leadService from '../services/leadService.js';
-import { authenticate, requireAdmin } from '../middleware/auth.js';
+import { authenticate, requireAdmin, requireCampaignManager } from '../middleware/auth.js';
 import { Agent, AgentLeadSource, Lead, LeadDetail, LeadNote, LeadStatusHistory } from '../models/leads-index.js';
 
 const router = express.Router();
@@ -579,6 +579,37 @@ router.get('/debug-leads', authenticate, requireAdmin, async (req, res) => {
       error: error.message || 'Server error',
       stack: process.env.NODE_ENV === 'production' ? undefined : error.stack
     });
+  }
+});
+
+/**
+ * @route   GET /api/leads/campaign-leads
+ * @desc    Get leads for campaign managers (all agents, limited to allowed sources)
+ * @access  Campaign Manager only
+ */
+router.get('/campaign-leads', authenticate, requireCampaignManager, async (req, res) => {
+  try {
+    const source = req.query.source;
+    if (!source) {
+      return res.status(400).json({ error: 'Parametro source richiesto' });
+    }
+
+    const leads = await leadService.getCampaignManagerLeads(req.user.uid, source);
+    
+    res.json({
+      leads,
+      total: leads.length,
+      page: 1,
+      totalPages: 1
+    });
+  } catch (err) {
+    console.error('Errore nel recupero leads campaign manager:', err);
+    
+    if (err.message.includes('Non hai accesso')) {
+      return res.status(403).json({ error: err.message });
+    }
+    
+    res.status(500).json({ error: err.message || 'Errore del server' });
   }
 });
 

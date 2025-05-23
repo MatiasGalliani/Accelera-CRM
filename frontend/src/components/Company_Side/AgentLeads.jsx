@@ -3,14 +3,6 @@ import { useAuth } from "@/auth/AuthContext"
 import { useToast } from "@/hooks/use-toast"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
   Card,
   CardHeader,
   CardTitle,
@@ -20,7 +12,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Search, RefreshCw, Trash2, PencilLine, Save, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import LogoHeader from "./LogoHeader"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,12 +44,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogClose,
 } from "@/components/ui/dialog"
 import CommentPreviewCell from "./CommentPreviewCell"
 import LeadSourceTabs from "@/components/LeadSourceTabs"
 import { API_BASE_URL, API_ENDPOINTS, getApiUrl } from '@/config'
+import { Icons } from "@/components/icons"
 
 // Status options for leads
 const STATUS_OPTIONS = [
@@ -431,12 +421,11 @@ export default function LeadsAgenti() {
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-gray-50 p-4">
-      <LogoHeader />
       <Card className="w-full max-w-6xl shadow-lg mt-16">
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle className="text-3xl">My Leads 📝</CardTitle>
+              <CardTitle className="text-3xl">My Leads <Icons.userList className="inline pb-1 h-8 w-8" /></CardTitle>
               <CardDescription className="mb-2">
                 Visualizza e gestisci tutti i tuoi leads provenienti dai diversi siti
               </CardDescription>

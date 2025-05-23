@@ -20,7 +20,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Search, RefreshCw, Trash2, CheckSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import LogoHeader from "./LogoHeader"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -360,7 +359,6 @@ export default function Cases() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
-      <LogoHeader />
       <Card className="w-full max-w-6xl shadow-lg">
         <CardHeader>
           <div className="flex justify-between items-center">

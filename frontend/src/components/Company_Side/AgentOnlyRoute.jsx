@@ -8,6 +8,7 @@ export default function AgentOnlyRoute() {
   const { toast } = useToast();
 
   const isAdmin = user && (user.role === 'admin' || isAdminEmail(user.email));
+  const isAgent = user && user.role === 'agent';
 
   useEffect(() => {
     // console.log("AgentOnlyRoute - User:", user, "isAdmin:", isAdmin, "loading:", loading);
@@ -23,7 +24,7 @@ export default function AgentOnlyRoute() {
     return <Navigate to="/login" replace />;
   }
   
-  if (isAdmin) {
+  if (!isAgent) {
     // console.log("AgentOnlyRoute: Admin access denied, redirecting to home");
     toast({
       title: 'Accesso negato',

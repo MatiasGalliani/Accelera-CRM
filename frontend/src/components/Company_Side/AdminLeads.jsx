@@ -1,3 +1,4 @@
+import { Icons } from "@/components/icons"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/auth/AuthContext"
 import { useToast } from "@/hooks/use-toast"
@@ -21,7 +22,6 @@ import { Input } from "@/components/ui/input"
 import { Search, RefreshCw, Eye, UserCog, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import LogoHeader from "./LogoHeader"
 import {
   Tabs,
   TabsContent,
@@ -681,12 +681,11 @@ export default function AdminLeads() {
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-gray-50 p-4">
-      <LogoHeader />
       <Card className="w-full max-w-6xl shadow-lg mt-16">
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle className="text-3xl">Leads degli agenti 📝</CardTitle>
+              <CardTitle className="text-3xl">Leads degli agenti <Icons.userList className="inline pb-1 h-8 w-8" /></CardTitle>
               <CardDescription className="mb-2">
                 Monitora tutti i leads assegnati agli agenti
               </CardDescription>

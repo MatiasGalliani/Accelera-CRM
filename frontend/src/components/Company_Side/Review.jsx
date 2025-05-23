@@ -12,7 +12,6 @@ import { useFormContext } from "react-hook-form"
 import { useNavigate } from "react-router-dom"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/auth/AuthContext"
-import LogoHeader from "./LogoHeader"
 
 export default function Review() {
   const {
@@ -151,7 +150,6 @@ export default function Review() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
-      <LogoHeader />
       <Card className="w-full max-w-2xl shadow-lg">
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardHeader>

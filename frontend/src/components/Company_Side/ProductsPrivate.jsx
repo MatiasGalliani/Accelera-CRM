@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
-import LogoHeader from "./LogoHeader"
 
 export default function ProductsPrivate() {
   const options = [
@@ -82,7 +81,6 @@ export default function ProductsPrivate() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <LogoHeader />
       <div className="flex flex-col items-center py-12 px-2 sm:px-4 w-full">
         <div className="w-full max-w-screen-lg mb-6 px-2">
           <h1 className="flex justify-center mt-5 mb-5 font-semibold text-3xl">

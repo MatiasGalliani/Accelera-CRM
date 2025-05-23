@@ -1,17 +1,13 @@
-import { Button } from "@/components/ui/button"
 import { useAuth } from "@/auth/AuthContext";
-import logo from "@/assets/Accelera_logo.svg"
-import { LogOut, Search } from "lucide-react"
-import ActionCard from "./ActionCard"
-import { Input } from "@/components/ui/input"
-import { useState } from "react";
+// React import for potential hooks
+import React from "react";
 
 export default function StartScreen() {
-    const [searchQuery, setSearchQuery] = useState("");
-    const { user, logout, isAdminEmail, loading } = useAuth();
+    const { user, isAdminEmail, loading } = useAuth();
     
     // Calculate isAdmin. Handle user being null during initial load and ensure isAdminEmail is callable.
     const isAdmin = user && !loading && (user.role === 'admin' || (typeof isAdminEmail === 'function' && isAdminEmail(user.email)));
+    const isCampaignManager = user && !loading && user.role === 'campaign_manager';
     
     const greetings = [
         {
@@ -85,20 +81,26 @@ export default function StartScreen() {
         }
     ];
     
+    // Campaign manager actions
+    const campaignManagerActions = [
+        {
+            title: "Leads Campagna 📝",
+            description: "Visualizza tutti i leads della tua campagna",
+            to: "/campaign-leads"
+        }
+    ];
+
     // Use different actions based on user role
     const actions = isAdmin 
         ? [...adminActions]
+        : isCampaignManager
+        ? [...campaignManagerActions]
         : [...agentActions];
     
     // console.log("StartScreen - User:", user);
     // console.log("StartScreen - Calculated isAdmin status:", isAdmin);
     // console.log("StartScreen - User role:", user?.role);
     // console.log("StartScreen - Is admin email fn output:", user && typeof isAdminEmail === 'function' ? isAdminEmail(user.email) : "N/A (user or isAdminEmail not available)");
-
-    // Filter actions based on search query
-    const filteredActions = actions.filter(action => 
-        action.title.toLowerCase().includes(searchQuery.toLowerCase())
-    );
 
     const name = user?.displayName?.split(' ')[0] || 'Agente';
 
@@ -120,69 +122,13 @@ export default function StartScreen() {
     }
 
     return (
-        <div className="bg-gray-900">
-        <div className="flex flex-col items-center min-h-screen bg-gray-50 p-4">
-            <div className="absolute top-4 left-4">
-                <img src={logo} alt="Logo" className="w-32" />
-            </div>
-
-            <div className="absolute top-4 right-4">
-                <Button
-                    onClick={logout}
-                    variant="ghost"
-                    className="text-red-500 rounded-3xl hover:bg-transparent"
-                >
-                    <span className="sm:inline mr-2">Logout</span>
-                    <LogOut className="h-6 w-6 sm:h-10 sm:w-10" />
-                </Button>
-            </div>
-
-            <div className="mt-24 md:mt-20 text-center space-y-4 mb-8">
-                <h1 className="text-3xl md:text-4xl font-semibold text-gray-900">
-                    {greeting}{emoji}, {name}
-                </h1>
-                <div className="relative w-full max-w-md mx-auto">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                        <Input 
-                            type="text" 
-                            placeholder="Cosa vuoi fare oggi?"
-                            className="pl-10 pr-4 py-2 w-96 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {filteredActions.length <= 2 ? (
-                <div className="flex flex-wrap justify-center gap-4 w-full max-w-7xl">
-                    {filteredActions.map((action, index) => (
-                        <div key={index} className="w-full sm:w-[45%] max-w-sm">
-                            <ActionCard
-                                title={action.title}
-                                description={action.description}
-                                to={action.to}
-                                disabled={action.disabled}
-                            />
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full max-w-7xl px-4">
-                    {filteredActions.map((action, index) => (
-                        <div key={index}>
-                        <ActionCard
-                            title={action.title}
-                            description={action.description}
-                            to={action.to}
-                            disabled={action.disabled}
-                        />
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
+        <div className="flex flex-col items-center justify-center h-full p-8 bg-gray-50 text-center">
+            <h1 className="text-3xl md:text-4xl font-semibold text-gray-900 mb-4">
+                {greeting}{emoji}, {name}
+            </h1>
+            <p className="text-gray-600 max-w-md">
+                Benvenuto! Usa il menu laterale per iniziare.
+            </p>
         </div>
     )
 }

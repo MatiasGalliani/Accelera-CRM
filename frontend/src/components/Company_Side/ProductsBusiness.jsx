@@ -12,7 +12,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
-import LogoHeader from "./LogoHeader"
 
 export default function ProductsBusiness() {
     // Lista dei prodotti (stessi title/description di prima)
@@ -91,7 +90,6 @@ export default function ProductsBusiness() {
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-50">
-            <LogoHeader />
             <div className="flex flex-col items-center py-12 px-2 sm:px-4 w-full">
                 {/* Search bar */}
                 <div className="w-full max-w-screen-lg mb-6 px-2">
