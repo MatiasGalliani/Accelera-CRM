@@ -53,7 +53,7 @@ export async function createLead(leadData) {
       await LeadDetail.create({
         leadId: lead.id,
         requestedAmount: leadData.importoRichiesto || null,
-        netSalary: leadData.stipendioNetto || null,
+        netSalary: leadData.tipologiaDipendente === 'Pensionato' ? leadData.stipendioNetto : null,
         employeeType: leadData.tipologiaDipendente || null,
         contractType: leadData.tipoContratto || null,
         employmentSubtype: leadData.sottotipo || null,
@@ -62,8 +62,7 @@ export async function createLead(leadData) {
         numEmployees: leadData.numEmployees || null,
         birthDate: leadData.birthDate || null,
         entePensionistico: leadData.entePensionistico || null,
-        pensionType: leadData.pensionType || null,
-        pensionAmount: leadData.pensionAmount || null,
+        pensionType: leadData.pensionType || null
       }, { transaction });
     } else if (leadData.source === 'aimedici') {
       await LeadDetail.create({
