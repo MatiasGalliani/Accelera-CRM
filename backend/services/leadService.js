@@ -72,7 +72,6 @@ export async function createLead(leadData) {
         residenceCity: leadData.cittaResidenza || null,
         residenceProvince: leadData.provinciaResidenza || null,
         netSalary: leadData.stipendioNetto || null,
-        netSalary: leadData.pensioneNettaMensile || null,
         pensioneNettaMensile: leadData.pensioneNettaMensile || null,
         residenceCity: leadData.cittaResidenza || null,
         residenceProvince: leadData.provinciaResidenza || null
