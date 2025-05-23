@@ -53,7 +53,7 @@ export async function createLead(leadData) {
       await LeadDetail.create({
         leadId: lead.id,
         requestedAmount: leadData.importoRichiesto || null,
-        netSalary: leadData.tipologiaDipendente === 'Pensionato' ? leadData.stipendioNetto : null,
+        netSalary: leadData.stipendioNetto || null,  // This will store pensioneNetta for pensioners
         employeeType: leadData.tipologiaDipendente || null,
         contractType: leadData.tipoContratto || null,
         employmentSubtype: leadData.sottotipo || null,
