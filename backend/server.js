@@ -10,6 +10,7 @@ import syncService from './services/syncService.js';
 import leadRoutes from './routes/leadRoutes.js';
 import agentRoutes from './routes/agentRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import formRoutes from './routes/formRoutes.js';
 import cors from 'cors';
 
 // Load environment variables from .env file
@@ -39,6 +40,10 @@ app.use(cors({
     'https://accelera-crm.vercel.app', // Production domain
     'https://accelera.creditplan.it', // Production custom domain
     'https://aiquinto.it', // AIQuinto.it domain
+    'https://www.aiquinto.it', // AIQuinto with www
+    'https://www.aiquinto.com', // AIQuinto .com with www
+    'https://cessione.creditplan.it', // New frontend domain
+    'https://quinto.creditplan.it', // New frontend domain
     'https://aimedici.it', // AIMedici.it domain
     'https://aifidi.it', // AIFidi.it domain
     /\.vercel\.app$/  // Allow all Vercel preview deployments
@@ -1235,6 +1240,7 @@ syncService.syncAllAgentsFromFirestore()
 app.use('/api/leads', leadRoutes);
 app.use('/api/agents', agentRoutes);
 app.use('/api', authRoutes);
+app.use('/api/forms', formRoutes);
 
 // Add health check endpoint
 app.get('/health', (req, res) => {

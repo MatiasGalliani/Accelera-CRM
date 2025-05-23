@@ -57,7 +57,8 @@ export async function createLead(leadData) {
         employeeType: leadData.tipologiaDipendente || null,
         contractType: leadData.tipoContratto || null,
         employmentSubtype: leadData.sottotipo || null,
-        residenceProvince: leadData.provinciaResidenza || null
+        residenceProvince: leadData.provinciaResidenza || null,
+        birthDate: leadData.birthDate || null
       }, { transaction });
     } else if (leadData.source === 'aimedici') {
       await LeadDetail.create({
