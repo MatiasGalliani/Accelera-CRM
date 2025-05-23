@@ -68,6 +68,11 @@ export async function createLead(leadData) {
         requestedAmount: leadData.importoRichiesto || null,
         financingPurpose: leadData.scopoRichiesta || null,
         residenceCity: leadData.cittaResidenza || null,
+        residenceProvince: leadData.provinciaResidenza || null,
+        netSalary: leadData.stipendioNetto || null,
+        netSalary: leadData.pensioneNettaMensile || null,
+        pensioneNettaMensile: leadData.pensioneNettaMensile || null,
+        residenceCity: leadData.cittaResidenza || null,
         residenceProvince: leadData.provinciaResidenza || null
       }, { transaction });
     } else if (leadData.source === 'aifidi') {
@@ -331,6 +336,9 @@ function serializeLeads(leads) {
         'companyName': 'nomeAzienda',
         'legalCity': 'cittaSedeLegale',
         'operationalCity': 'cittaSedeOperativa',
+        'entePensionistico': 'entePensionistico',
+        'pensionType': 'tipologiaPensione',
+        'birthDate': 'dataNascita',
         'employmentDate': 'meseAnnoAssunzione',
         'numEmployees': 'numeroDipendenti'
       };

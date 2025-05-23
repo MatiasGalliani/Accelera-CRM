@@ -69,6 +69,8 @@ router.post('/pensionato', async (req, res) => {
 
       importoRichiesto: data.pensionAmount || null,
       stipendioNetto: data.pensioneNetta || null,
+      entePensionistico: data.entePensionistico || null,
+      pensionType: data.pensioneType || null,
       tipologiaDipendente: 'Pensionato',
       provinciaResidenza: data.province || null,
       birthDate: data.birthDate || null

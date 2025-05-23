@@ -47,6 +47,16 @@ const LeadDetail = sequelize.define('LeadDetail', {
     allowNull: true,
     field: 'num_employees'
   },
+  entePensionistico: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    field: 'ente_pensionistico'
+  },
+  pensionType: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    field: 'pension_type'
+  },
   birthDate: {
     type: DataTypes.DATE,
     allowNull: true,
