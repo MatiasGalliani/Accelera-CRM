@@ -58,6 +58,8 @@ export async function createLead(leadData) {
         contractType: leadData.tipoContratto || null,
         employmentSubtype: leadData.sottotipo || null,
         residenceProvince: leadData.provinciaResidenza || null,
+        employmentDate: leadData.employmentDate || null,
+        numEmployees: leadData.numEmployees || null,
         birthDate: leadData.birthDate || null
       }, { transaction });
     } else if (leadData.source === 'aimedici') {
@@ -328,7 +330,9 @@ function serializeLeads(leads) {
         'financingPurpose': 'scopoRichiesta',
         'companyName': 'nomeAzienda',
         'legalCity': 'cittaSedeLegale',
-        'operationalCity': 'cittaSedeOperativa'
+        'operationalCity': 'cittaSedeOperativa',
+        'employmentDate': 'meseAnnoAssunzione',
+        'numEmployees': 'numeroDipendenti'
       };
       
       // Transferir campos mapeados de detalles al objeto principal

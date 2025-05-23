@@ -37,6 +37,16 @@ const LeadDetail = sequelize.define('LeadDetail', {
     allowNull: true,
     field: 'employment_subtype'
   },
+  employmentDate: {
+    type: DataTypes.STRING(7),
+    allowNull: true,
+    field: 'employment_date'
+  },
+  numEmployees: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    field: 'num_employees'
+  },
   birthDate: {
     type: DataTypes.DATE,
     allowNull: true,

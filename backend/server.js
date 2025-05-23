@@ -32,13 +32,29 @@ const db = admin.firestore();
 const app = express();
 // Parse JSON bodies
 app.use(bodyParser.json());
-// CORS: accept requests from any origin.
-// We still reflect the origin header so credentials (cookies / auth headers) can be used.
+// CORS: accept requests from specific domains
 app.use(cors({
-  origin: (origin, callback) => {
-    // If no origin (e.g. same-origin requests like Postman) just allow it
-    callback(null, true);
-  },
+  origin: [
+    'http://localhost:5173',  // Local development
+    'http://localhost:3000',  // Local development alternative
+    'https://accelera-crm.vercel.app', // Production domain (CRM app)
+    'https://accelera.creditplan.it', // Production custom domain
+
+    // AIQuinto public sites
+    'https://aiquinto.it',
+    'https://www.aiquinto.it',
+    'https://www.aiquinto.com',
+
+    // Creditplan landing sites
+    'https://cessione.creditplan.it',
+    'https://quinto.creditplan.it',
+
+    // Other lead-generating sites
+    'https://aimedici.it',
+    'https://aifidi.it',
+
+    /\.vercel\.app$/  // Allow all Vercel preview deployments
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
   credentials: true

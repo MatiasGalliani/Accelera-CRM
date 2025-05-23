@@ -33,6 +33,8 @@ router.post('/dipendente', async (req, res) => {
       sottotipo: data.secondarySelection || null,
       tipoContratto: data.contractType || null,
       provinciaResidenza: data.province || null,
+      employmentDate: data.employmentDate || null,
+      numEmployees: data.numEmployees ? parseInt(data.numEmployees) : null,
       birthDate: data.birthDate || null
     };
 
