@@ -393,7 +393,7 @@ export default function LeadsAgenti() {
       return commonFieldsMatch;
     }
 
-    if (currentSource === 'aiquinto') {
+    if (currentSource === 'aiquinto_dipendenti') {
       // Campos específicos de AIQuinto
       return (
         ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
@@ -403,7 +403,23 @@ export default function LeadsAgenti() {
         ((lead.tipoContratto || '').toLowerCase().includes(searchTerm)) ||
         ((lead.provinciaResidenza || '').toLowerCase().includes(searchTerm)) ||
         ((lead.meseAnnoAssunzione || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.numeroDipendenti || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.numeroDipendenti || '').toString().toLowerCase().includes(searchTerm))
+      );
+    } else if (currentSource === 'aiquinto_pensionati') {
+      return (
+        ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
+        ((lead.pensioneNettaMensile || '').toString().toLowerCase().includes(searchTerm)) ||
+        ((lead.entePensionistico || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.tipologiaPensione || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.provinciaResidenza || '').toLowerCase().includes(searchTerm))
+      );
+    } else if (currentSource === 'aimedici') {
+      // Campos específicos de AIMedici
+      return (
+        ((lead.scopoRichiesta || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
+        ((lead.cittaResidenza || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.provinciaResidenza || '').toLowerCase().includes(searchTerm)) ||
         ((lead.commenti || '').toLowerCase().includes(searchTerm))
       );
     } else if (currentSource === 'aifidi') {
@@ -528,7 +544,7 @@ export default function LeadsAgenti() {
                       <th>Telefono</th>
 
                       {/* Source-specific columns */}
-                      {currentSource === "aiquinto" ? (
+                      {currentSource === "aiquinto_dipendenti" ? (
                         aiquintoTab === AIQUINTO_TABS.DIPENDENTI ? (
                           <>
                             <th>Importo Richiesto</th>

@@ -10,23 +10,23 @@ import roundRobinService from './roundRobinService.js';
  */
 export async function createLead(leadData) {
   const transaction = await sequelize.transaction();
-  
+
   try {
     console.log('Creando nuevo lead:', leadData.source);
-    
+
     // Validar datos mínimos
     if (!leadData.source || !leadData.email) {
       throw new Error('Datos de lead incompletos');
     }
-    
+
     // Si se proporcionó un agentId específico, lo usamos
     // Si no, obtenemos uno usando el round robin
     let assignedAgentId = leadData.agentId;
-    
+
     if (!assignedAgentId) {
       // Obtener un agente usando el sistema round robin
       const agent = await roundRobinService.getAgentByRoundRobin(leadData.source, transaction);
-      
+
       // Check if agent is valid or unassigned
       if (agent.unassigned) {
         console.log(`No hay agentes disponibles para la fuente ${leadData.source} - creando lead sin asignar`);
@@ -35,7 +35,7 @@ export async function createLead(leadData) {
         assignedAgentId = agent.id;
       }
     }
-    
+
     // Crear el lead básico con el agente asignado (o null si no hay agentes)
     const lead = await Lead.create({
       source: leadData.source,
@@ -47,20 +47,30 @@ export async function createLead(leadData) {
       status: 'new',
       assignedAgentId  // Will be null if unassigned
     }, { transaction });
-    
+
     // Crear detalles específicos según la fuente
     if (leadData.source === 'aiquinto') {
       await LeadDetail.create({
         leadId: lead.id,
-        requestedAmount: leadData.importoRichiesto || null,
-        netSalary: leadData.stipendioNetto || null,
-        employeeType: leadData.tipologiaDipendente || null,
-        contractType: leadData.tipoContratto || null,
-        employmentSubtype: leadData.sottotipo || null,
-        residenceProvince: leadData.provinciaResidenza || null,
-        employmentDate: leadData.employmentDate || null,
-        numEmployees: leadData.numEmployees || null,
-        birthDate: leadData.birthDate || null
+        nome : leadData.nome || null,
+        cognome : leadData.cognome || null,
+        mail : leadData.email || null,
+        telefono : leadData.telefono || null,
+        birthDate : leadData.dataNascita || null,
+        province : leadData.provinciaResidenza || null,
+        privacyAccepted : leadData.privacyAccettata || false,
+        pensionAmount : leadData.importoPensione || null,
+        pensioneNetta : leadData.pensioneNettaMensile || null,
+        entePensionistico : leadData.entePensionistico || null,
+        pensioneType : leadData.tipologiaPensione || null,
+        amountRequested : leadData.importoRichiesto || null,
+        netSalary : leadData.stipendioNetto || null,
+        depType : leadData.tipologiaDipendente || null,
+        secondarySelection : leadData.secondaria || null,
+        contractType : leadData.tipoContratto || null,
+        employmentDate: leadData.meseAnnoAssunzione || null,
+        numEmployees: leadData.numeroDipendenti || null,
+
       }, { transaction });
     } else if (leadData.source === 'aimedici') {
       await LeadDetail.create({
@@ -85,7 +95,7 @@ export async function createLead(leadData) {
         requestedAmount: leadData.importoRichiesto || null
       }, { transaction });
     }
-    
+
     // Registrar en el historial de estados
     await LeadStatusHistory.create(
       {
@@ -93,16 +103,16 @@ export async function createLead(leadData) {
         agentId: assignedAgentId,
         oldStatus: null,
         newStatus: 'new',
-        notes: assignedAgentId 
-          ? 'Lead creado y asignado por sistema round robin' 
+        notes: assignedAgentId
+          ? 'Lead creado y asignado por sistema round robin'
           : 'Lead creado sin asignación - no hay agentes disponibles para esta fuente'
       },
       { transaction }
     );
-    
+
     // Confirmar la transacción
     await transaction.commit();
-    
+
     // Cargar el lead completo con sus detalles
     const completeLead = await Lead.findByPk(lead.id, {
       include: [
@@ -110,7 +120,7 @@ export async function createLead(leadData) {
         { model: Agent, as: 'assignedAgent' }
       ]
     });
-    
+
     return completeLead;
   } catch (error) {
     // Revertir la transacción en caso de error
@@ -129,38 +139,38 @@ export async function createLead(leadData) {
  */
 export async function assignLeadToAgent(leadId, source, transaction) {
   const t = transaction || await sequelize.transaction();
-  
+
   try {
     console.log(`Asignando lead ${leadId} de fuente ${source} a un agente disponible`);
-    
+
     // Obtener agentes disponibles para esta fuente
     const availableAgents = await AgentLeadSource.findAll({
       where: { source },
       include: [
-        { 
-          model: Agent, 
+        {
+          model: Agent,
           required: true,
           where: {
             isActive: true, // Only active agents
             role: 'agent'   // IMPORTANT: Exclude admins from assignment
-          } 
+          }
         }
       ],
       transaction: t
     });
-    
+
     if (availableAgents.length === 0) {
       console.log(`No hay agentes disponibles para la fuente ${source}`);
-      
+
       // Instead of just returning, update the lead to be unassigned
       await Lead.update(
         { assignedAgentId: null },
-        { 
+        {
           where: { id: leadId },
           transaction: t
         }
       );
-      
+
       // Add history record indicating lead is unassigned
       await LeadStatusHistory.create(
         {
@@ -172,16 +182,16 @@ export async function assignLeadToAgent(leadId, source, transaction) {
         },
         { transaction: t }
       );
-      
+
       if (!transaction) await t.commit();
-      return { 
-        success: true, 
+      return {
+        success: true,
         unassigned: true,
-        reason: 'NO_AGENTS_AVAILABLE', 
-        leadId 
+        reason: 'NO_AGENTS_AVAILABLE',
+        leadId
       };
     }
-    
+
     // Contar leads activos para cada agente
     const agentsWithLeadCount = await Promise.all(
       availableAgents.map(async (agentSource) => {
@@ -192,29 +202,29 @@ export async function assignLeadToAgent(leadId, source, transaction) {
           },
           transaction: t
         });
-        
+
         return {
           agentId: agentSource.Agent.id,
           activeLeads: count
         };
       })
     );
-    
+
     // Ordenar por cantidad de leads activos (menos a más)
     agentsWithLeadCount.sort((a, b) => a.activeLeads - b.activeLeads);
-    
+
     // Seleccionar al agente con menos leads activos
     const selectedAgent = agentsWithLeadCount[0];
-    
+
     // Asignar el lead al agente seleccionado
     await Lead.update(
       { assignedAgentId: selectedAgent.agentId },
-      { 
+      {
         where: { id: leadId },
         transaction: t
       }
     );
-    
+
     // Registrar en el historial de estados
     await LeadStatusHistory.create(
       {
@@ -225,12 +235,12 @@ export async function assignLeadToAgent(leadId, source, transaction) {
       },
       { transaction: t }
     );
-    
+
     // Confirmar la transacción si no se proporcionó una externa
     if (!transaction) {
       await t.commit();
     }
-    
+
     return {
       success: true,
       agentId: selectedAgent.agentId,
@@ -255,16 +265,16 @@ export async function assignLeadToAgent(leadId, source, transaction) {
 export async function getAgentLeads(firebaseUid, source) {
   try {
     console.log(`Obteniendo leads para el agente ${firebaseUid}`);
-    
+
     // Obtener el ID del agente en PostgreSQL
     const agent = await Agent.findOne({
       where: { firebaseUid }
     });
-    
+
     if (!agent) {
       throw new Error('Agente no encontrado');
     }
-    
+
     // Verificar si el agente tiene permiso para ver leads de esta fuente
     if (source && source !== 'all') {
       const hasPermission = await AgentLeadSource.findOne({
@@ -273,36 +283,37 @@ export async function getAgentLeads(firebaseUid, source) {
           source
         }
       });
-      
+
       if (!hasPermission) {
         throw new Error(`No tienes permiso para ver leads de ${source}`);
       }
     }
-    
+
     // Construir el filtro según los parámetros
     const filter = {
       assignedAgentId: agent.id
     };
-    
+
     if (source && source !== 'all') {
       filter.source = source;
     }
-    
+
     // Consultar los leads con sus detalles
     const leads = await Lead.findAll({
       where: filter,
       include: [
         { model: LeadDetail, as: 'details' },
-        { 
-          model: LeadNote, 
+        {
+          model: LeadNote,
           as: 'notes',
           include: [{ model: Agent }],
           limit: 5,
-          order: [['created_at', 'DESC']]}
+          order: [['created_at', 'DESC']]
+        }
       ],
       order: [['created_at', 'DESC']]
     });
-    
+
     // Serializar los leads para que sea más fácil usarlos en el frontend
     return serializeLeads(leads);
   } catch (error) {
@@ -320,7 +331,7 @@ function serializeLeads(leads) {
   return leads.map(lead => {
     // Convertir el lead a un objeto plano
     const plainLead = lead.get({ plain: true });
-    
+
     // Si hay detalles, aplanarlos en el objeto principal
     if (plainLead.details) {
       // Mapeo de campos de detalles a sus nombres en el frontend
@@ -342,7 +353,7 @@ function serializeLeads(leads) {
         'employmentDate': 'meseAnnoAssunzione',
         'numEmployees': 'numeroDipendenti'
       };
-      
+
       // Transferir campos mapeados de detalles al objeto principal
       Object.entries(detailFieldMap).forEach(([dbField, frontendField]) => {
         if (plainLead.details[dbField] !== undefined && plainLead.details[dbField] !== null) {
@@ -350,15 +361,15 @@ function serializeLeads(leads) {
         }
       });
     }
-    
+
     // Convertir notas a comentarios (si existen)
     if (plainLead.notes && plainLead.notes.length > 0) {
       plainLead.commenti = plainLead.notes[0].note;
     }
-    
+
     // Asegurar que privacyAccettata esté como booleano
     plainLead.privacyAccettata = !!plainLead.privacyAccettata;
-    
+
     return plainLead;
   });
 }
@@ -371,7 +382,7 @@ function serializeLeads(leads) {
 export async function getAgentAllowedSources(firebaseUid) {
   try {
     console.log(`Obteniendo fuentes permitidas para el agente ${firebaseUid}`);
-    
+
     // Obtener el agente
     const agent = await Agent.findOne({
       where: { firebaseUid },
@@ -379,16 +390,16 @@ export async function getAgentAllowedSources(firebaseUid) {
         { model: AgentLeadSource }
       ]
     });
-    
+
     if (!agent) {
       return [];
     }
-    
+
     // Si es admin, devolver todas las fuentes disponibles
     if (agent.role === 'admin') {
       return ['aiquinto', 'aimedici', 'aifidi'];
     }
-    
+
     // Para agentes normales, devolver sus fuentes permitidas
     return agent.AgentLeadSources.map(source => source.source);
   } catch (error) {
@@ -406,40 +417,40 @@ export async function getAgentAllowedSources(firebaseUid) {
  */
 export async function updateLeadStatus(leadId, newStatus, firebaseUid) {
   const transaction = await sequelize.transaction();
-  
+
   try {
     console.log(`Actualizando estado del lead ${leadId} a ${newStatus}`);
-    
+
     // Obtener el agente
     const agent = await Agent.findOne({
       where: { firebaseUid }
     });
-    
+
     if (!agent) {
       throw new Error('Agente no encontrado');
     }
-    
+
     // Obtener el lead
     const lead = await Lead.findByPk(leadId);
-    
+
     if (!lead) {
       throw new Error('Lead no encontrado');
     }
-    
+
     // Verificar si el lead está asignado a este agente o si es admin
     if (lead.assignedAgentId !== agent.id && agent.role !== 'admin') {
       throw new Error('No tienes permiso para modificar este lead');
     }
-    
+
     // Guardar el estado anterior
     const oldStatus = lead.status;
-    
+
     // Actualizar el estado
     await lead.update(
       { status: newStatus },
       { transaction }
     );
-    
+
     // Registrar en el historial
     await LeadStatusHistory.create(
       {
@@ -450,10 +461,10 @@ export async function updateLeadStatus(leadId, newStatus, firebaseUid) {
       },
       { transaction }
     );
-    
+
     // Confirmar la transacción
     await transaction.commit();
-    
+
     return {
       success: true,
       leadId,
@@ -478,40 +489,40 @@ export async function updateLeadStatus(leadId, newStatus, firebaseUid) {
 export async function addLeadComment(leadId, comment, firebaseUid) {
   try {
     console.log(`Agregando comentario al lead ${leadId}`);
-    
+
     // Obtener el agente
     const agent = await Agent.findOne({
       where: { firebaseUid }
     });
-    
+
     if (!agent) {
       throw new Error('Agente no encontrado');
     }
-    
+
     // Obtener el lead
     const lead = await Lead.findByPk(leadId);
-    
+
     if (!lead) {
       throw new Error('Lead no encontrado');
     }
-    
+
     // Verificar si el lead está asignado a este agente o si es admin
     if (lead.assignedAgentId !== agent.id && agent.role !== 'admin') {
       throw new Error('No tienes permiso para comentar en este lead');
     }
-    
+
     // Crear el comentario
     const newComment = await LeadNote.create({
       leadId,
       agentId: agent.id,
       note: comment
     });
-    
+
     // Obtener el comentario con datos del agente
     const commentWithAgent = await LeadNote.findByPk(newComment.id, {
       include: [{ model: Agent }]
     });
-    
+
     return commentWithAgent;
   } catch (error) {
     console.error('Error al agregar comentario:', error);
@@ -528,33 +539,33 @@ export async function addLeadComment(leadId, comment, firebaseUid) {
  */
 export async function assignLeadToSpecificAgent(leadId, agentId, adminFirebaseUid) {
   const transaction = await sequelize.transaction();
-  
+
   try {
     console.log(`Asignando lead ${leadId} al agente ${agentId} por admin ${adminFirebaseUid}`);
-    
+
     // Verificar que el usuario que hace la asignación sea admin
     const admin = await Agent.findOne({
       where: { firebaseUid: adminFirebaseUid }
     });
-    
+
     if (!admin || admin.role !== 'admin') {
       throw new Error('Solo los administradores pueden asignar leads manualmente');
     }
-    
+
     // Verificar que el lead exista
     const lead = await Lead.findByPk(leadId, { transaction });
-    
+
     if (!lead) {
       throw new Error(`Lead ${leadId} no encontrado`);
     }
-    
+
     // Verificar que el agente exista
     const agent = await Agent.findByPk(agentId, { transaction });
-    
+
     if (!agent) {
       throw new Error(`Agente ${agentId} no encontrado`);
     }
-    
+
     // Verificar que el agente tenga permiso para esta fuente de leads
     const hasSourcePermission = await AgentLeadSource.findOne({
       where: {
@@ -563,20 +574,20 @@ export async function assignLeadToSpecificAgent(leadId, agentId, adminFirebaseUi
       },
       transaction
     });
-    
+
     if (!hasSourcePermission) {
       throw new Error(`El agente no tiene permisos para leads de fuente ${lead.source}`);
     }
-    
+
     // Guardar el agente anterior (si había)
     const previousAgentId = lead.assignedAgentId;
-    
+
     // Actualizar la asignación del lead
     await lead.update(
       { assignedAgentId: agentId },
       { transaction }
     );
-    
+
     // Registrar en el historial (usando el status actual, solo cambia el agente)
     await LeadStatusHistory.create(
       {
@@ -588,10 +599,10 @@ export async function assignLeadToSpecificAgent(leadId, agentId, adminFirebaseUi
       },
       { transaction }
     );
-    
+
     // Confirmar la transacción
     await transaction.commit();
-    
+
     return {
       success: true,
       leadId,
@@ -632,16 +643,16 @@ export async function getCampaignManagerLeads(firebaseUid, source) {
     const leads = await Lead.findAll({
       where: { source },
       include: [
-        { 
-          model: LeadDetail, 
+        {
+          model: LeadDetail,
           as: 'details',
-          required: false 
+          required: false
         },
-        { 
-          model: Agent, 
+        {
+          model: Agent,
           as: 'assignedAgent',
           attributes: ['id', 'firstName', 'lastName', 'email'],
-          required: false 
+          required: false
         },
         {
           model: LeadNote,
