@@ -378,23 +378,10 @@ export default function LeadsAgenti() {
   };
 
   const filteredLeads = (leads || []).filter(lead => {
-    const searchTerm = search.toLowerCase()
+    const searchTerm = search.toLowerCase();
 
-    // Campos comunes para todas las fuentes
-    const commonFieldsMatch =
-      ((lead.firstName || '').toLowerCase().includes(searchTerm)) ||
-      ((lead.lastName || '').toLowerCase().includes(searchTerm)) ||
-      ((lead.email || '').toLowerCase().includes(searchTerm)) ||
-      ((lead.phone || '').toLowerCase().includes(searchTerm)) ||
-      ((lead.message || '').toLowerCase().includes(searchTerm));
-
-    // Si no es AIQuinto o ya hemos encontrado coincidencia en campos comunes
-    if (currentSource !== 'aiquinto' && currentSource !== 'aifidi' || commonFieldsMatch) {
-      return commonFieldsMatch;
-    }
-
+    // Si la fuente es AIQuinto, filtra por pestaña específica
     if (currentSource === 'aiquinto') {
-      // Campos específicos de AIQuinto
       if (aiquintoTab === AIQUINTO_TABS.DIPENDENTI) {
         return (
           ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
@@ -416,96 +403,96 @@ export default function LeadsAgenti() {
           ((lead.provinciaResidenza || '').toLowerCase().includes(searchTerm))
         );
       }
-    } else if (currentSource === 'aimedici') {
-      // Campos específicos de AIMedici
-      return (
-        ((lead.scopoRichiesta || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
-        ((lead.cittaResidenza || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.provinciaResidenza || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.commenti || '').toLowerCase().includes(searchTerm))
-      );
-    } else if (currentSource === 'aifidi') {
-      // Campos específicos de AIFidi
-      return (
-        ((lead.scopoFinanziamento || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.nomeAzienda || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.cittaSedeLegale || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.cittaSedeOperativa || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
-        ((lead.commenti || '').toLowerCase().includes(searchTerm))
-      );
-    }
-  })
+  } else if (currentSource === 'aimedici') {
+    // Campos específicos de AIMedici
+    return (
+      ((lead.scopoRichiesta || '').toLowerCase().includes(searchTerm)) ||
+      ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
+      ((lead.cittaResidenza || '').toLowerCase().includes(searchTerm)) ||
+      ((lead.provinciaResidenza || '').toLowerCase().includes(searchTerm)) ||
+      ((lead.commenti || '').toLowerCase().includes(searchTerm))
+    );
+  } else if (currentSource === 'aifidi') {
+    // Campos específicos de AIFidi
+    return (
+      ((lead.scopoFinanziamento || '').toLowerCase().includes(searchTerm)) ||
+      ((lead.nomeAzienda || '').toLowerCase().includes(searchTerm)) ||
+      ((lead.cittaSedeLegale || '').toLowerCase().includes(searchTerm)) ||
+      ((lead.cittaSedeOperativa || '').toLowerCase().includes(searchTerm)) ||
+      ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
+      ((lead.commenti || '').toLowerCase().includes(searchTerm))
+    );
+  }
+})
 
-  return (
-    <div className="flex flex-col items-center justify-start min-h-screen bg-gray-50 p-4">
-      <Card className="w-full max-w-6xl shadow-lg mt-16">
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle className="text-3xl">My Leads <Icons.userList className="inline pb-1 h-8 w-8" /></CardTitle>
-              <CardDescription className="mb-2">
-                Visualizza e gestisci tutti i tuoi leads provenienti dai diversi siti
-              </CardDescription>
-            </div>
-            <div className="flex gap-2 mb-8 md:mb-0">
-              {selectedLeads.length > 0 && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => setIsMultiDeleteDialogOpen(true)}
-                  className="rounded-xl"
-                  disabled={bulkDeleteMutation.isPending}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Elimina ({selectedLeads.length})
-                </Button>
-              )}
+return (
+  <div className="flex flex-col items-center justify-start min-h-screen bg-gray-50 p-4">
+    <Card className="w-full max-w-6xl shadow-lg mt-16">
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle className="text-3xl">My Leads <Icons.userList className="inline pb-1 h-8 w-8" /></CardTitle>
+            <CardDescription className="mb-2">
+              Visualizza e gestisci tutti i tuoi leads provenienti dai diversi siti
+            </CardDescription>
+          </div>
+          <div className="flex gap-2 mb-8 md:mb-0">
+            {selectedLeads.length > 0 && (
               <Button
-                variant="outline"
-                size="icon"
-                onClick={() => refetch()}
+                variant="destructive"
+                size="sm"
+                onClick={() => setIsMultiDeleteDialogOpen(true)}
                 className="rounded-xl"
+                disabled={bulkDeleteMutation.isPending}
               >
-                <RefreshCw className="h-4 w-4" />
+                <Trash2 className="h-4 w-4 mr-2" />
+                Elimina ({selectedLeads.length})
               </Button>
-            </div>
+            )}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => refetch()}
+              className="rounded-xl"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           </div>
+        </div>
 
-          <div className="-mb-4">
-            <LeadSourceTabs
-              value={currentSource}
-              onValueChange={handleSourceChange}
-              allSources={LEAD_SOURCES}
-            />
+        <div className="-mb-4">
+          <LeadSourceTabs
+            value={currentSource}
+            onValueChange={handleSourceChange}
+            allSources={LEAD_SOURCES}
+          />
+        </div>
+
+        {/* AIQuinto specific tabs */}
+        {currentSource === "aiquinto" && (
+          <div className="mt-4">
+            <Tabs value={aiquintoTab} onValueChange={setAiquintoTab}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value={AIQUINTO_TABS.DIPENDENTI}>Dipendenti</TabsTrigger>
+                <TabsTrigger value={AIQUINTO_TABS.PENSIONATI}>Pensionati</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
+        )}
+      </CardHeader>
 
-          {/* AIQuinto specific tabs */}
-          {currentSource === "aiquinto" && (
-            <div className="mt-4">
-              <Tabs value={aiquintoTab} onValueChange={setAiquintoTab}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value={AIQUINTO_TABS.DIPENDENTI}>Dipendenti</TabsTrigger>
-                  <TabsTrigger value={AIQUINTO_TABS.PENSIONATI}>Pensionati</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-          )}
-        </CardHeader>
+      <CardContent className="px-4 pt-0">
+        <div className="relative mb-2">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Input
+            placeholder="Cerca per nome, cognome, email, telefono..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10 rounded-xl"
+          />
+        </div>
 
-        <CardContent className="px-4 pt-0">
-          <div className="relative mb-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <Input
-              placeholder="Cerca per nome, cognome, email, telefono..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 rounded-xl"
-            />
-          </div>
-
-          {/* {isLoading ? (
+        {/* {isLoading ? (
             <div className="text-center py-4">Caricamento...</div>
           ) : */ isError ? (
             <div className="text-center py-8 flex flex-col items-center">
@@ -723,102 +710,102 @@ export default function LeadsAgenti() {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+      </CardContent>
+    </Card>
 
-      {/* Single delete confirmation dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="rounded-xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Sei sicuro di voler eliminare questo lead?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Questa azione non può essere annullata. Il lead e tutti i dati associati saranno
-              eliminati permanentemente.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">Annulla</AlertDialogCancel>
-            <AlertDialogAction
-              className="rounded-xl bg-red-600 hover:bg-red-700"
-              onClick={confirmDelete}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? "Eliminazione..." : "Elimina"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+    {/* Single delete confirmation dialog */}
+    <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialogContent className="rounded-xl">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Sei sicuro di voler eliminare questo lead?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Questa azione non può essere annullata. Il lead e tutti i dati associati saranno
+            eliminati permanentemente.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="rounded-xl">Annulla</AlertDialogCancel>
+          <AlertDialogAction
+            className="rounded-xl bg-red-600 hover:bg-red-700"
+            onClick={confirmDelete}
+            disabled={deleteMutation.isPending}
+          >
+            {deleteMutation.isPending ? "Eliminazione..." : "Elimina"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
 
-      {/* Bulk delete confirmation dialog */}
-      <AlertDialog open={isMultiDeleteDialogOpen} onOpenChange={setIsMultiDeleteDialogOpen}>
-        <AlertDialogContent className="rounded-xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Sei sicuro di voler eliminare {selectedLeads.length} leads?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Questa azione non può essere annullata. Tutti i leads selezionati e i relativi dati saranno
-              eliminati permanentemente.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">Annulla</AlertDialogCancel>
-            <AlertDialogAction
-              className="rounded-xl bg-red-600 hover:bg-red-700"
-              onClick={confirmBulkDelete}
-              disabled={bulkDeleteMutation.isPending}
-            >
-              {bulkDeleteMutation.isPending ? "Eliminazione..." : `Elimina (${selectedLeads.length})`}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+    {/* Bulk delete confirmation dialog */}
+    <AlertDialog open={isMultiDeleteDialogOpen} onOpenChange={setIsMultiDeleteDialogOpen}>
+      <AlertDialogContent className="rounded-xl">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Sei sicuro di voler eliminare {selectedLeads.length} leads?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Questa azione non può essere annullata. Tutti i leads selezionati e i relativi dati saranno
+            eliminati permanentemente.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="rounded-xl">Annulla</AlertDialogCancel>
+          <AlertDialogAction
+            className="rounded-xl bg-red-600 hover:bg-red-700"
+            onClick={confirmBulkDelete}
+            disabled={bulkDeleteMutation.isPending}
+          >
+            {bulkDeleteMutation.isPending ? "Eliminazione..." : `Elimina (${selectedLeads.length})`}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
 
-      {/* Modal de comentarios */}
-      <Dialog open={isCommentModalOpen} onOpenChange={setIsCommentModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle className="text-xl">
-              {commentingLead?.commenti ? "Modifica commento" : "Aggiungi commento"}
-            </DialogTitle>
-            <DialogDescription>
-              {commentingLead ? (
-                <div className="mt-2 text-sm">
-                  Lead: <span className="font-medium">{commentingLead.firstName} {commentingLead.lastName}</span>
-                  {commentingLead.email && (
-                    <> - <span className="text-gray-500">{commentingLead.email}</span></>
-                  )}
-                </div>
-              ) : ""}
-            </DialogDescription>
-          </DialogHeader>
+    {/* Modal de comentarios */}
+    <Dialog open={isCommentModalOpen} onOpenChange={setIsCommentModalOpen}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle className="text-xl">
+            {commentingLead?.commenti ? "Modifica commento" : "Aggiungi commento"}
+          </DialogTitle>
+          <DialogDescription>
+            {commentingLead ? (
+              <div className="mt-2 text-sm">
+                Lead: <span className="font-medium">{commentingLead.firstName} {commentingLead.lastName}</span>
+                {commentingLead.email && (
+                  <> - <span className="text-gray-500">{commentingLead.email}</span></>
+                )}
+              </div>
+            ) : ""}
+          </DialogDescription>
+        </DialogHeader>
 
-          <div className="py-4">
-            <Textarea
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Inserisci i tuoi commenti qui..."
-              className="min-h-[200px] text-base p-4"
-              autoFocus
-            />
-          </div>
+        <div className="py-4">
+          <Textarea
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            placeholder="Inserisci i tuoi commenti qui..."
+            className="min-h-[200px] text-base p-4"
+            autoFocus
+          />
+        </div>
 
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsCommentModalOpen(false)}
-              className="rounded-xl"
-            >
-              Annulla
-            </Button>
-            <Button
-              onClick={handleSaveComment}
-              className="rounded-xl"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Salva commento
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => setIsCommentModalOpen(false)}
+            className="rounded-xl"
+          >
+            Annulla
+          </Button>
+          <Button
+            onClick={handleSaveComment}
+            className="rounded-xl"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Salva commento
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </div>
+)
 }
