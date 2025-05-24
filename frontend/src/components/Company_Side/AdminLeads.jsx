@@ -869,7 +869,7 @@ export default function AdminLeads() {
                                 ) : ( /* Pensionati */
                                 <>
                                   <th>Importo Richiesto</th>
-                                  <th>Pensione Netta Mensile</th>
+                                  <th>Stipendio Netto</th>
                                   <th>Ente Pensionistico</th>
                                   <th>Tipologia di Pensione</th>
                                   <th>Data di Nascita</th>
@@ -968,8 +968,8 @@ export default function AdminLeads() {
                                       ) : ( /* Pensionati */
                                         <>
                                           <td className="py-3 px-4">{lead.details?.requestedAmount || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.netPensionAmount || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.pensionProvider || "-"}</td>
+                                          <td className="py-3 px-4">{lead.details?.netSalary || "-"}</td>
+                                          <td className="py-3 px-4">{lead.details?.entePensionistico || "-"}</td>
                                           <td className="py-3 px-4">{lead.details?.pensionType || "-"}</td>
                                           <td className="py-3 px-4">{lead.details?.birthDate ? new Date(lead.details.birthDate).toLocaleDateString('it-IT') : "-"}</td>
                                           <td className="py-3 px-4">{lead.details?.residenceProvince || "-"}</td>

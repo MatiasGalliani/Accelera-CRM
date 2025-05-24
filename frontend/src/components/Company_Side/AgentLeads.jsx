@@ -543,7 +543,7 @@ export default function LeadsAgenti() {
                         ) : (
                           <>
                             <th>Importo Richiesto</th>
-                            <th>Pensione Netta Mensile</th>
+                            <th>Stipendio Netto</th>
                             <th>Ente Pensionistico</th>
                             <th>Tipologia di Pensione</th>
                             <th>Data di Nascita</th>
@@ -626,7 +626,7 @@ export default function LeadsAgenti() {
                               ) : (
                                 <>
                                   <td className="py-3 px-4">{lead.importoRichiesto || "-"}</td>
-                                  <td className="py-3 px-4">{lead.pensioneNettaMensile || "-"}</td>
+                                  <td className="py-3 px-4">{lead.stipendioNetto || "-"}</td>
                                   <td className="py-3 px-4">{lead.entePensionistico || "-"}</td>
                                   <td className="py-3 px-4">{lead.tipologiaPensione || "-"}</td>
                                   <td className="py-3 px-4">{formatDate(lead.dataNascita) || "-"}</td>

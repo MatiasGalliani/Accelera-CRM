@@ -62,7 +62,9 @@ export async function createLead(leadData) {
         numEmployees: leadData.numEmployees || null,
         birthDate: leadData.birthDate || null,
         entePensionistico: leadData.entePensionistico || null,
-        pensionType: leadData.pensionType || null
+        pensionType: leadData.pensionType || null,
+        financingPurpose: leadData.scopoRichiesta || null,
+        residenceCity: leadData.cittaResidenza || null
       }, { transaction });
     } else if (leadData.source === 'aimedici') {
       await LeadDetail.create({
