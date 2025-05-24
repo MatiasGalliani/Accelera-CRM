@@ -381,10 +381,11 @@ export default function LeadsAgenti() {
     // AIQuinto: filter by tipologiaDipendente for the correct tab
     .filter(lead => {
       if (currentSource === 'aiquinto') {
+        const tipo = (lead.tipologiaDipendente || '').toLowerCase();
         if (aiquintoTab === AIQUINTO_TABS.DIPENDENTI) {
-          return lead.tipologiaDipendente === 'Dipendente';
+          return tipo !== 'pensionato'; // everything except Pensionato
         } else if (aiquintoTab === AIQUINTO_TABS.PENSIONATI) {
-          return lead.tipologiaDipendente === 'Pensionato';
+          return tipo === 'pensionato';
         }
       }
       return true;

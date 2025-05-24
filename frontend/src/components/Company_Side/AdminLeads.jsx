@@ -530,24 +530,37 @@ export default function AdminLeads() {
   });
 
   // Filter leads based on search term
-  const filteredLeads = data.leads.filter(lead => {
-    if (!search) return true;
-    
-    const searchTerm = search.toLowerCase();
-    const fieldsToSearch = [
-      lead.firstName || '',
-      lead.lastName || '',
-      lead.email || '',
-      lead.phone || '',
-      lead.status || '',
-      lead.agentName || '',
-      lead.commenti || ''
-    ];
-    
-    return fieldsToSearch.some(field => 
-      field.toLowerCase().includes(searchTerm)
-    );
-  });
+  const filteredLeads = data.leads
+    // AIQuinto separation between Dipendenti and Pensionati
+    .filter(lead => {
+      if (currentSource === 'aiquinto') {
+        const tipo = (lead.details?.employeeType || lead.tipologiaDipendente || '').toLowerCase();
+        if (aiquintoTab === AIQUINTO_TABS.DIPENDENTI) {
+          return tipo !== 'pensionato';
+        } else if (aiquintoTab === AIQUINTO_TABS.PENSIONATI) {
+          return tipo === 'pensionato';
+        }
+      }
+      return true;
+    })
+    .filter(lead => {
+      if (!search) return true;
+      
+      const searchTerm = search.toLowerCase();
+      const fieldsToSearch = [
+        lead.firstName || '',
+        lead.lastName || '',
+        lead.email || '',
+        lead.phone || '',
+        lead.status || '',
+        lead.agentName || '',
+        lead.commenti || ''
+      ];
+      
+      return fieldsToSearch.some(field => 
+        field.toLowerCase().includes(searchTerm)
+      );
+    });
 
   const handleSourceChange = (newSource) => {
     setCurrentSource(newSource);
