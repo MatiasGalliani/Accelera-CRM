@@ -377,47 +377,59 @@ export default function LeadsAgenti() {
     }
   };
 
-  const filteredLeads = (leads || []).filter(lead => {
-    const searchTerm = search.toLowerCase()
+  const filteredLeads = (leads || [])
+    // AIQuinto: filter by tipologiaDipendente for the correct tab
+    .filter(lead => {
+      if (currentSource === 'aiquinto') {
+        if (aiquintoTab === AIQUINTO_TABS.DIPENDENTI) {
+          return lead.tipologiaDipendente === 'Dipendente';
+        } else if (aiquintoTab === AIQUINTO_TABS.PENSIONATI) {
+          return lead.tipologiaDipendente === 'Pensionato';
+        }
+      }
+      return true;
+    })
+    .filter(lead => {
+      const searchTerm = search.toLowerCase()
 
-    // Campos comunes para todas las fuentes
-    const commonFieldsMatch =
-      ((lead.firstName || '').toLowerCase().includes(searchTerm)) ||
-      ((lead.lastName || '').toLowerCase().includes(searchTerm)) ||
-      ((lead.email || '').toLowerCase().includes(searchTerm)) ||
-      ((lead.phone || '').toLowerCase().includes(searchTerm)) ||
-      ((lead.message || '').toLowerCase().includes(searchTerm));
+      // Campos comunes para todas las fuentes
+      const commonFieldsMatch =
+        ((lead.firstName || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.lastName || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.email || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.phone || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.message || '').toLowerCase().includes(searchTerm));
 
-    // Si no es AIQuinto o ya hemos encontrado coincidencia en campos comunes
-    if (currentSource !== 'aiquinto' && currentSource !== 'aifidi' || commonFieldsMatch) {
-      return commonFieldsMatch;
-    }
+      // Si no es AIQuinto o ya hemos encontrado coincidencia en campos comunes
+      if (currentSource !== 'aiquinto' && currentSource !== 'aifidi' || commonFieldsMatch) {
+        return commonFieldsMatch;
+      }
 
-    if (currentSource === 'aiquinto') {
-      // Campos específicos de AIQuinto
-      return (
-        ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
-        ((lead.stipendioNetto || '').toString().toLowerCase().includes(searchTerm)) ||
-        ((lead.tipologiaDipendente || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.sottotipo || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.tipoContratto || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.provinciaResidenza || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.meseAnnoAssunzione || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.numeroDipendenti || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.commenti || '').toLowerCase().includes(searchTerm))
-      );
-    } else if (currentSource === 'aifidi') {
-      // Campos específicos de AIFidi
-      return (
-        ((lead.scopoFinanziamento || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.nomeAzienda || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.cittaSedeLegale || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.cittaSedeOperativa || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
-        ((lead.commenti || '').toLowerCase().includes(searchTerm))
-      );
-    }
-  })
+      if (currentSource === 'aiquinto') {
+        // Campos específicos de AIQuinto
+        return (
+          ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
+          ((lead.stipendioNetto || '').toString().toLowerCase().includes(searchTerm)) ||
+          ((lead.tipologiaDipendente || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.sottotipo || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.tipoContratto || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.provinciaResidenza || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.meseAnnoAssunzione || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.numeroDipendenti || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.commenti || '').toLowerCase().includes(searchTerm))
+        );
+      } else if (currentSource === 'aifidi') {
+        // Campos específicos de AIFidi
+        return (
+          ((lead.scopoFinanziamento || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.nomeAzienda || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.cittaSedeLegale || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.cittaSedeOperativa || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
+          ((lead.commenti || '').toLowerCase().includes(searchTerm))
+        );
+      }
+    })
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-gray-50 p-4">
