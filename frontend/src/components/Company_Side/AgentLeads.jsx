@@ -395,15 +395,34 @@ export default function LeadsAgenti() {
 
     if (currentSource === 'aiquinto') {
       // Campos específicos de AIQuinto
+      if (aiquintoTab === AIQUINTO_TABS.DIPENDENTI) {
+        return (
+          ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
+          ((lead.stipendioNetto || '').toString().toLowerCase().includes(searchTerm)) ||
+          ((lead.tipologiaDipendente || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.sottotipo || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.tipoContratto || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.provinciaResidenza || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.meseAnnoAssunzione || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.numeroDipendenti || '').toString().toLowerCase().includes(searchTerm))
+        );
+      } else if (aiquintoTab === AIQUINTO_TABS.PENSIONATI) {
+        return (
+          ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
+          ((lead.pensioneNettaMensile || '').toString().toLowerCase().includes(searchTerm)) ||
+          ((lead.entePensionistico || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.tipologiaPensione || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.dataNascita || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.provinciaResidenza || '').toLowerCase().includes(searchTerm))
+        );
+      }
+    } else if (currentSource === 'aimedici') {
+      // Campos específicos de AIMedici
       return (
+        ((lead.scopoRichiesta || '').toLowerCase().includes(searchTerm)) ||
         ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
-        ((lead.stipendioNetto || '').toString().toLowerCase().includes(searchTerm)) ||
-        ((lead.tipologiaDipendente || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.sottotipo || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.tipoContratto || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.cittaResidenza || '').toLowerCase().includes(searchTerm)) ||
         ((lead.provinciaResidenza || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.meseAnnoAssunzione || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.numeroDipendenti || '').toLowerCase().includes(searchTerm)) ||
         ((lead.commenti || '').toLowerCase().includes(searchTerm))
       );
     } else if (currentSource === 'aifidi') {
