@@ -113,8 +113,7 @@ router.post('/aifidi', async (req, res) => {
       phone: data.telefono || '',
       message: JSON.stringify(data),
       importoRichiesto: data.importoRichiesto || null,
-      financingScope: data.financingScope || null,  // Keep original field name
-      scopoRichiesta: data.financingScope || null,  // Also store as scopoRichiesta for consistency
+      financingScope: data.financingScope || null,  // Keep only financingScope
       nomeAzienda: data.nomeAzienda || null,
       cittaSedeLegale: data.cittaSedeLegale || null,
       cittaSedeOperativa: data.cittaSedeOperativa || null,

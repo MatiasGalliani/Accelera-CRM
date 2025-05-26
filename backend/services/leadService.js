@@ -82,7 +82,7 @@ export async function createLead(leadData) {
         companyName: leadData.nomeAzienda || null,
         legalCity: leadData.cittaSedeLegale || null,
         operationalCity: leadData.cittaSedeOperativa || null,
-        financingPurpose: leadData.scopoFinanziamento || null,
+        financingPurpose: leadData.financingScope || null,
         requestedAmount: leadData.importoRichiesto || null
       }, { transaction });
     }
@@ -334,7 +334,7 @@ function serializeLeads(leads) {
     employmentDate: 'meseAnnoAssunzione',
     numEmployees: 'numeroDipendenti',
     birthDate: 'dataNascita',
-    financingPurpose: 'scopoRichiesta',
+    financingPurpose: 'financingScope',
     residenceCity: 'cittaResidenza',
     companyName: 'nomeAzienda',
     legalCity: 'cittaSedeLegale',
