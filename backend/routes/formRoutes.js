@@ -102,6 +102,7 @@ router.post('/aimedici', async (req, res) => {
 router.post('/aifidi', async (req, res) => {
   try {
     const data = req.body;
+    console.log('Received AIFidi form data:', data); // Add logging to debug
 
     // Build the lead payload expected by leadService.createLead
     const leadData = {
@@ -112,7 +113,8 @@ router.post('/aifidi', async (req, res) => {
       phone: data.telefono || '',
       message: JSON.stringify(data),
       importoRichiesto: data.importoRichiesto || null,
-      financingScope: data.financingScope || null,
+      financingScope: data.financingScope || null,  // Keep original field name
+      scopoRichiesta: data.financingScope || null,  // Also store as scopoRichiesta for consistency
       nomeAzienda: data.nomeAzienda || null,
       cittaSedeLegale: data.cittaSedeLegale || null,
       cittaSedeOperativa: data.cittaSedeOperativa || null,
@@ -123,6 +125,8 @@ router.post('/aifidi', async (req, res) => {
       telefono: data.telefono || '',
       privacyAccepted: data.privacyAccepted || false
     };
+
+    console.log('Processed lead data:', leadData); // Add logging to debug
 
     // Create the lead
     const lead = await createLead(leadData);
