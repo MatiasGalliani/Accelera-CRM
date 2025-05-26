@@ -36,6 +36,7 @@ app.use(bodyParser.json());
 app.use(cors({
   origin: [
     'http://localhost:5173',  // Local development
+    'http://localhost:5174',  // Local development (Vite default port)
     'http://localhost:3000',  // Local development alternative
     'https://accelera-crm.vercel.app', // Production domain (CRM app)
     'https://accelera.creditplan.it', // Production custom domain
