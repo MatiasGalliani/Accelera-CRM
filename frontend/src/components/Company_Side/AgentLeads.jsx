@@ -499,9 +499,9 @@ export default function LeadsAgenti() {
             />
           </div>
 
-          {/* {isLoading ? (
+          {isLoading ? (
             <div className="text-center py-4">Caricamento...</div>
-          ) : */ isError ? (
+          ) : isError ? (
             <div className="text-center py-8 flex flex-col items-center">
               <div className="bg-red-50 p-4 rounded-xl max-w-md mb-2">
                 <p className="text-red-800 font-medium mb-1">Si è verificato un problema</p>
