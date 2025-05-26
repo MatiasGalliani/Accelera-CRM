@@ -99,8 +99,15 @@ const fetchLeads = async (user, source) => {
 
     const response = await fetch(getApiUrl(`${API_ENDPOINTS.LEADS}/my-leads?source=${source}`), {
       headers: {
-        "Authorization": `Bearer ${token}`
-      }
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Origin": window.location.origin,
+        "X-Requested-With": "XMLHttpRequest",
+        "Access-Control-Request-Method": "GET",
+        "Access-Control-Request-Headers": "Content-Type, Authorization, X-API-Key"
+      },
+      credentials: "include"
     });
 
     if (!response.ok) {
@@ -536,6 +543,25 @@ export default function LeadsAgenti() {
                         </>
                       )}
 
+                      {currentSource === "aimedici" && (
+                        <>
+                          <th>Importo Richiesto</th>
+                          <th>Scopo Richiesta</th>
+                          <th>Città Residenza</th>
+                          <th>Provincia Residenza</th>
+                        </>
+                      )}
+
+                      {currentSource === "aifidi" && (
+                        <>
+                          <th>Nome Azienda</th>
+                          <th>Scopo Finanziamento</th>
+                          <th>Città Sede Legale</th>
+                          <th>Città Sede Operativa</th>
+                          <th>Importo Richiesto</th>
+                        </>
+                      )}
+
                       {/* Final common columns */}
                       <th>Privacy</th>
                       <th>Stato</th>
@@ -548,12 +574,12 @@ export default function LeadsAgenti() {
                   <tbody>
                     {filteredLeads.length === 0 ? (
                       <tr className="hover:bg-transparent">
-                        <td colSpan={currentSource === "aiquinto" ? 13 : currentSource === "aimedici" ? 13 : 14} className="h-32 text-center">
+                        <td colSpan={currentSource === "aiquinto" ? 13 : currentSource === "aimedici" ? 13 : currentSource === "aifidi" ? 14 : 14} className="h-32 text-center">
                           <div className="py-6 px-4">
                             <p className="text-gray-600 font-medium text-lg mb-3">Nessun lead trovato</p>
                             <div className="max-w-md mx-auto bg-blue-50 rounded-lg p-4 border border-blue-100">
                               <p className="text-blue-800 mb-2">Non ci sono ancora leads assegnati a te da {LEAD_SOURCES.find(source => source.id === currentSource)?.name}
-                                {currentSource === "aiquinto" ? ` - ${AIQUINTO_TABS.DIPENDENTI}` : ""}.
+                                {currentSource === "aiquinto" ? ` - ${AIQUINTO_TABS.DIPENDENTI}` : currentSource === "aifidi" ? "" : ""}.
                               </p>
                               <p className="text-blue-700 text-sm">Torna presto, i nuovi leads verranno mostrati qui.</p>
                             </div>
@@ -590,6 +616,25 @@ export default function LeadsAgenti() {
                                 <td className="py-3 px-4">{lead.provinciaResidenza || "-"}</td>
                                 <td className="py-3 px-4">{lead.meseAnnoAssunzione || "-"}</td>
                                 <td className="py-3 px-4">{lead.numeroDipendenti || "-"}</td>
+                              </>
+                            )}
+
+                            {currentSource === "aimedici" && (
+                              <>
+                                <td className="py-3 px-4">{lead.importoRichiesto || "-"}</td>
+                                <td className="py-3 px-4">{lead.scopoRichiesta || "-"}</td>
+                                <td className="py-3 px-4">{lead.cittaResidenza || "-"}</td>
+                                <td className="py-3 px-4">{lead.provinciaResidenza || "-"}</td>
+                              </>
+                            )}
+
+                            {currentSource === "aifidi" && (
+                              <>
+                                <td className="py-3 px-4">{lead.nomeAzienda || "-"}</td>
+                                <td className="py-3 px-4">{lead.financingScope || "-"}</td>
+                                <td className="py-3 px-4">{lead.cittaSedeLegale || "-"}</td>
+                                <td className="py-3 px-4">{lead.cittaSedeOperativa || "-"}</td>
+                                <td className="py-3 px-4">{lead.importoRichiesto || "-"}</td>
                               </>
                             )}
 

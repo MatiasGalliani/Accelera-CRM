@@ -32,33 +32,29 @@ const db = admin.firestore();
 const app = express();
 // Parse JSON bodies
 app.use(bodyParser.json());
-// CORS: accept requests from specific domains
+// CORS: allow all origins with all necessary headers
 app.use(cors({
-  origin: [
-    'http://localhost:5173',  // Local development
-    'http://localhost:5174',  // Local development (Vite default port)
-    'http://localhost:3000',  // Local development alternative
-    'https://accelera-crm.vercel.app', // Production domain (CRM app)
-    'https://accelera.creditplan.it', // Production custom domain
-
-    // AIQuinto public sites
-    'https://aiquinto.it',
-    'https://www.aiquinto.it',
-    'https://www.aiquinto.com',
-
-    // Creditplan landing sites
-    'https://cessione.creditplan.it',
-    'https://quinto.creditplan.it',
-
-    // Other lead-generating sites
-    'https://aimedici.it',
-    'https://aifidi.it',
-
-    /\.vercel\.app$/  // Allow all Vercel preview deployments
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-API-Key',
+    'Accept',
+    'Origin',
+    'X-Requested-With',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers'
   ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
-  credentials: true
+  exposedHeaders: [
+    'Content-Length',
+    'Content-Type',
+    'Authorization',
+    'X-API-Key'
+  ],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 
 // Add API key verification middleware

@@ -73,7 +73,15 @@ router.post('/aimedici', async (req, res) => {
       scopoRichiesta: data.financingScope || null,
       cittaResidenza: data.cittaResidenza || null,
       provinciaResidenza: data.provinciaResidenza || null,
-      privacyAccettata: data.privacyAccepted || false
+      privacyAccettata: data.privacyAccepted || false,
+      
+      // Additional fields from the form
+      financingScope: data.financingScope || null,
+      nome: data.nome || '',
+      cognome: data.cognome || '',
+      mail: data.mail || '',
+      telefono: data.telefono || '',
+      privacyAccepted: data.privacyAccepted || false
     };
 
     const lead = await createLead(leadData);
@@ -87,6 +95,51 @@ router.post('/aimedici', async (req, res) => {
   } catch (error) {
     console.error('Errore nella creazione lead aimedici:', error);
     return res.status(500).json({ error: error.message || 'Errore del server' });
+  }
+});
+
+// POST /api/forms/aifidi
+router.post('/aifidi', async (req, res) => {
+  try {
+    const data = req.body;
+
+    // Build the lead payload expected by leadService.createLead
+    const leadData = {
+      source: 'aifidi',
+      firstName: data.nome || '',
+      lastName: data.cognome || '',
+      email: data.mail,
+      phone: data.telefono || '',
+      message: JSON.stringify(data),
+      importoRichiesto: data.importoRichiesto || null,
+      financingScope: data.financingScope || null,
+      nomeAzienda: data.nomeAzienda || null,
+      cittaSedeLegale: data.cittaSedeLegale || null,
+      cittaSedeOperativa: data.cittaSedeOperativa || null,
+      privacyAccettata: data.privacyAccepted || false,
+      nome: data.nome || '',
+      cognome: data.cognome || '',
+      mail: data.mail || '',
+      telefono: data.telefono || '',
+      privacyAccepted: data.privacyAccepted || false
+    };
+
+    // Create the lead
+    const lead = await createLead(leadData);
+
+    // Return success response
+    res.status(201).json({
+      success: true,
+      message: 'Lead created successfully',
+      data: lead
+    });
+  } catch (error) {
+    console.error('Error creating AIFidi lead:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating lead',
+      error: error.message
+    });
   }
 });
 
