@@ -58,11 +58,11 @@ export async function createLead(leadData) {
         contractType: leadData.tipoContratto || null,
         employmentSubtype: leadData.sottotipo || null,
         residenceProvince: leadData.provinciaResidenza || null,
-        employmentDate: leadData.employmentDate || null,
-        numEmployees: leadData.numEmployees || null,
-        birthDate: leadData.birthDate || null,
+        employmentDate: leadData.meseAnnoAssunzione || null,  // Changed from employmentDate to meseAnnoAssunzione
+        numEmployees: leadData.numeroDipendenti || null,  // Changed from numEmployees to numeroDipendenti
+        birthDate: leadData.dataNascita || null,  // Changed from birthDate to dataNascita
         entePensionistico: leadData.entePensionistico || null,
-        pensionType: leadData.pensionType || null,
+        pensionType: leadData.tipologiaPensione || null,  // Changed from pensionType to tipologiaPensione
         financingPurpose: leadData.scopoRichiesta || null,
         residenceCity: leadData.cittaResidenza || null
       }, { transaction });
@@ -326,49 +326,48 @@ export async function getAgentLeads(firebaseUid, source) {
  * @returns {Array} - Lista de leads serializada
  */
 function serializeLeads(leads) {
+  const detailFieldMap = {
+    requestedAmount: 'importoRichiesto',
+    netSalary: 'stipendioNetto',
+    employeeType: 'tipologiaDipendente',
+    contractType: 'tipoContratto',
+    employmentSubtype: 'sottotipo',
+    residenceProvince: 'provinciaResidenza',
+    employmentDate: 'meseAnnoAssunzione',
+    numEmployees: 'numeroDipendenti',
+    birthDate: 'dataNascita',
+    entePensionistico: 'entePensionistico',
+    pensionType: 'tipologiaPensione',
+    financingPurpose: 'scopoRichiesta',
+    residenceCity: 'cittaResidenza'
+  };
+
   return leads.map(lead => {
-    // Convertir el lead a un objeto plano
-    const plainLead = lead.get({ plain: true });
+    const serializedLead = lead.toJSON();
     
-    // Si hay detalles, aplanarlos en el objeto principal
-    if (plainLead.details) {
-      // Mapeo de campos de detalles a sus nombres en el frontend
-      const detailFieldMap = {
-        'requestedAmount': 'importoRichiesto',
-        'netSalary': 'stipendioNetto',
-        'employeeType': 'tipologiaDipendente',
-        'employmentSubtype': 'sottotipo',
-        'contractType': 'tipoContratto',
-        'residenceProvince': 'provinciaResidenza',
-        'residenceCity': 'cittaResidenza',
-        'financingPurpose': 'scopoRichiesta',
-        'companyName': 'nomeAzienda',
-        'legalCity': 'cittaSedeLegale',
-        'operationalCity': 'cittaSedeOperativa',
-        'entePensionistico': 'entePensionistico',
-        'pensionType': 'tipologiaPensione',
-        'birthDate': 'dataNascita',
-        'employmentDate': 'meseAnnoAssunzione',
-        'numEmployees': 'numeroDipendenti'
-      };
-      
-      // Transferir campos mapeados de detalles al objeto principal
+    // Map fields from details to main lead object
+    if (serializedLead.details) {
       Object.entries(detailFieldMap).forEach(([dbField, frontendField]) => {
-        if (plainLead.details[dbField] !== undefined && plainLead.details[dbField] !== null) {
-          plainLead[frontendField] = plainLead.details[dbField];
-        }
+        serializedLead[frontendField] = serializedLead.details[dbField] || '-';
       });
+      delete serializedLead.details;
     }
-    
-    // Convertir notas a comentarios (si existen)
-    if (plainLead.notes && plainLead.notes.length > 0) {
-      plainLead.commenti = plainLead.notes[0].note;
+
+    // Convert notes to comments if they exist
+    if (serializedLead.notes) {
+      serializedLead.comments = serializedLead.notes.map(note => ({
+        id: note.id,
+        text: note.text,
+        createdAt: note.createdAt,
+        updatedAt: note.updatedAt
+      }));
+      delete serializedLead.notes;
     }
-    
-    // Asegurar que privacyAccettata esté como booleano
-    plainLead.privacyAccettata = !!plainLead.privacyAccettata;
-    
-    return plainLead;
+
+    // Ensure privacyAccettata is a boolean
+    serializedLead.privacyAccettata = Boolean(serializedLead.privacyAccettata);
+
+    return serializedLead;
   });
 }
 
