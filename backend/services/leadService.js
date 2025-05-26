@@ -295,13 +295,19 @@ export async function getAgentLeads(firebaseUid, source) {
     const leads = await Lead.findAll({
       where: filter,
       include: [
-        { model: LeadDetail, as: 'details' },
+        { 
+          model: LeadDetail, 
+          as: 'details',
+          required: false // Make this a LEFT JOIN
+        },
         { 
           model: LeadNote, 
           as: 'notes',
           include: [{ model: Agent }],
           limit: 5,
-          order: [['created_at', 'DESC']]}
+          order: [['created_at', 'DESC']],
+          required: false // Make this a LEFT JOIN
+        }
       ],
       order: [['created_at', 'DESC']]
     });
