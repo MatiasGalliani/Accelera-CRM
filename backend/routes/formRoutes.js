@@ -52,4 +52,42 @@ router.post('/dipendente', async (req, res) => {
   }
 });
 
+// POST /api/forms/aimedici
+router.post('/aimedici', async (req, res) => {
+  try {
+    const data = req.body;
+
+    // Build the lead payload expected by leadService.createLead
+    const leadData = {
+      source: 'aimedici',
+      firstName: data.nome || '',
+      lastName: data.cognome || '',
+      email: data.mail,
+      phone: data.telefono || '',
+
+      // Persist the full original payload as message for reference / audit
+      message: JSON.stringify(data),
+
+      // Detail fields used by Aimedici in our DB
+      importoRichiesto: data.importoRichiesto || null,
+      scopoRichiesta: data.financingScope || null,
+      cittaResidenza: data.cittaResidenza || null,
+      provinciaResidenza: data.provinciaResidenza || null,
+      privacyAccettata: data.privacyAccepted || false
+    };
+
+    const lead = await createLead(leadData);
+
+    return res.status(201).json({
+      success: true,
+      leadId: lead.id,
+      assignedAgentId: lead.assignedAgentId,
+      message: 'Lead creato correttamente'
+    });
+  } catch (error) {
+    console.error('Errore nella creazione lead aimedici:', error);
+    return res.status(500).json({ error: error.message || 'Errore del server' });
+  }
+});
+
 export default router; 

@@ -335,7 +335,10 @@ function serializeLeads(leads) {
     numEmployees: 'numeroDipendenti',
     birthDate: 'dataNascita',
     financingPurpose: 'scopoRichiesta',
-    residenceCity: 'cittaResidenza'
+    residenceCity: 'cittaResidenza',
+    companyName: 'nomeAzienda',
+    legalCity: 'cittaSedeLegale',
+    operationalCity: 'cittaSedeOperativa'
   };
 
   return leads.map(lead => {
@@ -344,16 +347,25 @@ function serializeLeads(leads) {
     // Map fields from details to main lead object
     if (serializedLead.details) {
       Object.entries(detailFieldMap).forEach(([dbField, frontendField]) => {
-        serializedLead[frontendField] = serializedLead.details[dbField] || '-';
+        if (serializedLead.details[dbField] !== null && serializedLead.details[dbField] !== undefined) {
+          serializedLead[frontendField] = serializedLead.details[dbField];
+        } else {
+          serializedLead[frontendField] = '-';
+        }
       });
       delete serializedLead.details;
+    } else {
+      // If no details exist, set all fields to '-'
+      Object.values(detailFieldMap).forEach(field => {
+        serializedLead[field] = '-';
+      });
     }
 
     // Convert notes to comments if they exist
     if (serializedLead.notes) {
       serializedLead.comments = serializedLead.notes.map(note => ({
         id: note.id,
-        text: note.text,
+        text: note.note,
         createdAt: note.createdAt,
         updatedAt: note.updatedAt
       }));
