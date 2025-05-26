@@ -67,8 +67,7 @@ const LEAD_SOURCES = [
 
 // AIQuinto specific tabs
 const AIQUINTO_TABS = {
-  DIPENDENTI: "dipendenti",
-  PENSIONATI: "pensionati"
+  DIPENDENTI: "dipendenti"
 }
 
 // API function to fetch leads
@@ -183,7 +182,6 @@ export default function LeadsAgenti() {
   const [selectedLeads, setSelectedLeads] = useState([])
   const [isMultiDeleteDialogOpen, setIsMultiDeleteDialogOpen] = useState(false)
   const [currentSource, setCurrentSource] = useState(LEAD_SOURCES[0].id)
-  const [aiquintoTab, setAiquintoTab] = useState(AIQUINTO_TABS.DIPENDENTI)
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [commentingLead, setCommentingLead] = useState(null);
   const [commentText, setCommentText] = useState("");
@@ -378,15 +376,11 @@ export default function LeadsAgenti() {
   };
 
   const filteredLeads = (leads || [])
-    // AIQuinto: filter by tipologiaDipendente for the correct tab
+    // AIQuinto: filter out pensionati
     .filter(lead => {
       if (currentSource === 'aiquinto') {
         const tipo = (lead.tipologiaDipendente || '').toLowerCase();
-        if (aiquintoTab === AIQUINTO_TABS.DIPENDENTI) {
-          return tipo !== 'pensionato'; // everything except Pensionato
-        } else if (aiquintoTab === AIQUINTO_TABS.PENSIONATI) {
-          return tipo === 'pensionato';
-        }
+        return tipo !== 'pensionato';
       }
       return true;
     })
@@ -474,18 +468,6 @@ export default function LeadsAgenti() {
               allSources={LEAD_SOURCES}
             />
           </div>
-
-          {/* AIQuinto specific tabs */}
-          {currentSource === "aiquinto" && (
-            <div className="mt-4">
-              <Tabs value={aiquintoTab} onValueChange={setAiquintoTab}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value={AIQUINTO_TABS.DIPENDENTI}>Dipendenti</TabsTrigger>
-                  <TabsTrigger value={AIQUINTO_TABS.PENSIONATI}>Pensionati</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-          )}
         </CardHeader>
 
         <CardContent className="px-4 pt-0">
@@ -541,42 +523,16 @@ export default function LeadsAgenti() {
                       <th>Telefono</th>
 
                       {/* Source-specific columns */}
-                      {currentSource === "aiquinto" ? (
-                        aiquintoTab === AIQUINTO_TABS.DIPENDENTI ? (
-                          <>
-                            <th>Importo Richiesto</th>
-                            <th>Stipendio Netto</th>
-                            <th>Tipologia</th>
-                            <th>Sottotipo</th>
-                            <th>Tipo Contratto</th>
-                            <th>Provincia di Residenza</th>
-                            <th>Mese ed anno di assunzione</th>
-                            <th>Numero dipendenti</th>
-                          </>
-                        ) : (
-                          <>
-                            <th>Importo Richiesto</th>
-                            <th>Stipendio Netto</th>
-                            <th>Ente Pensionistico</th>
-                            <th>Tipologia di Pensione</th>
-                            <th>Data di Nascita</th>
-                            <th>Provincia di Residenza</th>
-                          </>
-                        )
-                      ) : currentSource === "aimedici" ? (
+                      {currentSource === "aiquinto" && (
                         <>
-                          <th>Scopo della richiesta</th>
                           <th>Importo Richiesto</th>
-                          <th>Città di Residenza</th>
+                          <th>Stipendio Netto</th>
+                          <th>Tipologia</th>
+                          <th>Sottotipo</th>
+                          <th>Tipo Contratto</th>
                           <th>Provincia di Residenza</th>
-                        </>
-                      ) : (
-                        <>
-                          <th>Scopo del finanziamento</th>
-                          <th>Nome Azienda</th>
-                          <th>Città Sede Legale</th>
-                          <th>Città Sede Operativa</th>
-                          <th>Importo Richiesto</th>
+                          <th>Mese ed anno di assunzione</th>
+                          <th>Numero dipendenti</th>
                         </>
                       )}
 
@@ -592,12 +548,12 @@ export default function LeadsAgenti() {
                   <tbody>
                     {filteredLeads.length === 0 ? (
                       <tr className="hover:bg-transparent">
-                        <td colSpan={currentSource === "aiquinto" ? (aiquintoTab === AIQUINTO_TABS.DIPENDENTI ? 15 : 13) : currentSource === "aimedici" ? 13 : 14} className="h-32 text-center">
+                        <td colSpan={currentSource === "aiquinto" ? 13 : currentSource === "aimedici" ? 13 : 14} className="h-32 text-center">
                           <div className="py-6 px-4">
                             <p className="text-gray-600 font-medium text-lg mb-3">Nessun lead trovato</p>
                             <div className="max-w-md mx-auto bg-blue-50 rounded-lg p-4 border border-blue-100">
                               <p className="text-blue-800 mb-2">Non ci sono ancora leads assegnati a te da {LEAD_SOURCES.find(source => source.id === currentSource)?.name}
-                                {currentSource === "aiquinto" ? ` - ${aiquintoTab === AIQUINTO_TABS.DIPENDENTI ? "Dipendenti" : "Pensionati"}` : ""}.
+                                {currentSource === "aiquinto" ? ` - ${AIQUINTO_TABS.DIPENDENTI}` : ""}.
                               </p>
                               <p className="text-blue-700 text-sm">Torna presto, i nuovi leads verranno mostrati qui.</p>
                             </div>
@@ -624,42 +580,16 @@ export default function LeadsAgenti() {
                             <td className="py-3 px-4">{lead.phone || "-"}</td>
 
                             {/* Source-specific data */}
-                            {currentSource === "aiquinto" ? (
-                              aiquintoTab === AIQUINTO_TABS.DIPENDENTI ? (
-                                <>
-                                  <td className="py-3 px-4">{lead.importoRichiesto || "-"}</td>
-                                  <td className="py-3 px-4">{lead.stipendioNetto || "-"}</td>
-                                  <td className="py-3 px-4">{lead.tipologiaDipendente || "-"}</td>
-                                  <td className="py-3 px-4">{lead.sottotipo || "-"}</td>
-                                  <td className="py-3 px-4">{lead.tipoContratto || "-"}</td>
-                                  <td className="py-3 px-4">{lead.provinciaResidenza || "-"}</td>
-                                  <td className="py-3 px-4">{lead.meseAnnoAssunzione || "-"}</td>
-                                  <td className="py-3 px-4">{lead.numeroDipendenti || "-"}</td>
-                                </>
-                              ) : (
-                                <>
-                                  <td className="py-3 px-4">{lead.importoRichiesto || "-"}</td>
-                                  <td className="py-3 px-4">{lead.stipendioNetto || "-"}</td>
-                                  <td className="py-3 px-4">{lead.entePensionistico || "-"}</td>
-                                  <td className="py-3 px-4">{lead.tipologiaPensione || "-"}</td>
-                                  <td className="py-3 px-4">{formatDate(lead.dataNascita) || "-"}</td>
-                                  <td className="py-3 px-4">{lead.provinciaResidenza || "-"}</td>
-                                </>
-                              )
-                            ) : currentSource === "aimedici" ? (
+                            {currentSource === "aiquinto" && (
                               <>
-                                <td className="py-3 px-4">{lead.scopoRichiesta || "-"}</td>
                                 <td className="py-3 px-4">{lead.importoRichiesto || "-"}</td>
-                                <td className="py-3 px-4">{lead.cittaResidenza || "-"}</td>
+                                <td className="py-3 px-4">{lead.stipendioNetto || "-"}</td>
+                                <td className="py-3 px-4">{lead.tipologiaDipendente || "-"}</td>
+                                <td className="py-3 px-4">{lead.sottotipo || "-"}</td>
+                                <td className="py-3 px-4">{lead.tipoContratto || "-"}</td>
                                 <td className="py-3 px-4">{lead.provinciaResidenza || "-"}</td>
-                              </>
-                            ) : (
-                              <>
-                                <td className="py-3 px-4">{lead.scopoFinanziamento || "-"}</td>
-                                <td className="py-3 px-4">{lead.nomeAzienda || "-"}</td>
-                                <td className="py-3 px-4">{lead.cittaSedeLegale || "-"}</td>
-                                <td className="py-3 px-4">{lead.cittaSedeOperativa || "-"}</td>
-                                <td className="py-3 px-4">{lead.importoRichiesto || "-"}</td>
+                                <td className="py-3 px-4">{lead.meseAnnoAssunzione || "-"}</td>
+                                <td className="py-3 px-4">{lead.numeroDipendenti || "-"}</td>
                               </>
                             )}
 

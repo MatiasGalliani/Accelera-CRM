@@ -53,16 +53,14 @@ export async function createLead(leadData) {
       await LeadDetail.create({
         leadId: lead.id,
         requestedAmount: leadData.importoRichiesto || null,
-        netSalary: leadData.stipendioNetto || null,  // This will store pensioneNetta for pensioners
+        netSalary: leadData.stipendioNetto || null,
         employeeType: leadData.tipologiaDipendente || null,
         contractType: leadData.tipoContratto || null,
         employmentSubtype: leadData.sottotipo || null,
         residenceProvince: leadData.provinciaResidenza || null,
-        employmentDate: leadData.meseAnnoAssunzione || null,  // Changed from employmentDate to meseAnnoAssunzione
-        numEmployees: leadData.numeroDipendenti || null,  // Changed from numEmployees to numeroDipendenti
-        birthDate: leadData.dataNascita || null,  // Changed from birthDate to dataNascita
-        entePensionistico: leadData.entePensionistico || null,
-        pensionType: leadData.tipologiaPensione || null,  // Changed from pensionType to tipologiaPensione
+        employmentDate: leadData.meseAnnoAssunzione || null,
+        numEmployees: leadData.numeroDipendenti || null,
+        birthDate: leadData.dataNascita || null,
         financingPurpose: leadData.scopoRichiesta || null,
         residenceCity: leadData.cittaResidenza || null
       }, { transaction });
@@ -336,8 +334,6 @@ function serializeLeads(leads) {
     employmentDate: 'meseAnnoAssunzione',
     numEmployees: 'numeroDipendenti',
     birthDate: 'dataNascita',
-    entePensionistico: 'entePensionistico',
-    pensionType: 'tipologiaPensione',
     financingPurpose: 'scopoRichiesta',
     residenceCity: 'cittaResidenza'
   };

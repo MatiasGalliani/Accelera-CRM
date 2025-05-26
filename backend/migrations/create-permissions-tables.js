@@ -69,8 +69,6 @@ async function createTables() {
         company_name VARCHAR(100),
         legal_city VARCHAR(100),
         operational_city VARCHAR(100),
-        ente_pensionistico VARCHAR(50),
-        pension_type VARCHAR(100),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE
       );

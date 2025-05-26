@@ -52,42 +52,4 @@ router.post('/dipendente', async (req, res) => {
   }
 });
 
-// POST  /api/forms/pensionato
-router.post('/pensionato', async (req, res) => {
-  try {
-    const data = req.body;
-
-    const leadData = {
-      source: 'aiquinto',
-      firstName: data.nome || '',
-      lastName: data.cognome || '',
-      email: data.mail,
-      phone: data.telefono || '',
-
-      // Keep the full payload for auditing
-      message: JSON.stringify(data),
-
-      importoRichiesto: data.pensionAmount || null,
-      stipendioNetto: data.pensioneNetta || null,
-      entePensionistico: data.entePensionistico || null,
-      pensionType: data.pensioneType || null,
-      tipologiaDipendente: 'Pensionato',
-      provinciaResidenza: data.province || null,
-      birthDate: data.birthDate || null
-    };
-
-    const lead = await createLead(leadData);
-
-    return res.status(201).json({
-      success: true,
-      leadId: lead.id,
-      assignedAgentId: lead.assignedAgentId,
-      message: 'Lead creato correttamente'
-    });
-  } catch (error) {
-    console.error('Errore nella creazione lead pensionato:', error);
-    return res.status(500).json({ error: error.message || 'Errore del server' });
-  }
-});
-
 export default router; 

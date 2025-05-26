@@ -48,8 +48,7 @@ import { API_BASE_URL, API_ENDPOINTS, getApiUrl } from '@/config';
 
 // AIQuinto specific tabs
 const AIQUINTO_TABS = {
-  DIPENDENTI: "dipendenti",
-  PENSIONATI: "pensionati"
+  DIPENDENTI: "dipendenti"
 }
 
 // Status options for leads
@@ -535,11 +534,7 @@ export default function AdminLeads() {
     .filter(lead => {
       if (currentSource === 'aiquinto') {
         const tipo = (lead.details?.employeeType || lead.tipologiaDipendente || '').toLowerCase();
-        if (aiquintoTab === AIQUINTO_TABS.DIPENDENTI) {
-          return tipo !== 'pensionato';
-        } else if (aiquintoTab === AIQUINTO_TABS.PENSIONATI) {
-          return tipo === 'pensionato';
-        }
+        return tipo !== 'pensionato'; // everything except Pensionato
       }
       return true;
     })
@@ -793,9 +788,8 @@ export default function AdminLeads() {
             {currentSource === "aiquinto" && (
               <div className="mt-4 mb-4">
                 <Tabs value={aiquintoTab} onValueChange={setAiquintoTab} defaultValue={AIQUINTO_TABS.DIPENDENTI}>
-                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsList className="grid w-full grid-cols-1">
                     <TabsTrigger value={AIQUINTO_TABS.DIPENDENTI}>Dipendenti</TabsTrigger>
-                    <TabsTrigger value={AIQUINTO_TABS.PENSIONATI}>Pensionati</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
@@ -868,7 +862,6 @@ export default function AdminLeads() {
 
                               {/* Source-specific columns */}
                               {source.id === "aiquinto" && (
-                                aiquintoTab === AIQUINTO_TABS.DIPENDENTI ? (
                                 <>
                                   <th>Importo Richiesto</th>
                                   <th>Stipendio Netto</th>
@@ -879,16 +872,6 @@ export default function AdminLeads() {
                                   <th>Mese ed anno di assunzione</th>
                                   <th>Numero dipendenti</th>
                                 </>
-                                ) : ( /* Pensionati */
-                                <>
-                                  <th>Importo Richiesto</th>
-                                  <th>Stipendio Netto</th>
-                                  <th>Ente Pensionistico</th>
-                                  <th>Tipologia di Pensione</th>
-                                  <th>Data di Nascita</th>
-                                  <th>Provincia di Residenza</th>
-                                </>
-                                )
                               )}
                               
                               {source.id === "aimedici" && (
@@ -936,7 +919,7 @@ export default function AdminLeads() {
                               filteredLeads.map((lead, index) => {
                                 const statusOption = getStatusInfo(lead.status);
                                 const colSpanValue = source.id === "aiquinto" 
-                                  ? (aiquintoTab === AIQUINTO_TABS.DIPENDENTI ? 15 : 13) 
+                                  ? 13 
                                   : source.id === "aimedici" ? 13 : 14;
                                 
                                 return (
@@ -967,27 +950,16 @@ export default function AdminLeads() {
                                     
                                     {/* Source-specific data */}
                                     {source.id === "aiquinto" && (
-                                      aiquintoTab === AIQUINTO_TABS.DIPENDENTI ? (
-                                        <>
-                                          <td className="py-3 px-4">{lead.details?.requestedAmount || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.netSalary || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.employeeType || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.employmentSubtype || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.contractType || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.residenceProvince || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.employmentDate || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.employeeCount || "-"}</td>
-                                        </>
-                                      ) : ( /* Pensionati */
-                                        <>
-                                          <td className="py-3 px-4">{lead.details?.requestedAmount || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.netSalary || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.entePensionistico || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.pensionType || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.birthDate ? new Date(lead.details.birthDate).toLocaleDateString('it-IT') : "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.residenceProvince || "-"}</td>
-                                        </>
-                                      )
+                                      <>
+                                        <td className="py-3 px-4">{lead.details?.requestedAmount || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.netSalary || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.employeeType || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.employmentSubtype || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.contractType || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.residenceProvince || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.employmentDate || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.employeeCount || "-"}</td>
+                                      </>
                                     )}
                                     
                                     {source.id === "aimedici" && (
