@@ -83,7 +83,8 @@ export async function createLead(leadData) {
         legalCity: leadData.cittaSedeLegale || null,
         operationalCity: leadData.cittaSedeOperativa || null,
         financingPurpose: leadData.financingScope || null,
-        requestedAmount: leadData.importoRichiesto || null
+        requestedAmount: leadData.importoRichiesto || null,
+        privacyAccettata: leadData.privacyAccepted || false
       }, { transaction });
     }
     
@@ -338,7 +339,8 @@ function serializeLeads(leads) {
     residenceCity: 'cittaResidenza',
     companyName: 'nomeAzienda',
     legalCity: 'cittaSedeLegale',
-    operationalCity: 'cittaSedeOperativa'
+    operationalCity: 'cittaSedeOperativa',
+    privacyAccettata: 'privacyAccepted'
   };
 
   return leads.map(lead => {
