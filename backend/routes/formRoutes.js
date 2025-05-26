@@ -14,6 +14,7 @@ const router = express.Router();
 router.post('/dipendente', async (req, res) => {
   try {
     const data = req.body;
+    console.log('📥 /api/forms/dipendente payload:', JSON.stringify(data, null, 2));
 
     // Build the lead payload expected by leadService.createLead
     const leadData = {
@@ -22,20 +23,18 @@ router.post('/dipendente', async (req, res) => {
       lastName: data.cognome || '',
       email: data.mail,
       phone: data.telefono || '',
-
-      // Persist the full original payload as message for reference / audit
       message: JSON.stringify(data),
 
-      // Detail fields used by AIQuinto in our DB
       importoRichiesto: data.amountRequested || null,
       stipendioNetto: data.netSalary || null,
-      tipologiaDipendente: data.depType || 'Dipendente',
+      tipologiaDipendente: data.depType || null,
       sottotipo: data.secondarySelection || null,
       tipoContratto: data.contractType || null,
       provinciaResidenza: data.province || null,
-      employmentDate: data.employmentDate || null,
-      numEmployees: data.numEmployees ? parseInt(data.numEmployees) : null,
-      birthDate: data.birthDate || null
+      meseAnnoAssunzione: data.employmentDate || null,
+      numeroDipendenti: data.numEmployees ? parseInt(data.numEmployees) : null,
+      dataNascita: data.birthDate || null,
+      privacyAccettata: data.privacyAccepted || false
     };
 
     const lead = await createLead(leadData);
@@ -63,18 +62,18 @@ router.post('/pensionato', async (req, res) => {
       lastName: data.cognome || '',
       email: data.mail,
       phone: data.telefono || '',
-
-      // Keep the full payload for auditing
       message: JSON.stringify(data),
 
       importoRichiesto: data.pensionAmount || null,
       stipendioNetto: data.pensioneNetta || null,
       entePensionistico: data.entePensionistico || null,
-      pensionType: data.pensioneType || null,
-      tipologiaDipendente: 'Pensionato',
+      tipologiaPensione: data.pensioneType || null,
       provinciaResidenza: data.province || null,
-      birthDate: data.birthDate || null
+      dataNascita: data.birthDate || null,
+      privacyAccettata: data.privacyAccepted || false,
+      tipologiaDipendente: 'Pensionato'
     };
+
 
     const lead = await createLead(leadData);
 
