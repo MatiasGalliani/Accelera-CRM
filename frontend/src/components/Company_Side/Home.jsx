@@ -54,7 +54,7 @@ export default function Home() {
       description: "Visualizza e gestisci i casi",
       icon: <FiClipboard className="w-5 h-5" />,
       path: "/cases",
-      size: "medium",
+      size: "large",
       stats: "8 attivi",
     },
     {
@@ -70,7 +70,7 @@ export default function Home() {
       description: "Controlla le revisioni in corso",
       icon: <FiCheckCircle className="w-5 h-5" />,
       path: "/review",
-      size: "small",
+      size: "large",
       stats: "2 in attesa",
     },
   ];
@@ -91,10 +91,10 @@ export default function Home() {
               onClick={() => navigate(card.path)}
               className={`col-span-12 ${
                 card.size === "large" 
-                  ? "md:col-span-8" 
-                  : card.size === "medium" 
                   ? "md:col-span-6" 
-                  : "md:col-span-4"
+                  : card.size === "medium" 
+                  ? "md:col-span-4" 
+                  : "md:col-span-3"
               } rounded-lg border bg-white p-4 hover:shadow-md transition-all duration-200 cursor-pointer`}
             >
               <div className="flex flex-col h-full">

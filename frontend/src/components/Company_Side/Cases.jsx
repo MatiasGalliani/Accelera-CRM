@@ -62,7 +62,10 @@ const fetchCases = async (user) => {
     const token = await auth.currentUser.getIdToken(true);
     console.log("Token ottenuto con successo per il caricamento delle richieste");
     
-    const response = await fetch(`${API_BASE_URL}/api/cases`, {
+    // Use different endpoints based on user role
+    const endpoint = user.role === 'admin' ? '/api/cases' : '/api/cases/my-cases';
+    
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       headers: {
         "Authorization": `Bearer ${token}`
       }

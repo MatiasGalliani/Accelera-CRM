@@ -244,6 +244,7 @@ export default function Review() {
                   <p><strong>Nome:</strong> {c.firstName}</p>
                   <p><strong>Cognome:</strong> {c.lastName}</p>
                   <p><strong>Email:</strong> {c.email}</p>
+                  <p><strong>Codice Fiscale:</strong> {c.codiceFiscale}</p>
                 </div>
               ))}
               <p>

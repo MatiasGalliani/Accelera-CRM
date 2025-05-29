@@ -411,21 +411,16 @@ app.post('/api/clients', authenticate, async (req, res) => {
         for (const product of products) {
           const caseNumber = `CASE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
           
-          // Prepare case data without assignedAgentId to avoid data type issues
+          // Prepare case data
           const caseData = {
             caseNumber,
             title: product.title,
             description: `${product.title} - ${product.description}`,
             status: 'new',
             priority: 'medium',
-            clientId: client.id
+            clientId: client.id,
+            assignedAgentId: req.user.agentId // Always set the agent ID from the authenticated user
           };
-          
-          // Only add assignedAgentId if we have a valid numeric value
-          // Firebase UIDs are strings, but our model expects integers
-          if (req.user && req.user.agentId) {
-            caseData.assignedAgentId = req.user.agentId;
-          }
           
           const caseRecord = await Case.create(caseData, { transaction: t });
           createdCases.push(caseRecord);
@@ -1830,5 +1825,68 @@ app.post('/api/admin/run-migration', authenticate, requireAdmin, async (req, res
     res.json({ message: 'Migration completed successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/cases/my-cases - List cases for the current agent
+app.get('/api/cases/my-cases', authenticate, async (req, res) => {
+  try {
+    // Get cases for the current agent
+    const cases = await Case.findAll({
+      where: {
+        assignedAgentId: req.user.agentId
+      },
+      include: [
+        {
+          model: Client,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        }
+      ],
+      order: [['created_at', 'DESC']] // Most recent cases first
+    });
+
+    // Group cases by client to aggregate products
+    const clientCases = {};
+    
+    cases.forEach(caseItem => {
+      const caseData = caseItem.get({ plain: true });
+      const clientId = caseData.client.id;
+      
+      if (!clientCases[clientId]) {
+        clientCases[clientId] = {
+          id: caseData.id,
+          clients: [caseData.client],
+          products: [],
+          type: 'privato',
+          agent: req.user.name || req.user.email || req.user.uid || 'Agente',
+          status: caseData.status || 'pending'
+        };
+      }
+      
+      // Extract the product description correctly
+      let productTitle = caseData.title;
+      let productDescription = '';
+      
+      if (caseData.description && caseData.description.includes(' - ')) {
+        productDescription = caseData.description.split(' - ')[1];
+      } else {
+        productDescription = caseData.description || '';
+      }
+      
+      // Add product info from the case
+      clientCases[clientId].products.push({
+        title: productTitle,
+        description: productDescription
+      });
+    });
+
+    // Convert to array for response
+    const formattedCases = Object.values(clientCases);
+
+    res.json(formattedCases);
+  } catch (err) {
+    console.error('Error fetching agent cases:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
