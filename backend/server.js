@@ -1831,10 +1831,24 @@ app.post('/api/admin/run-migration', authenticate, requireAdmin, async (req, res
 // GET /api/cases/my-cases - List cases for the current agent
 app.get('/api/cases/my-cases', authenticate, async (req, res) => {
   try {
-    // Get cases for the current agent using Firebase UID
+    // First, get the agent's ID from the database using their Firebase UID
+    const { Agent } = await import('./models/leads-index.js');
+    const agent = await Agent.findOne({
+      where: { firebaseUid: req.user.uid }
+    });
+
+    if (!agent) {
+      console.error('Agent not found for Firebase UID:', req.user.uid);
+      return res.status(404).json({ 
+        message: 'Agente non trovato',
+        error: 'Agent record not found in database'
+      });
+    }
+
+    // Get cases for the current agent using their database ID
     const cases = await Case.findAll({
       where: {
-        assignedAgentId: req.user.uid  // Use Firebase UID instead of agentId
+        assignedAgentId: agent.id
       },
       include: [
         {
