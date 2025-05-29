@@ -3,8 +3,8 @@ import { useForm, FormProvider } from "react-hook-form"
 import { Outlet, useNavigation } from "react-router-dom"
 import { QueryClient, QueryClientProvider, useIsFetching } from "@tanstack/react-query"
 import SidePanel from "./components/SidePanel"
+import MobileHeader from "./components/MobileHeader"
 import { useAuth } from "@/auth/AuthContext"
-import { NotificationButton } from "@/components/ui/notification-button"
 
 // Create a client
 const queryClient = new QueryClient({
@@ -29,7 +29,6 @@ function AppContent() {
   const navigation = useNavigation();
   const isFetching = useIsFetching(); // Get TanStack Query's fetching state
   const { user } = useAuth();
-  const [hasNotifications, setHasNotifications] = React.useState(false);
 
   useEffect(() => {
     const initialSpinner = document.getElementById('initial-spinner');
@@ -45,21 +44,12 @@ function AppContent() {
     <FormProvider {...methods}>
       {(isFetching > 0 || navigation.state === "loading")}
       <div className="relative min-h-screen">
-        {/* Notification Button - Always visible */}
-        <div className="fixed top-4 right-10 z-50">
-          <NotificationButton
-            hasNotifications={hasNotifications} 
-            onClick={() => {
-              // Handle notification click
-              console.log('Notification clicked');
-            }} 
-          />
-        </div>
+        {user && <MobileHeader />}
 
         {user ? (
           <div className="flex min-h-screen">
             <SidePanel />
-            <div className="flex-1 bg-gray-50 lg:ml-64 overflow-y-auto h-screen">
+            <div className="flex-1 bg-gray-50 lg:ml-64 lg:mt-0 mt-16">
               <Outlet />
             </div>
           </div>
