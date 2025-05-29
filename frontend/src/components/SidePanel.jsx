@@ -42,7 +42,7 @@ export default function SidePanel() {
           { title: "Gestione utenti", to: "/agents", icon: Icons.users },
           { title: "Leads agenti", to: "/admin-leads", icon: Icons.userList },
           {
-            title: "Eugenio IA",
+            title: "Eugenio AI",
             to: "/eugenio-chat",
             icon: Icons.sparkle,
           },
@@ -57,7 +57,7 @@ export default function SidePanel() {
       ? [
           { title: "Leads Campagna", to: "/campaign-leads", icon: Icons.megaphone },
           {
-            title: "Eugenio IA",
+            title: "Eugenio AI",
             to: "/eugenio-chat",
             icon: Icons.sparkle,
           },
@@ -65,19 +65,19 @@ export default function SidePanel() {
       : [
           { title: "My Leads", to: "/agent/my-leads", icon: Icons.userList },
           {
-            title: "Eugenio IA",
+            title: "Eugenio AI",
             to: "/eugenio-chat",
             icon: Icons.sparkle,
           },
           {
             title: "Richieste Documentali",
             to: "/my-cases",
-            icon: Icons.files
+            icon: Icons.files,
           },
           {
             title: "Pre Istruttoria Documenti IA",
             to: "/client-type",
-            icon: Icons.brain
+            icon: Icons.brain,
           },
         ]),
   ]

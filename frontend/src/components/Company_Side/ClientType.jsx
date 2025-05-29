@@ -39,8 +39,8 @@ export default function ClientType() {
 
   const onNext = () => {
     const path = tipo === "privato"
-      ? "/products-private"
-      : "/products-business"
+      ? "/documents-privates-grouped"
+      : "/documents-business-grouped"
     navigate(path)
   }
 

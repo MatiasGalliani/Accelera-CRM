@@ -11,8 +11,8 @@ import Login from "./auth/Login"
 import Home from "./components/Company_Side/Home"
 import ClientData from "./components/Company_Side/ClientData"
 import ClientType from "./components/Company_Side/ClientType"
-import ProductsPrivate from "./components/Company_Side/ProductsPrivate"
-import ProductsBusiness from "./components/Company_Side/ProductsBusiness"
+import DocumentsPrivateGrouped from "./components/Company_Side/DocumentsPrivateGrouped"
+import DocumentsBusinessGrouped from "./components/Company_Side/DocumentsBusinessGrouped"
 import Review from "./components/Company_Side/Review"
 import Success from "./components/Company_Side/Success"
 import Agents from "./components/Company_Side/Users"
@@ -38,8 +38,8 @@ const router = createBrowserRouter([
       { path: "/", element: <PrivateRoute><Home /></PrivateRoute> },
       { path: "client-data", element: <PrivateRoute><ClientData /></PrivateRoute> },
       { path: "client-type", element: <PrivateRoute><ClientType /></PrivateRoute> },
-      { path: "products-private", element: <PrivateRoute><ProductsPrivate /></PrivateRoute> },
-      { path: "products-business", element: <PrivateRoute><ProductsBusiness /></PrivateRoute> },
+      { path: "documents-privates-grouped", element: <PrivateRoute><DocumentsPrivateGrouped /></PrivateRoute> },
+      { path: "documents-business-grouped", element: <PrivateRoute><DocumentsBusinessGrouped /></PrivateRoute> },
       { path: "review", element: <PrivateRoute><Review /></PrivateRoute> },
       { path: "success", element: <PrivateRoute><Success /></PrivateRoute> },
       { path: "eugenio-chat", element: <PrivateRoute><EugenioChat /></PrivateRoute> },
