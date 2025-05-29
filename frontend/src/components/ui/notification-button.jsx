@@ -16,7 +16,7 @@ export function NotificationButton({ hasNotifications = false, onClick, classNam
         <Button
           variant="ghost"
           size="icon"
-          className={cn("relative !h-8 !w-8 [&_svg]:!size-6", className)}
+          className={cn("relative mt-1 !h-8 !w-8 [&_svg]:!size-6", className)}
         >
           {hasNotifications ? (
             <BellRinging weight="fill" />

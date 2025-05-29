@@ -18,6 +18,8 @@ import {
   EyeSlash,
   EyeClosed,
   Megaphone,
+  OpenAiLogo,
+  Sparkle,
 } from "@phosphor-icons/react"
 
 export const Icons = {
@@ -37,4 +39,7 @@ export const Icons = {
   eyeSlash: EyeSlash,
   eyeClosed: EyeClosed,
   megaphone: Megaphone,
+  openai: OpenAiLogo,
+  sparkle: Sparkle,
+  chat: Sparkle,
 } 

@@ -25,6 +25,7 @@ import AdminRoute from "./components/Company_Side/AdminRoute"
 import AgentOnlyRoute from "./components/Company_Side/AgentOnlyRoute"
 import CampaignManagerRoute from "./components/Company_Side/CampaignManagerRoute"
 import CampaignManagerLeads from "./components/Company_Side/CampaignManagerLeads"
+import EugenioChat from "./components/Company_Side/EugenioChat"
 
 // Define routes using createBrowserRouter
 const router = createBrowserRouter([
@@ -41,7 +42,9 @@ const router = createBrowserRouter([
       { path: "products-business", element: <PrivateRoute><ProductsBusiness /></PrivateRoute> },
       { path: "review", element: <PrivateRoute><Review /></PrivateRoute> },
       { path: "success", element: <PrivateRoute><Success /></PrivateRoute> },
+      { path: "eugenio-chat", element: <PrivateRoute><EugenioChat /></PrivateRoute> },
       {
+        path: "agent",
         element: <AgentOnlyRoute />,
         children: [
           { path: "my-leads", element: <LeadsAgenti /> },

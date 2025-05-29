@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom"
 import { useAuth } from "@/auth/AuthContext"
 import logo from "@/assets/Accelera_logo.svg"
+import { Sparkle } from "@phosphor-icons/react"
 
 // shadcn/ui components
 import {
@@ -41,6 +42,11 @@ export default function SidePanel() {
           { title: "Gestione utenti", to: "/agents", icon: Icons.users },
           { title: "Leads agenti", to: "/admin-leads", icon: Icons.userList },
           {
+            title: "Eugenio IA",
+            to: "/eugenio-chat",
+            icon: Icons.sparkle,
+          },
+          {
             title: "Richieste Documentali",
             to: "/admin-cases",
             icon: Icons.files,
@@ -50,20 +56,28 @@ export default function SidePanel() {
       : isCampaignManager
       ? [
           { title: "Leads Campagna", to: "/campaign-leads", icon: Icons.megaphone },
+          {
+            title: "Eugenio IA",
+            to: "/eugenio-chat",
+            icon: Icons.sparkle,
+          },
         ]
       : [
-          { title: "My Leads", to: "/my-leads", icon: Icons.userList },
+          { title: "My Leads", to: "/agent/my-leads", icon: Icons.userList },
+          {
+            title: "Eugenio IA",
+            to: "/eugenio-chat",
+            icon: Icons.sparkle,
+          },
           {
             title: "Richieste Documentali",
             to: "/my-cases",
-            icon: Icons.files,
-            disabled: true,
+            icon: Icons.files
           },
           {
             title: "Pre Istruttoria Documenti IA",
             to: "/client-type",
-            icon: Icons.brain,
-            disabled: true,
+            icon: Icons.brain
           },
         ]),
   ]

@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useAuth } from "@/auth/AuthContext"
 import { useToast } from "@/hooks/use-toast"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useNavigate } from "react-router-dom"
 import {
   Card,
   CardHeader,
@@ -184,6 +185,7 @@ export default function LeadsAgenti() {
   const { user } = useAuth()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [leadToDelete, setLeadToDelete] = useState(null)
   const [selectedLeads, setSelectedLeads] = useState([])
@@ -430,6 +432,14 @@ export default function LeadsAgenti() {
           ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
           ((lead.commenti || '').toLowerCase().includes(searchTerm))
         );
+      } else if (currentSource === 'aimedici') {
+        // Campos específicos de AIMedici
+        return (
+          ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
+          ((lead.financingScope || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.cittaResidenza || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.provinciaResidenza || '').toLowerCase().includes(searchTerm))
+        );
       }
     })
 
@@ -622,7 +632,7 @@ export default function LeadsAgenti() {
                             {currentSource === "aimedici" && (
                               <>
                                 <td className="py-3 px-4">{lead.importoRichiesto || "-"}</td>
-                                <td className="py-3 px-4">{lead.scopoRichiesta || "-"}</td>
+                                <td className="py-3 px-4">{lead.financingScope || "-"}</td>
                                 <td className="py-3 px-4">{lead.cittaResidenza || "-"}</td>
                                 <td className="py-3 px-4">{lead.provinciaResidenza || "-"}</td>
                               </>
@@ -672,14 +682,13 @@ export default function LeadsAgenti() {
                               />
                             </td>
                             <td className="text-right">
-                              <Button
-                                disabled
+                              <Button  
                                 variant="default"
                                 size="sm"
-                                onClick={() => handleDeleteClick(lead.id)}
+                                onClick={() => navigate('/client-type')}
                                 className=" text-white hover:text-white rounded-xl mx-10"
                               >
-                                Richiedere Documenti
+                                Richiedi Documenti
                                 <ArrowRight className="h-4 w-4" />
                               </Button>
                             </td>
