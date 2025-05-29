@@ -1,5 +1,5 @@
 import sequelize from './config/database.js';
-import { createTables } from './migrations/create-permissions-tables.js';
+import createTables from './migrations/create-permissions-tables.js';
 
 async function initializeDatabase() {
   try {
