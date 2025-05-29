@@ -56,7 +56,7 @@ export default function ClientData() {
     })
 
     const onAddClient = () =>
-        append({ firstName: "", lastName: "", email: "" })
+        append({ firstName: "", lastName: "", email: "", codiceFiscale: "" })
     const onNext = () => navigate("/review")
     const onBack = () => navigate(-1)
 
@@ -86,15 +86,22 @@ export default function ClientData() {
     const getClientValidationStatus = (index) => {
         const client = watchedClients[index]
         const hasErrors = errors.clients?.[index]
-        const isComplete = client?.firstName && client?.lastName && client?.email && !hasErrors
+        const isComplete = client?.firstName && client?.lastName && client?.email && client?.codiceFiscale && !hasErrors
 
         if (hasErrors) return { icon: <AlertCircle className="h-4 w-4 text-red-500" />, text: "Incompleto" }
         if (isComplete) return { icon: <CheckCircle2 className="h-4 w-4 text-green-500" />, text: "Completo" }
         return { icon: null, text: "In corso" }
     }
 
+    // Function to validate Codice Fiscale format
+    const validateCodiceFiscale = (value) => {
+        if (!value) return "Codice Fiscale obbligatorio"
+        if (!/^[A-Z0-9]{16}$/.test(value)) return "Il Codice Fiscale deve essere di 16 caratteri alfanumerici maiuscoli"
+        return true
+    }
+
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
+        <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4 sm:p-4 sm:mt-0 mt-16">
             <Card className="w-full max-w-2xl shadow-lg">
                 <form onSubmit={handleSubmit(onNext)}>
                     <CardHeader>
@@ -156,7 +163,7 @@ export default function ClientData() {
                                         <AccordionContent className="space-y-4 p-4">
                                             <div className="grid grid-cols-1 gap-6">
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div className="space-y-2">
+                                                    <div className="space-y-1">
                                                         <label className="text-sm font-medium">
                                                             Nome <span className="text-red-500">*</span>
                                                         </label>
@@ -169,12 +176,12 @@ export default function ClientData() {
                                                             })}
                                                         />
                                                         {errors.clients?.[index]?.firstName && (
-                                                            <p className="text-red-500 text-sm">
+                                                            <p className="text-red-500 text-sm -mt-1">
                                                                 {errors.clients[index].firstName.message}
                                                             </p>
                                                         )}
                                                     </div>
-                                                    <div className="space-y-2">
+                                                    <div className="space-y-1">
                                                         <label className="text-sm font-medium">
                                                             Cognome <span className="text-red-500">*</span>
                                                         </label>
@@ -187,13 +194,13 @@ export default function ClientData() {
                                                             })}
                                                         />
                                                         {errors.clients?.[index]?.lastName && (
-                                                            <p className="text-red-500 text-sm">
+                                                            <p className="text-red-500 text-sm -mt-1">
                                                                 {errors.clients[index].lastName.message}
                                                             </p>
                                                         )}
                                                     </div>
                                                 </div>
-                                                <div className="space-y-2">
+                                                <div className="space-y-1">
                                                     <label className="text-sm font-medium">
                                                         Email <span className="text-red-500">*</span>
                                                     </label>
@@ -210,8 +217,31 @@ export default function ClientData() {
                                                         })}
                                                     />
                                                     {errors.clients?.[index]?.email && (
-                                                        <p className="text-red-500 text-sm">
+                                                        <p className="text-red-500 text-sm -mt-1">
                                                             {errors.clients[index].email.message}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-sm font-medium">
+                                                        Codice Fiscale <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <Input
+                                                        type="text"
+                                                        placeholder="Codice Fiscale"
+                                                        className="rounded-lg uppercase"
+                                                        maxLength={16}
+                                                        {...register(`clients.${index}.codiceFiscale`, {
+                                                            required: "Codice Fiscale obbligatorio",
+                                                            validate: validateCodiceFiscale,
+                                                            onChange: (e) => {
+                                                                e.target.value = e.target.value.toUpperCase()
+                                                            }
+                                                        })}
+                                                    />
+                                                    {errors.clients?.[index]?.codiceFiscale && (
+                                                        <p className="text-red-500 text-sm -mt-1">
+                                                            {errors.clients[index].codiceFiscale.message}
                                                         </p>
                                                     )}
                                                 </div>

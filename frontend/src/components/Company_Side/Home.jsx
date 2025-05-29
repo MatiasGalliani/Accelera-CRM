@@ -1,8 +1,12 @@
 import React from "react";
 import { useAuth } from "@/auth/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { FiUsers, FiFileText, FiMessageSquare, FiClipboard, FiBriefcase, FiCheckCircle } from "react-icons/fi";
+import logo from "@/assets/Accelera_logo.svg";
 
 export default function Home() {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
 
   const greetings = [
     { greeting: "Buongiorno", emoji: "☀️", fromHour: 6, toHour: 12 },
@@ -21,16 +25,107 @@ export default function Home() {
         : hour >= g.fromHour && hour < g.toHour
     ) || greetings[0];
 
+  const cards = [
+    {
+      title: "Leads",
+      description: "Gestisci e monitora i tuoi leads",
+      icon: <FiUsers className="w-5 h-5" />,
+      path: "/leads",
+      size: "large",
+      stats: "12 nuovi",
+    },
+    {
+      title: "Documenti",
+      description: "Accedi ai documenti privati e business",
+      icon: <FiFileText className="w-5 h-5" />,
+      path: "/documents",
+      size: "small",
+      stats: "5 da revisionare",
+    },
+    {
+      title: "Chat",
+      description: "Comunica con Eugenio AI",
+      icon: <FiMessageSquare className="w-5 h-5" />,
+      path: "/chat",
+      size: "small",
+      stats: "3 messaggi",
+    },
+    {
+      title: "Casi",
+      description: "Visualizza e gestisci i casi",
+      icon: <FiClipboard className="w-5 h-5" />,
+      path: "/cases",
+      size: "medium",
+      stats: "8 attivi",
+    },
+    {
+      title: "Clienti",
+      description: "Gestisci i dati dei clienti",
+      icon: <FiBriefcase className="w-5 h-5" />,
+      path: "/clients",
+      size: "medium",
+      stats: "24 totali",
+    },
+    {
+      title: "Revisioni",
+      description: "Controlla le revisioni in corso",
+      icon: <FiCheckCircle className="w-5 h-5" />,
+      path: "/review",
+      size: "small",
+      stats: "2 in attesa",
+    },
+  ];
+
   return (
-    <div className="flex flex-col items-center justify-center h-full p-8 bg-gray-50 text-center">
-      <h1 className="text-3xl md:text-4xl font-semibold text-gray-900 mb-4">
-        {greeting}
-        {emoji}, {name}
-      </h1>
-      <p className="text-gray-600 max-w-md">
-        Benvenuto nella home! Utilizza il menu laterale per navigare tra le
-        funzionalità.
-      </p>
+    <div className="flex flex-col h-full bg-background">
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b z-40 flex items-center px-4">
+        <div className="flex items-center justify-center w-full">
+          <img src={logo} alt="Accelera" className="h-10" />
+        </div>
+      </div>
+
+      {/* Main Content with padding for mobile header */}
+      <div className="lg:pt-0 pt-16">
+        <div className="p-6 text-center lg:text-left">
+          <h1 className="text-3xl font-semibold text-foreground">
+            {greeting}
+            {emoji}, {name}
+          </h1>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-12 gap-4">
+            {cards.map((card, index) => (
+              <div
+                key={index}
+                onClick={() => navigate(card.path)}
+                className={`col-span-12 ${
+                  card.size === "large" 
+                    ? "md:col-span-8" 
+                    : card.size === "medium" 
+                    ? "md:col-span-6" 
+                    : "md:col-span-4"
+                } rounded-lg border bg-white p-4 hover:shadow-md transition-all duration-200 cursor-pointer`}
+              >
+                <div className="flex flex-col h-full">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground">{card.title}</h3>
+                      <p className="text-sm text-muted-foreground mt-1">{card.description}</p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-muted">
+                      {card.icon}
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <p className="text-sm font-medium text-muted-foreground">{card.stats}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 } 
