@@ -72,10 +72,17 @@ const fetchCases = async (user) => {
     });
     
     if (!response.ok) {
-      throw new Error("Impossibile caricare le richieste documentali");
+      const errorData = await response.json().catch(() => null);
+      console.error('Server response:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData
+      });
+      throw new Error(errorData?.message || `Errore server: ${response.status}`);
     }
 
     const cases = await response.json();
+    console.log('Cases fetched successfully:', cases);
     
     // Add status field if not present
     return cases.map(caseItem => ({

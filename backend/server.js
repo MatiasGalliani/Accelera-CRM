@@ -1831,10 +1831,10 @@ app.post('/api/admin/run-migration', authenticate, requireAdmin, async (req, res
 // GET /api/cases/my-cases - List cases for the current agent
 app.get('/api/cases/my-cases', authenticate, async (req, res) => {
   try {
-    // Get cases for the current agent
+    // Get cases for the current agent using Firebase UID
     const cases = await Case.findAll({
       where: {
-        assignedAgentId: req.user.agentId
+        assignedAgentId: req.user.uid  // Use Firebase UID instead of agentId
       },
       include: [
         {
@@ -1887,6 +1887,9 @@ app.get('/api/cases/my-cases', authenticate, async (req, res) => {
     res.json(formattedCases);
   } catch (err) {
     console.error('Error fetching agent cases:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ 
+      message: 'Server error',
+      error: err.message  // Include error message for debugging
+    });
   }
 });
