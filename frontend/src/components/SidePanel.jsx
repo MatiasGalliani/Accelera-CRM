@@ -41,11 +41,11 @@ export default function SidePanel() {
       ? [
           { title: "Gestione utenti", to: "/agents", icon: Icons.users },
           { title: "Leads agenti", to: "/admin-leads", icon: Icons.userList },
-          {
+          /*{
             title: "Eugenio AI",
             to: "/eugenio-chat",
             icon: Icons.sparkle,
-          },
+          },*/
           {
             title: "Richieste Documentali",
             to: "/admin-cases",
@@ -56,19 +56,19 @@ export default function SidePanel() {
       : isCampaignManager
       ? [
           { title: "Leads Campagna", to: "/campaign-leads", icon: Icons.megaphone },
-          {
+          /*{
             title: "Eugenio AI",
             to: "/eugenio-chat",
             icon: Icons.sparkle,
-          },
+          },*/
         ]
       : [
           { title: "My Leads", to: "/agent/my-leads", icon: Icons.userList },
-          {
+          /* {
             title: "Eugenio AI",
             to: "/eugenio-chat",
             icon: Icons.sparkle,
-          },
+          },*/
           {
             title: "Richieste Documentali",
             to: "/my-cases",

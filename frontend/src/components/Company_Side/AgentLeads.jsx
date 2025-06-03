@@ -23,12 +23,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
@@ -48,8 +42,10 @@ import {
 } from "@/components/ui/dialog"
 import CommentPreviewCell from "./CommentPreviewCell"
 import LeadSourceTabs from "@/components/LeadSourceTabs"
-import { API_BASE_URL, API_ENDPOINTS, getApiUrl } from '@/config'
+import { API_ENDPOINTS, getApiUrl } from '@/config'
 import { Icons } from "@/components/icons"
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 // Status options for leads
 const STATUS_OPTIONS = [
@@ -181,6 +177,68 @@ const addLeadComment = async ({ id, comment, token }) => {
 }
 
 export default function LeadsAgenti() {
+  const exportToExcel = () => {
+    const rows = filteredLeads.map((lead) => {
+      const base = {
+        Data: formatDate(lead.created_at),
+        Nome: lead.firstName || "",
+        Cognome: lead.lastName || "",
+        Mail: lead.email || "",
+        Telefono: lead.phone || "",
+        Privacy: lead.privacyAccettata ? "Sì" : "No",
+        Stato: STATUS_OPTIONS.find((opt) => opt.value === lead.status)?.label || lead.status,
+        Commenti: lead.commenti || ""
+      };
+
+      if (currentSource === "aiquinto") {
+        return {
+          ...base,
+          "Importo Richiesto": lead.importoRichiesto || "",
+          "Stipendio Netto": lead.stipendioNetto || "",
+          Tipologia: lead.tipologiaDipendente || "",
+          Sottotipo: lead.sottotipo || "",
+          "Tipo Contratto": lead.tipoContratto || "",
+          "Provincia Residenza": lead.provinciaResidenza || "",
+          "Mese/Anno Assunzione": lead.meseAnnoAssunzione || "",
+          "Numero Dipendenti": lead.numeroDipendenti || ""
+        };
+      } else if (currentSource === "aimedici") {
+        return {
+          ...base,
+          "Importo Richiesto": lead.importoRichiesto || "",
+          "Scopo Richiesta": lead.financingScope || "",
+          "Città Residenza": lead.cittaResidenza || "",
+          "Provincia Residenza": lead.provinciaResidenza || ""
+        };
+      } else if (currentSource === "aifidi") {
+        return {
+          ...base,
+          "Nome Azienda": lead.nomeAzienda || "",
+          "Scopo Finanziamento": lead.financingScope || "",
+          "Città Sede Legale": lead.cittaSedeLegale || "",
+          "Città Sede Operativa": lead.cittaSedeOperativa || "",
+          "Importo Richiesto": lead.importoRichiesto || ""
+        };
+      } else {
+        return base;
+      }
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(rows, { origin: "A1" });
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
+
+    const wbout = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([wbout], { type: "application/octet-stream" });
+
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    const filename = `leads_${currentSource}_${yyyy}${mm}${dd}.xlsx`;
+
+    saveAs(blob, filename);
+  };
   const [search, setSearch] = useState("")
   const { user } = useAuth()
   const { toast } = useToast()
@@ -237,7 +295,7 @@ export default function LeadsAgenti() {
     }
   });
 
-  // Mutación para eliminar leads en masa
+  // Mutación para eliminare leads in massa
   const bulkDeleteMutation = useMutation({
     mutationFn: async (leadIds) => {
       const { auth } = await import('@/auth/firebase');
@@ -467,6 +525,18 @@ export default function LeadsAgenti() {
                   Elimina ({selectedLeads.length})
                 </Button>
               )}
+
+              {/* Aquí agregamos el botón “Esporta Excel” */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportToExcel}
+                className="rounded-xl flex items-center gap-1"
+              >
+                <Icons.fileArrowDown className="h-4 w-4" />
+                Esporta Excel
+              </Button>
+
               <Button
                 variant="outline"
                 size="icon"
@@ -682,7 +752,7 @@ export default function LeadsAgenti() {
                               />
                             </td>
                             <td className="text-right">
-                              <Button  
+                              <Button
                                 variant="default"
                                 size="sm"
                                 onClick={() => navigate('/client-type')}

@@ -32,6 +32,7 @@
     "cmdk": "^0.2.0",
     "codice-fiscale": "^0.0.5",
     "codice-fiscale-js": "^2.3.19",
+    "file-saver": "^2.0.5",
     "firebase": "^10.7.2",
     "framer-motion": "^12.12.1",
     "lucide-react": "^0.312.0",
@@ -43,7 +44,8 @@
     "react-tsparticles": "^2.12.2",
     "styled-components": "^6.1.18",
     "tailwind-merge": "^2.2.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/react": "^18.2.48",
