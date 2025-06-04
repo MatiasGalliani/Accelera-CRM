@@ -34,7 +34,7 @@ const app = express();
 app.use(bodyParser.json());
 // CORS: allow all origins with all necessary headers
 app.use(cors({
-  origin: '*',
+  origin: 'https://accelera.creditplan.it',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
     'Content-Type',
