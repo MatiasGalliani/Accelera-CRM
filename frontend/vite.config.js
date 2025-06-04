@@ -9,10 +9,13 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src'),
+      '@': path.resolve(__dirname, './src'),
     },
   },
   server: {
+    port: 3000,
+    // Add historyApiFallback for client-side routing
+    historyApiFallback: true,
     proxy: {
       '/api': {
         target: TARGET_URL,
@@ -41,6 +44,23 @@ export default defineConfig({
             });
           });
         }
+      },
+    },
+  },
+  // Add base URL configuration
+  base: '/',
+  // Improve build configuration
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    // Generate sourcemaps for better debugging
+    sourcemap: true,
+    // Improve chunking strategy
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+        },
       },
     },
   },

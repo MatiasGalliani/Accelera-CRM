@@ -1,3 +1,4 @@
+import { Icons } from "@/components/icons";
 import { useState, useContext } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import AuthContext from "./AuthContext";
@@ -8,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import logo from "@/assets/Accelera_logo.svg";
-import { Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
     const { login, user } = useContext(AuthContext);
@@ -123,9 +123,9 @@ export default function Login() {
                                     tabIndex="-1"
                                 >
                                     {showPassword ? (
-                                        <EyeOff size={20} />
+                                        <Icons.eyeClosed size={20} />
                                     ) : (
-                                        <Eye size={20} />
+                                        <Icons.eye size={20} />
                                     )}
                                 </button>
                             </div>

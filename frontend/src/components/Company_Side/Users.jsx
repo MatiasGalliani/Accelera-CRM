@@ -14,7 +14,6 @@ import {
   SelectTrigger, SelectValue
 } from "@/components/ui/select";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import LogoHeader from "./LogoHeader";
 import { Loader2, ShieldAlert, Check, Search, Share2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -27,6 +26,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { API_BASE_URL, API_ENDPOINTS, getApiUrl } from '@/config';
+import { Icons } from "@/components/icons"
 
 export default function Agents() {
   const { user, checkUserRole } = useAuth();
@@ -96,13 +96,13 @@ export default function Agents() {
 
   const handlePageChange = (pageId, checked) => {
     setNewAgent((prev) => {
-      const updatedPages = checked 
-        ? [...prev.pages, pageId] 
+      const updatedPages = checked
+        ? [...prev.pages, pageId]
         : prev.pages.filter(id => id !== pageId);
-      
+
       // Keep leadSources in sync with pages for backend compatibility
-      return { 
-        ...prev, 
+      return {
+        ...prev,
         pages: updatedPages,
         leadSources: updatedPages
       };
@@ -116,35 +116,35 @@ export default function Agents() {
       if (!user?.email) {
         throw new Error("User email not available");
       }
-      
+
       console.log("Claiming admin role for:", user.email);
       const response = await fetch(getApiUrl(`${API_ENDPOINTS.CREATE_ADMIN}/${user.email}`));
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to claim admin role");
       }
-      
+
       const result = await response.json();
       console.log("Admin role claim successful:", result);
-      
+
       // Manually check the role in the database
       if (user?.uid) {
         await checkUserRole(user.uid);
       }
-      
-      toast({ 
-        title: "Admin role granted", 
+
+      toast({
+        title: "Admin role granted",
         description: "Per garantire l'attivazione completa dei privilegi di amministratore, per favore esci e accedi nuovamente.",
         duration: 10000,
       });
-      
+
       // Force refresh the agent list
       fetchAgents();
     } catch (error) {
       console.error("Error claiming admin role:", error);
-      toast({ 
-        title: "Error", 
-        description: error.message, 
+      toast({
+        title: "Error",
+        description: error.message,
         variant: "destructive",
         duration: 5000,
       });
@@ -202,12 +202,12 @@ export default function Agents() {
   // Filter agents based on search query
   const filteredAgents = useMemo(() => {
     if (!searchQuery.trim()) return combinedAgents;
-    
+
     return combinedAgents.filter(agent => {
       const fullName = `${agent.firstName} ${agent.lastName}`.toLowerCase();
       const email = agent.email.toLowerCase();
       const query = searchQuery.toLowerCase();
-      
+
       return fullName.includes(query) || email.includes(query);
     });
   }, [combinedAgents, searchQuery]);
@@ -223,17 +223,17 @@ export default function Agents() {
         headers: { Authorization: `Bearer ${idToken}` },
       });
       if (!res.ok) throw new Error("Errore recupero agenti");
-      
+
       const agentsData = await res.json();
       console.log("Fetched agents data:", agentsData);
-      
+
       // Ensure each agent has pages array
       const processedAgents = agentsData.map(agent => ({
         ...agent,
         pages: agent.pages || [],
         leadSources: agent.leadSources || []
       }));
-      
+
       console.log("Processed agents data:", processedAgents);
       setAgents(processedAgents);
     } catch (err) {
@@ -290,30 +290,30 @@ export default function Agents() {
         },
         body: JSON.stringify(submissionData),
       });
-      
+
       if (!res.ok) throw new Error("Creazione fallita");
-      
+
       const createdAgent = await res.json();
       console.log("Created agent response:", createdAgent);
 
       // Immediately set up the pages for the new agent
       await setupAgentPages(createdAgent.id || createdAgent.uid, newAgent.pages || ["aiquinto"], idToken);
-      
+
       // Show different message based on role
       if (newAgent.role === 'admin') {
-        toast({ 
-          title: "Amministratore Creato", 
+        toast({
+          title: "Amministratore Creato",
           description: "L'utente è stato creato con privilegi di amministratore. Potresti aver bisogno di verificare lo stato di amministratore.",
           duration: 7000,
         });
       } else {
-        toast({ 
-          title: "Agente Creato", 
+        toast({
+          title: "Agente Creato",
           description: "L'agente è stato creato con successo.",
           duration: 4000,
         });
       }
-      
+
       // Reset form with default values
       setNewAgent({
         email: "",
@@ -324,7 +324,7 @@ export default function Agents() {
         pages: ["aiquinto"],
         leadSources: ["aiquinto"]
       });
-      
+
       // Refresh lists
       await Promise.all([fetchAgents(), fetchFirebaseUsers()]);
     } catch (err) {
@@ -339,28 +339,28 @@ export default function Agents() {
   const setupAgentPages = async (agentId, pages, idToken) => {
     try {
       console.log("Setting up initial pages for agent:", agentId, "pages:", pages);
-      
+
       const res = await fetch(getApiUrl(`/api/agents/${agentId}/pages`), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           pages: pages,
           leadSources: pages
         }),
       });
-      
+
       if (!res.ok) {
         const errorText = await res.text();
         console.error("Error setting up pages:", errorText);
         throw new Error("Impostazione pagine fallita");
       }
-      
+
       const result = await res.json();
       console.log("Pages setup result:", result);
-      
+
       return result;
     } catch (err) {
       console.error("Error in setupAgentPages:", err);
@@ -371,7 +371,7 @@ export default function Agents() {
   async function deleteAgent(agent) {
     const agentId = agent.id || agent.uid;
     setDeletingAgents(prev => ({ ...prev, [agentId]: true }));
-    
+
     try {
       const auth = getAuth();
       const currentUser = auth.currentUser;
@@ -379,11 +379,11 @@ export default function Agents() {
       const idToken = await currentUser.getIdToken(true);
 
       console.log("Deleting agent:", agent);
-      
+
       // Track deletion results
       let firebaseDeleted = false;
       let firestoreDeleted = false;
-      
+
       // If agent is a Firebase user (has uid)
       if (agent.uid) {
         console.log("Attempting to delete Firebase user with UID:", agent.uid);
@@ -393,7 +393,7 @@ export default function Agents() {
             method: "DELETE",
             headers: { Authorization: `Bearer ${idToken}` },
           });
-          
+
           if (!deleteUserRes.ok) {
             const errorText = await deleteUserRes.text();
             console.error("Error deleting Firebase user:", errorText);
@@ -413,7 +413,7 @@ export default function Agents() {
           method: "DELETE",
           headers: { Authorization: `Bearer ${idToken}` },
         });
-        
+
         if (!res.ok) {
           const errorText = await res.text();
           console.error("Error deleting Firestore agent:", errorText);
@@ -425,27 +425,27 @@ export default function Agents() {
 
       // Refresh both data sources
       await Promise.all([fetchAgents(), fetchFirebaseUsers()]);
-      
+
       if (firebaseDeleted || firestoreDeleted) {
-        toast({ 
-          title: "Agente eliminato", 
+        toast({
+          title: "Agente eliminato",
           description: "Operazione completata con successo!"
         });
       } else {
-        toast({ 
-          title: "Attenzione", 
-          description: "L'operazione potrebbe non essere stata completata. Verificare la lista aggiornata.", 
-          variant: "destructive" 
+        toast({
+          title: "Attenzione",
+          description: "L'operazione potrebbe non essere stata completata. Verificare la lista aggiornata.",
+          variant: "destructive"
         });
       }
-      
+
     } catch (err) {
       console.error("Agent deletion error:", err);
       await Promise.all([fetchAgents(), fetchFirebaseUsers()]);
-      toast({ 
-        title: "Errore", 
-        description: `Si è verificato un errore durante l'eliminazione. La lista è stata aggiornata.`, 
-        variant: "destructive" 
+      toast({
+        title: "Errore",
+        description: `Si è verificato un errore durante l'eliminazione. La lista è stata aggiornata.`,
+        variant: "destructive"
       });
     } finally {
       setDeletingAgents(prev => {
@@ -463,30 +463,30 @@ export default function Agents() {
       const currentUser = auth.currentUser;
       if (!currentUser) throw new Error("Utente non autenticato");
       const idToken = await currentUser.getIdToken(true);
-      
+
       // Set a loading state for this specific agent
       setDeletingAgents(prev => ({ ...prev, [`verify_${agent.id || agent.uid}`]: true }));
-      
+
       console.log(`Verifying admin status for: ${agent.email}`);
       const response = await fetch(`${API_BASE_URL}/api/verify-admin/${agent.email}`, {
         headers: {
           Authorization: `Bearer ${idToken}`,
         },
       });
-      
+
       if (!response.ok) {
         throw new Error("Verifica fallita");
       }
-      
+
       const result = await response.json();
       console.log("Verify admin result:", result);
-      
+
       toast({
         title: "Verifica admin completata",
         description: result.fixed ? "Account admin riparato con successo" : "L'account è già configurato correttamente",
         duration: 5000,
       });
-      
+
       // Refresh the agent list
       await Promise.all([fetchAgents(), fetchFirebaseUsers()]);
     } catch (error) {
@@ -512,23 +512,23 @@ export default function Agents() {
     try {
       setClaimingAdmin(true);
       const email = 'it@creditplan.it';
-      
+
       console.log(`Fixing specific account: ${email}`);
       const response = await fetch(getApiUrl(`/api/fix-specific-account?email=${email}`));
-      
+
       if (!response.ok) {
         throw new Error('Riparazione fallita');
       }
-      
+
       const result = await response.json();
       console.log("Account fix result:", result);
-      
+
       toast({
         title: "Account riparato",
         description: "L'account admin è stato riparato con successo. Per favore esci e accedi nuovamente.",
         duration: 10000,
       });
-      
+
       await Promise.all([fetchAgents(), fetchFirebaseUsers()]);
     } catch (error) {
       console.error("Error fixing account:", error);
@@ -567,7 +567,7 @@ export default function Agents() {
   // Save the updated pages for the agent
   const saveAgentPages = async () => {
     if (!selectedAgentForPages) return;
-    
+
     try {
       const auth = getAuth();
       const currentUser = auth.currentUser;
@@ -577,45 +577,45 @@ export default function Agents() {
       console.log("Saving pages for agent:", selectedAgentForPages);
       console.log("Pages to save:", editingPages);
 
-      setDeletingAgents(prev => ({ 
-        ...prev, 
-        [`pages_${selectedAgentForPages.id || selectedAgentForPages.uid}`]: true 
+      setDeletingAgents(prev => ({
+        ...prev,
+        [`pages_${selectedAgentForPages.id || selectedAgentForPages.uid}`]: true
       }));
-      
+
       const res = await fetch(getApiUrl(`/api/agents/${selectedAgentForPages.id || selectedAgentForPages.uid}/pages`), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           pages: editingPages,
           leadSources: editingPages
         }),
       });
-      
+
       if (!res.ok) {
         const errorText = await res.text();
         console.error("Error response:", errorText);
         throw new Error("Aggiornamento pagine fallito");
       }
-      
+
       const result = await res.json();
       console.log("Update result:", result);
-      
-      setAgents(prevAgents => 
-        prevAgents.map(agent => 
+
+      setAgents(prevAgents =>
+        prevAgents.map(agent =>
           agent.id === selectedAgentForPages.id || agent.uid === selectedAgentForPages.uid
             ? { ...agent, pages: editingPages, leadSources: editingPages }
             : agent
         )
       );
-      
-      toast({ 
-        title: "Pagine aggiornate", 
+
+      toast({
+        title: "Pagine aggiornate",
         description: "Le pagine dell'agente e le assegnazioni lead sono state aggiornate con successo."
       });
-      
+
       setShowPagesDialog(false);
       await fetchAgents();
     } catch (err) {
@@ -632,7 +632,6 @@ export default function Agents() {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-50 p-4">
-      <LogoHeader />
       <div className="w-full max-w-3xl space-y-4 mt-16">
         {/* Admin status card */}
         <Card className="shadow-lg">
@@ -648,7 +647,7 @@ export default function Agents() {
                 <span className="text-green-600 font-medium">Privilegi di amministratore attivi</span>
               </p>
             </div>
-            
+
             <div className="mt-4 p-2 bg-green-50 rounded-lg">
               <p className="text-xs text-green-700 text-center">
                 Hai accesso completo come amministratore del sistema. Puoi gestire gli agenti e visualizzare tutte le risorse.
@@ -659,7 +658,7 @@ export default function Agents() {
 
         <Card className="shadow-lg">
           <CardHeader className="pb-2">
-            <CardTitle className="text-2xl text-center">Gestione Utenti</CardTitle>
+            <CardTitle className="text-2xl text-center">Gestione Utenti <Icons.users className="inline pb-1 h-8 w-8" /></CardTitle>
             <CardDescription className="text-center text-sm">
               Aggiungi nuovi utenti al sistema
             </CardDescription>
@@ -677,6 +676,7 @@ export default function Agents() {
                     onChange={handleInputChange}
                     required
                     className="rounded-xl"
+                    placeholder="Nome"
                   />
                 </div>
 
@@ -689,6 +689,7 @@ export default function Agents() {
                     onChange={handleInputChange}
                     required
                     className="rounded-xl"
+                    placeholder="Cognome"
                   />
                 </div>
 
@@ -702,6 +703,7 @@ export default function Agents() {
                     onChange={handleInputChange}
                     required
                     className="rounded-xl"
+                    placeholder="Email"
                   />
                 </div>
 
@@ -716,6 +718,7 @@ export default function Agents() {
                       onChange={handleInputChange}
                       required
                       className="rounded-xl pr-10"
+                      placeholder="•••••••••"
                     />
                     <button
                       type="button"
@@ -724,17 +727,9 @@ export default function Agents() {
                       tabIndex="-1"
                     >
                       {showPassword ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                          <circle cx="12" cy="12" r="3" />
-                        </svg>
+                        <Icons.eyeClosed size={20} />
                       ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
-                          <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
-                          <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
-                          <line x1="2" x2="22" y1="2" y2="22" />
-                        </svg>
+                        <Icons.eye size={20} />
                       )}
                     </button>
                   </div>
@@ -752,6 +747,7 @@ export default function Agents() {
                     <SelectContent>
                       <SelectItem value="agent">Agente</SelectItem>
                       <SelectItem value="admin">Amministratore</SelectItem>
+                      <SelectItem value="campaign_manager">Campaign Manager</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -762,33 +758,33 @@ export default function Agents() {
                       <Label htmlFor="pages">Pagine</Label>
                       <Popover open={pageSelectOpen} onOpenChange={setPageSelectOpen}>
                         <PopoverTrigger asChild>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             role="combobox"
                             className="w-full justify-between rounded-xl text-left"
                           >
-                            {newAgent.pages.length === 0 
-                              ? "Seleziona le pagine" 
+                            {newAgent.pages.length === 0
+                              ? "Seleziona le pagine"
                               : pageOptions
-                                  .filter(page => newAgent.pages.includes(page.id))
-                                  .map(page => page.label.replace('.it', ''))
-                                  .join(', ')}
+                                .filter(page => newAgent.pages.includes(page.id))
+                                .map(page => page.label.replace('.it', ''))
+                                .join(', ')}
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent 
-                          className="w-[var(--radix-popover-trigger-width)] p-2 bg-white" 
+                        <PopoverContent
+                          className="w-[var(--radix-popover-trigger-width)] p-2 bg-white"
                           align="start"
                           style={{ opacity: 1 }}
                         >
                           <div className="space-y-2">
                             {pageOptions.map((page) => (
                               <div key={page.id} className="flex items-center space-x-2">
-                                <Checkbox 
+                                <Checkbox
                                   id={`page-${page.id}`}
                                   checked={newAgent.pages.includes(page.id)}
                                   onCheckedChange={(checked) => handlePageChange(page.id, checked)}
                                 />
-                                <label 
+                                <label
                                   htmlFor={`page-${page.id}`}
                                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                                 >
@@ -854,7 +850,7 @@ export default function Agents() {
                     className="pl-8 rounded-xl"
                   />
                 </div>
-                
+
                 {/* Admins Section */}
                 {filteredAgents.filter(agent => agent.role === 'admin').length > 0 && (
                   <div>
@@ -866,7 +862,7 @@ export default function Agents() {
                           const agentId = agent.id || agent.uid;
                           const isDeleting = deletingAgents[agentId];
                           const isVerifying = deletingAgents[`verify_${agentId}`];
-                          
+
                           return (
                             <Card key={agentId} className="p-3">
                               <div className="flex flex-col md:flex-row md:justify-between md:items-center">
@@ -876,8 +872,8 @@ export default function Agents() {
                                   </h3>
                                   <p className="text-xs text-gray-500">{agent.email}</p>
                                   <p className="text-xs text-gray-500">
-                                    {agent.isFirebaseOnly 
-                                      ? "Utente Firebase" 
+                                    {agent.isFirebaseOnly
+                                      ? "Utente Firebase"
                                       : "Ruolo: Amministratore"}
                                   </p>
                                 </div>
@@ -906,19 +902,20 @@ export default function Agents() {
                     </div>
                   </div>
                 )}
-                
-                {/* Agents Section */}
-                {filteredAgents.filter(agent => agent.role !== 'admin').length > 0 && (
+
+                {/* Campaign Managers Section */}
+                {filteredAgents.filter(agent => agent.role === 'campaign_manager').length > 0 && (
                   <div>
-                    <h3 className="font-medium text-sm mb-2 border-b pb-1">Agenti</h3>
+                    <h3 className="font-medium text-sm mb-2 border-b pb-1">Campaign Managers</h3>
                     <div className="space-y-2">
                       {filteredAgents
-                        .filter(agent => agent.role !== 'admin')
+                        .filter(agent => agent.role === 'campaign_manager')
                         .map((agent) => {
                           const agentId = agent.id || agent.uid;
                           const isDeleting = deletingAgents[agentId];
                           const isVerifying = deletingAgents[`verify_${agentId}`];
-                          
+                          const assignedPages = agent.pages || [];
+
                           return (
                             <Card key={agentId} className="p-3">
                               <div className="flex flex-col md:flex-row md:justify-between md:items-center">
@@ -928,19 +925,38 @@ export default function Agents() {
                                   </h3>
                                   <p className="text-xs text-gray-500">{agent.email}</p>
                                   <p className="text-xs text-gray-500">
-                                    {agent.isFirebaseOnly 
-                                      ? "Utente Firebase" 
-                                      : "Ruolo: Agente"}
+                                    Ruolo: Campaign Manager
                                   </p>
+                                  <div className="mt-1">
+                                    <p className="text-xs text-gray-600">Campagne gestite:</p>
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {assignedPages.map(pageId => {
+                                        const page = pageOptions.find(p => p.id === pageId);
+                                        return page ? (
+                                          <span
+                                            key={pageId}
+                                            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                                          >
+                                            {page.label}
+                                          </span>
+                                        ) : null;
+                                      })}
+                                      {assignedPages.length === 0 && (
+                                        <span className="text-xs text-gray-500 italic">
+                                          Nessuna campagna assegnata
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 mt-3 md:mt-0">                        
+                                <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 mt-3 md:mt-0">
                                   <Button
                                     variant="outline"
                                     size="sm"
                                     className="rounded-xl text-xs h-7 hover:bg-green-100 hover:text-green-600 flex items-center gap-1"
                                     onClick={() => openPagesDialog(agent)}
                                   >
-                                    <Share2 className="h-3 w-3" /> 
+                                    <Share2 className="h-3 w-3" />
                                     Pagine e Assegnazione Lead
                                   </Button>
                                   <Button
@@ -967,7 +983,68 @@ export default function Agents() {
                     </div>
                   </div>
                 )}
-                
+
+                {/* Agents Section */}
+                {filteredAgents.filter(agent => agent.role !== 'admin' && agent.role !== 'campaign_manager').length > 0 && (
+                  <div>
+                    <h3 className="font-medium text-sm mb-2 border-b pb-1">Agenti</h3>
+                    <div className="space-y-2">
+                      {filteredAgents
+                        .filter(agent => agent.role !== 'admin' && agent.role !== 'campaign_manager')
+                        .map((agent) => {
+                          const agentId = agent.id || agent.uid;
+                          const isDeleting = deletingAgents[agentId];
+                          const isVerifying = deletingAgents[`verify_${agentId}`];
+
+                          return (
+                            <Card key={agentId} className="p-3">
+                              <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+                                <div>
+                                  <h3 className="font-semibold text-sm">
+                                    {agent.firstName} {agent.lastName}
+                                  </h3>
+                                  <p className="text-xs text-gray-500">{agent.email}</p>
+                                  <p className="text-xs text-gray-500">
+                                    {agent.isFirebaseOnly
+                                      ? "Utente Firebase"
+                                      : "Ruolo: Agente"}
+                                  </p>
+                                </div>
+                                <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 mt-3 md:mt-0">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="rounded-xl text-xs h-7 hover:bg-green-100 hover:text-green-600 flex items-center gap-1"
+                                    onClick={() => openPagesDialog(agent)}
+                                  >
+                                    <Share2 className="h-3 w-3" />
+                                    Pagine e Assegnazione Lead
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    className={`rounded-xl text-xs h-7 transition-colors ${isDeleting ? 'bg-red-800 hover:bg-red-800' : ''}`}
+                                    onClick={() => deleteAgent(agent)}
+                                    disabled={isDeleting}
+                                  >
+                                    {isDeleting ? (
+                                      <div className="flex items-center space-x-1">
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                        <span>Eliminando...</span>
+                                      </div>
+                                    ) : (
+                                      "Elimina"
+                                    )}
+                                  </Button>
+                                </div>
+                              </div>
+                            </Card>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+
                 {/* No results message when both lists are empty */}
                 {filteredAgents.length === 0 && (
                   <div className="text-center py-4">
@@ -984,36 +1061,47 @@ export default function Agents() {
       <Dialog open={showPagesDialog} onOpenChange={setShowPagesDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Impostazioni Pagine e Assegnazioni Lead</DialogTitle>
+            <DialogTitle>
+              {selectedAgentForPages?.role === 'campaign_manager'
+                ? "Gestione Campagne"
+                : "Impostazioni Pagine e Assegnazioni Lead"}
+            </DialogTitle>
             <DialogDescription>
-              Seleziona le pagine a cui questo agente può accedere. Queste impostazioni determinano anche quali lead vengono assegnati all'agente attraverso il sistema round-robin. Le fonti di leads vengono automaticamente sincronizzate con queste impostazioni.
+              {selectedAgentForPages?.role === 'campaign_manager'
+                ? "Seleziona le campagne che questo campaign manager può visualizzare. Questo determinerà quali leads potrà vedere nella sua dashboard."
+                : "Seleziona le pagine a cui questo agente può accedere. Queste impostazioni determinano anche quali lead vengono assegnati all'agente attraverso il sistema round-robin. Le fonti di leads vengono automaticamente sincronizzate con queste impostazioni."}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             {pageOptions.map((page) => (
               <div key={page.id} className="flex items-center space-x-2">
-                <Checkbox 
+                <Checkbox
                   id={`page-${page.id}`}
                   checked={editingPages.includes(page.id)}
                   onCheckedChange={(checked) => handleEditPageToggle(page.id, checked)}
                 />
                 <label htmlFor={`page-${page.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  {page.label} <span className="text-xs text-muted-foreground">(Accesso e Round-Robin)</span>
+                  {page.label}
+                  <span className="text-xs text-muted-foreground">
+                    {selectedAgentForPages?.role === 'campaign_manager'
+                      ? "(Visualizzazione Leads)"
+                      : "(Accesso e Round-Robin)"}
+                  </span>
                 </label>
               </div>
             ))}
           </div>
-          
+
           <DialogFooter>
-            <Button 
-              type="button" 
-              variant="secondary" 
+            <Button
+              type="button"
+              variant="secondary"
               onClick={() => setShowPagesDialog(false)}
             >
               Annulla
             </Button>
-            <Button 
+            <Button
               onClick={saveAgentPages}
               disabled={deletingAgents[`pages_${selectedAgentForPages?.id || selectedAgentForPages?.uid}`]}
             >

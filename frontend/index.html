@@ -1,9 +1,10 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
     <title>Accelera</title>
     <link rel="icon" type="image/svg+xml"
     href="https://creditplan.it/wp-content/uploads/2023/04/cropped-Creditplan_fav-32x32.png" />
@@ -14,20 +15,19 @@
         position: fixed;
         top: 0;
         left: 0;
-        right: 0;
-        bottom: 0;
+        width: 100%;
+        height: 100%;
         display: flex;
         justify-content: center;
         align-items: center;
-        background-color: rgba(255, 255, 255, 0.8); /* Optional: light background */
-        z-index: 10000; /* Ensure it's on top */
+        background: #f9fafb;
       }
-      .loader {
-        border: 5px solid #E5E7EB; /* Lighter grey (Tailwind gray-200) */
-        border-top: 5px solid #1E40AF; /* Very Dark Blue (Tailwind blue-800) */
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #e5e7eb;
+        border-top: 4px solid #1f2937;
         border-radius: 50%;
-        width: 60px;
-        height: 60px;
         animation: spin 1s linear infinite;
       }
       @keyframes spin {
@@ -37,10 +37,11 @@
     </style>
   </head>
   <body>
-    <div id="initial-spinner">
-      <div class="loader"></div>
-    </div>
     <div id="root"></div>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="initial-spinner">
+      <div class="spinner"></div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

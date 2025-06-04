@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/auth/AuthContext"
 import './index.css'
@@ -8,11 +8,11 @@ import App from './App.jsx'
 
 // Import route components
 import Login from "./auth/Login"
-import StartScreen from "./components/Company_Side/StartScreen"
+import Home from "./components/Company_Side/Home"
 import ClientData from "./components/Company_Side/ClientData"
 import ClientType from "./components/Company_Side/ClientType"
-import ProductsPrivate from "./components/Company_Side/ProductsPrivate"
-import ProductsBusiness from "./components/Company_Side/ProductsBusiness"
+import DocumentsPrivateGrouped from "./components/Company_Side/DocumentsPrivateGrouped"
+import DocumentsBusinessGrouped from "./components/Company_Side/DocumentsBusinessGrouped"
 import Review from "./components/Company_Side/Review"
 import Success from "./components/Company_Side/Success"
 import Agents from "./components/Company_Side/Users"
@@ -23,22 +23,28 @@ import AdminCases from "./components/Company_Side/AdminCases"
 import PrivateRoute from "./auth/PrivateRoute"
 import AdminRoute from "./components/Company_Side/AdminRoute"
 import AgentOnlyRoute from "./components/Company_Side/AgentOnlyRoute"
+import CampaignManagerRoute from "./components/Company_Side/CampaignManagerRoute"
+import CampaignManagerLeads from "./components/Company_Side/CampaignManagerLeads"
+import EugenioChat from "./components/Company_Side/EugenioChat"
 
 // Define routes using createBrowserRouter
 const router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
+    errorElement: <div>404 - Page Not Found</div>,
     children: [
       { path: "login", element: <Login /> },
-      { path: "/", element: <PrivateRoute><StartScreen /></PrivateRoute> },
+      { path: "/", element: <PrivateRoute><Home /></PrivateRoute> },
       { path: "client-data", element: <PrivateRoute><ClientData /></PrivateRoute> },
       { path: "client-type", element: <PrivateRoute><ClientType /></PrivateRoute> },
-      { path: "products-private", element: <PrivateRoute><ProductsPrivate /></PrivateRoute> },
-      { path: "products-business", element: <PrivateRoute><ProductsBusiness /></PrivateRoute> },
+      { path: "documents-privates-grouped", element: <PrivateRoute><DocumentsPrivateGrouped /></PrivateRoute> },
+      { path: "documents-business-grouped", element: <PrivateRoute><DocumentsBusinessGrouped /></PrivateRoute> },
       { path: "review", element: <PrivateRoute><Review /></PrivateRoute> },
       { path: "success", element: <PrivateRoute><Success /></PrivateRoute> },
+      { path: "eugenio-chat", element: <PrivateRoute><EugenioChat /></PrivateRoute> },
       {
+        path: "agent",
         element: <AgentOnlyRoute />,
         children: [
           { path: "my-leads", element: <LeadsAgenti /> },
@@ -52,15 +58,32 @@ const router = createBrowserRouter([
           { path: "admin-cases", element: <AdminCases /> },
         ],
       },
+      {
+        element: <CampaignManagerRoute />,
+        children: [
+          { path: "campaign-leads", element: <CampaignManagerLeads /> },
+        ],
+      },
       { path: "my-cases", element: <PrivateRoute><Cases /></PrivateRoute> },
     ],
   },
 ]);
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+// Create root and render
+const root = ReactDOM.createRoot(document.getElementById('root'))
+
+// Remove initial spinner after app mounts
+const removeSpinner = () => {
+  const spinner = document.getElementById('initial-spinner')
+  if (spinner) {
+    spinner.remove()
+  }
+}
+
+root.render(
   <React.StrictMode>
     <AuthProvider>
-      <RouterProvider router={router} />
+      <RouterProvider router={router} onNavigate={removeSpinner} />
       <Toaster />
     </AuthProvider>
   </React.StrictMode>

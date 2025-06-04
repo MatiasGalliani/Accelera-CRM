@@ -10,6 +10,7 @@ import syncService from './services/syncService.js';
 import leadRoutes from './routes/leadRoutes.js';
 import agentRoutes from './routes/agentRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import formRoutes from './routes/formRoutes.js';
 import cors from 'cors';
 
 // Load environment variables from .env file
@@ -31,21 +32,29 @@ const db = admin.firestore();
 const app = express();
 // Parse JSON bodies
 app.use(bodyParser.json());
-// Enable CORS with specific origin
+// CORS: allow all origins with all necessary headers
 app.use(cors({
-  origin: [
-    'http://localhost:5173',  // Local development
-    'http://localhost:3000',  // Local development alternative
-    'https://accelera-crm.vercel.app', // Production domain
-    'https://accelera.creditplan.it', // Production custom domain
-    'https://aiquinto.it', // AIQuinto.it domain
-    'https://aimedici.it', // AIMedici.it domain
-    'https://aifidi.it', // AIFidi.it domain
-    /\.vercel\.app$/  // Allow all Vercel preview deployments
+  origin: 'https://accelera.creditplan.it',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-API-Key',
+    'Accept',
+    'Origin',
+    'X-Requested-With',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers'
   ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow these methods
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'], // Allow these headers
-  credentials: true
+  exposedHeaders: [
+    'Content-Length',
+    'Content-Type',
+    'Authorization',
+    'X-API-Key'
+  ],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 
 // Add API key verification middleware
@@ -402,21 +411,16 @@ app.post('/api/clients', authenticate, async (req, res) => {
         for (const product of products) {
           const caseNumber = `CASE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
           
-          // Prepare case data without assignedAgentId to avoid data type issues
+          // Prepare case data
           const caseData = {
             caseNumber,
             title: product.title,
             description: `${product.title} - ${product.description}`,
             status: 'new',
             priority: 'medium',
-            clientId: client.id
+            clientId: client.id,
+            assignedAgentId: req.user.agentId // Always set the agent ID from the authenticated user
           };
-          
-          // Only add assignedAgentId if we have a valid numeric value
-          // Firebase UIDs are strings, but our model expects integers
-          if (req.user && req.user.agentId) {
-            caseData.assignedAgentId = req.user.agentId;
-          }
           
           const caseRecord = await Case.create(caseData, { transaction: t });
           createdCases.push(caseRecord);
@@ -1137,7 +1141,7 @@ app.put('/api/agents/:id/lead-sources', authenticate, requireAdmin, async (req, 
 });
 
 // PUT /api/agents/:id/pages - Update an agent's pages (permissions)
-app.put('/api/agents/:id/pages', authenticate, requireAdmin, async (req, res) => {
+app.put('/api/agents/:id/pages', authenticate, async (req, res) => {
   try {
     const agentId = req.params.id;
     const { pages } = req.body;
@@ -1151,6 +1155,14 @@ app.put('/api/agents/:id/pages', authenticate, requireAdmin, async (req, res) =>
     
     if (!agentDoc.exists) {
       return res.status(404).json({ message: 'Agente non trovato' });
+    }
+
+    // Check if user is admin or if they're accessing their own pages
+    const isAdmin = await checkIsAdmin(req.user.uid);
+    const isOwnPages = agentDoc.data().uid === req.user.uid;
+    
+    if (!isAdmin && !isOwnPages) {
+      return res.status(403).json({ message: 'Non hai i permessi per modificare le pagine di questo agente' });
     }
     
     // UPDATE: Update both pages and leadSources to ensure round-robin consistency
@@ -1183,6 +1195,27 @@ app.put('/api/agents/:id/pages', authenticate, requireAdmin, async (req, res) =>
   }
 });
 
+// Helper function to check if a user is admin
+async function checkIsAdmin(uid) {
+  // First check in Firestore
+  const agentsSnapshot = await db.collection('agents')
+    .where('uid', '==', uid)
+    .limit(1)
+    .get();
+
+  if (!agentsSnapshot.empty) {
+    const agentData = agentsSnapshot.docs[0].data();
+    if (agentData.role === 'admin') {
+      return true;
+    }
+  }
+
+  // Then check in PostgreSQL
+  const { Agent } = await import('./models/leads-index.js');
+  const pgAgent = await Agent.findOne({ where: { firebaseUid: uid } });
+  return pgAgent?.role === 'admin';
+}
+
 // Iniciar sincronización de agentes entre Firestore y PostgreSQL
 syncService.syncAllAgentsFromFirestore()
   .then(results => {
@@ -1206,6 +1239,7 @@ syncService.syncAllAgentsFromFirestore()
 app.use('/api/leads', leadRoutes);
 app.use('/api/agents', agentRoutes);
 app.use('/api', authRoutes);
+app.use('/api/forms', formRoutes);
 
 // Add health check endpoint
 app.get('/health', (req, res) => {
@@ -1239,4 +1273,637 @@ app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} - ${res.statusCode} - ${duration}ms`);
   });
   next();
+});
+
+// Additional Utility Functions for Database Maintenance and Fixes
+async function fixAgenteDos() {
+  try {
+    const agents = await Agent.findAll({
+      where: { email: 'agente2@creditplan.it' }
+    });
+    
+    for (const agent of agents) {
+      await agent.update({ role: 'agent' });
+      console.log(`✅ Fixed agent role for ${agent.email}`);
+    }
+    console.log('✅ All agente2 fixes completed');
+  } catch (error) {
+    console.error('Error fixing agente2:', error);
+  }
+}
+
+async function fixSequelizeMapping() {
+  try {
+    const agents = await Agent.findAll();
+    for (const agent of agents) {
+      if (!agent.firebaseUid && agent.uid) {
+        await agent.update({ firebaseUid: agent.uid });
+        console.log(`✅ Fixed mapping for agent ${agent.email}`);
+      }
+    }
+    console.log('✅ All Sequelize mappings fixed');
+  } catch (error) {
+    console.error('Error fixing Sequelize mappings:', error);
+  }
+}
+
+async function ensureAgentSources() {
+  try {
+    const agents = await Agent.findAll({ where: { isActive: true } });
+    for (const agent of agents) {
+      const sources = await AgentLeadSource.findAll({ where: { agentId: agent.id } });
+      if (sources.length === 0) {
+        await AgentLeadSource.create({
+          agentId: agent.id,
+          sourceName: 'default',
+          isActive: true
+        });
+        console.log(`✅ Added default source for agent ${agent.email}`);
+      }
+    }
+    console.log('✅ All agent sources ensured');
+  } catch (error) {
+    console.error('Error ensuring agent sources:', error);
+  }
+}
+
+async function fixAdminSources() {
+  try {
+    const adminAgents = await Agent.findAll({ where: { role: 'admin' } });
+    for (const admin of adminAgents) {
+      const sources = await AgentLeadSource.findAll({ where: { agentId: admin.id } });
+      if (sources.length === 0) {
+        await AgentLeadSource.create({
+          agentId: admin.id,
+          sourceName: 'admin',
+          isActive: true
+        });
+        console.log(`✅ Added admin source for ${admin.email}`);
+      }
+    }
+    console.log('✅ All admin sources fixed');
+  } catch (error) {
+    console.error('Error fixing admin sources:', error);
+  }
+}
+
+async function debugSyncIssue() {
+  try {
+    const leads = await Lead.findAll({
+      where: {
+        syncStatus: 'error'
+      }
+    });
+    
+    for (const lead of leads) {
+      console.log(`Lead ${lead.id} sync error:`, lead.syncError);
+      await lead.update({ 
+        syncStatus: 'pending',
+        syncError: null
+      });
+      console.log(`✅ Reset sync status for lead ${lead.id}`);
+    }
+    console.log('✅ All sync issues debugged');
+  } catch (error) {
+    console.error('Error debugging sync issues:', error);
+  }
+}
+
+async function enhanceSyncSystem() {
+  try {
+    const leads = await Lead.findAll();
+    for (const lead of leads) {
+      if (!lead.syncStatus) {
+        await lead.update({ syncStatus: 'pending' });
+        console.log(`✅ Added sync status for lead ${lead.id}`);
+      }
+    }
+    console.log('✅ Sync system enhanced');
+  } catch (error) {
+    console.error('Error enhancing sync system:', error);
+  }
+}
+
+async function directCountSources() {
+  try {
+    const sources = await AgentLeadSource.findAll({
+      attributes: ['sourceName', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
+      group: ['sourceName']
+    });
+    console.log('Source counts:', sources);
+    return sources;
+  } catch (error) {
+    console.error('Error counting sources:', error);
+  }
+}
+
+async function finalFixLeads() {
+  try {
+    const leads = await Lead.findAll({
+      where: {
+        status: null
+      }
+    });
+    
+    for (const lead of leads) {
+      await lead.update({ status: 'new' });
+      console.log(`✅ Fixed status for lead ${lead.id}`);
+    }
+    console.log('✅ All leads fixed');
+  } catch (error) {
+    console.error('Error fixing leads:', error);
+  }
+}
+
+async function countActualAgents() {
+  try {
+    const count = await Agent.count({
+      where: { isActive: true }
+    });
+    console.log(`Total active agents: ${count}`);
+    return count;
+  } catch (error) {
+    console.error('Error counting agents:', error);
+  }
+}
+
+async function countBySource() {
+  try {
+    const sources = await AgentLeadSource.findAll({
+      attributes: ['sourceName', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
+      group: ['sourceName']
+    });
+    console.log('Source distribution:', sources);
+    return sources;
+  } catch (error) {
+    console.error('Error counting by source:', error);
+  }
+}
+
+async function directAddAimedici() {
+  try {
+    const agents = await Agent.findAll({ where: { isActive: true } });
+    for (const agent of agents) {
+      await AgentLeadSource.create({
+        agentId: agent.id,
+        sourceName: 'aimedici',
+        isActive: true
+      });
+      console.log(`✅ Added aimedici source for agent ${agent.email}`);
+    }
+    console.log('✅ All aimedici sources added');
+  } catch (error) {
+    console.error('Error adding aimedici sources:', error);
+  }
+}
+
+async function directCheckRobin() {
+  try {
+    const agents = await Agent.findAll({ where: { isActive: true } });
+    for (const agent of agents) {
+      const sources = await AgentLeadSource.findAll({ where: { agentId: agent.id } });
+      if (sources.length === 0) {
+        await AgentLeadSource.create({
+          agentId: agent.id,
+          sourceName: 'round-robin',
+          isActive: true
+        });
+        console.log(`✅ Added round-robin source for agent ${agent.email}`);
+      }
+    }
+    console.log('✅ All round-robin sources checked');
+  } catch (error) {
+    console.error('Error checking round-robin:', error);
+  }
+}
+
+async function cleanDeletedAgents() {
+  try {
+    const agents = await Agent.findAll({ where: { isActive: false } });
+    for (const agent of agents) {
+      await agent.destroy();
+      console.log(`✅ Cleaned deleted agent ${agent.email}`);
+    }
+    console.log('✅ All deleted agents cleaned');
+  } catch (error) {
+    console.error('Error cleaning deleted agents:', error);
+  }
+}
+
+// Admin routes for running additional fixes
+app.post('/api/admin/fix/agentedos', authenticate, requireAdmin, async (req, res) => {
+  try {
+    await fixAgenteDos();
+    res.json({ message: 'Agente2 fixes completed successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/fix/sequelize-mapping', authenticate, requireAdmin, async (req, res) => {
+  try {
+    await fixSequelizeMapping();
+    res.json({ message: 'Sequelize mappings fixed successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/fix/ensure-sources', authenticate, requireAdmin, async (req, res) => {
+  try {
+    await ensureAgentSources();
+    res.json({ message: 'Agent sources ensured successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/fix/admin-sources', authenticate, requireAdmin, async (req, res) => {
+  try {
+    await fixAdminSources();
+    res.json({ message: 'Admin sources fixed successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/fix/debug-sync', authenticate, requireAdmin, async (req, res) => {
+  try {
+    await debugSyncIssue();
+    res.json({ message: 'Sync issues debugged successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/fix/enhance-sync', authenticate, requireAdmin, async (req, res) => {
+  try {
+    await enhanceSyncSystem();
+    res.json({ message: 'Sync system enhanced successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/fix/final-leads', authenticate, requireAdmin, async (req, res) => {
+  try {
+    await finalFixLeads();
+    res.json({ message: 'Leads fixed successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/fix/clean-agents', authenticate, requireAdmin, async (req, res) => {
+  try {
+    await cleanDeletedAgents();
+    res.json({ message: 'Deleted agents cleaned successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/admin/stats/sources', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const sources = await directCountSources();
+    res.json({ sources });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/admin/stats/agents', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const count = await countActualAgents();
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/admin/stats/source-distribution', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const sources = await countBySource();
+    res.json({ sources });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Additional Utility Functions for Database Maintenance and Fixes
+async function countAimediciAgents() {
+  try {
+    const count = await Agent.count({
+      where: {
+        isActive: true,
+        '$leadSources.sourceName$': 'aimedici'
+      },
+      include: [{
+        model: AgentLeadSource,
+        as: 'leadSources'
+      }]
+    });
+    console.log(`Total agents with aimedici source: ${count}`);
+    return count;
+  } catch (error) {
+    console.error('Error counting aimedici agents:', error);
+  }
+}
+
+async function addAimediciSource() {
+  try {
+    const agents = await Agent.findAll({ where: { isActive: true } });
+    for (const agent of agents) {
+      const hasAimedici = await AgentLeadSource.findOne({
+        where: {
+          agentId: agent.id,
+          sourceName: 'aimedici'
+        }
+      });
+      
+      if (!hasAimedici) {
+        await AgentLeadSource.create({
+          agentId: agent.id,
+          sourceName: 'aimedici',
+          isActive: true
+        });
+        console.log(`✅ Added aimedici source for agent ${agent.email}`);
+      }
+    }
+    console.log('✅ All aimedici sources added');
+  } catch (error) {
+    console.error('Error adding aimedici sources:', error);
+  }
+}
+
+async function checkAdminSources() {
+  try {
+    const adminAgents = await Agent.findAll({ where: { role: 'admin' } });
+    for (const admin of adminAgents) {
+      const sources = await AgentLeadSource.findAll({ where: { agentId: admin.id } });
+      console.log(`Admin ${admin.email} has ${sources.length} sources:`, sources.map(s => s.sourceName));
+    }
+    console.log('✅ Admin sources checked');
+  } catch (error) {
+    console.error('Error checking admin sources:', error);
+  }
+}
+
+async function checkAgent() {
+  try {
+    const agents = await Agent.findAll({ where: { isActive: true } });
+    for (const agent of agents) {
+      console.log(`Agent ${agent.email}:`);
+      console.log(`- Role: ${agent.role}`);
+      console.log(`- Active: ${agent.isActive}`);
+      console.log(`- Firebase UID: ${agent.firebaseUid || agent.uid}`);
+    }
+    console.log('✅ All agents checked');
+  } catch (error) {
+    console.error('Error checking agents:', error);
+  }
+}
+
+async function checkLeads() {
+  try {
+    const leads = await Lead.findAll();
+    console.log(`Total leads: ${leads.length}`);
+    const statusCounts = {};
+    leads.forEach(lead => {
+      statusCounts[lead.status] = (statusCounts[lead.status] || 0) + 1;
+    });
+    console.log('Lead status distribution:', statusCounts);
+    console.log('✅ All leads checked');
+  } catch (error) {
+    console.error('Error checking leads:', error);
+  }
+}
+
+async function checkRoundRobin() {
+  try {
+    const agents = await Agent.findAll({ where: { isActive: true } });
+    for (const agent of agents) {
+      const hasRobin = await AgentLeadSource.findOne({
+        where: {
+          agentId: agent.id,
+          sourceName: 'round-robin'
+        }
+      });
+      console.log(`Agent ${agent.email} has round-robin: ${!!hasRobin}`);
+    }
+    console.log('✅ Round-robin distribution checked');
+  } catch (error) {
+    console.error('Error checking round-robin:', error);
+  }
+}
+
+async function checkAgentSources() {
+  try {
+    const agents = await Agent.findAll({ where: { isActive: true } });
+    for (const agent of agents) {
+      const sources = await AgentLeadSource.findAll({ where: { agentId: agent.id } });
+      console.log(`Agent ${agent.email} sources:`, sources.map(s => s.sourceName));
+    }
+    console.log('✅ All agent sources checked');
+  } catch (error) {
+    console.error('Error checking agent sources:', error);
+  }
+}
+
+async function forceAddSource() {
+  try {
+    const { agentId, sourceName } = req.body;
+    if (!agentId || !sourceName) {
+      throw new Error('Agent ID and source name are required');
+    }
+    
+    const agent = await Agent.findByPk(agentId);
+    if (!agent) {
+      throw new Error('Agent not found');
+    }
+    
+    await AgentLeadSource.create({
+      agentId: agent.id,
+      sourceName: sourceName,
+      isActive: true
+    });
+    
+    console.log(`✅ Added source ${sourceName} for agent ${agent.email}`);
+    return true;
+  } catch (error) {
+    console.error('Error forcing source addition:', error);
+    throw error;
+  }
+}
+
+async function runMigration() {
+  try {
+    await sequelize.sync({ alter: true });
+    console.log('✅ Database migration completed');
+  } catch (error) {
+    console.error('Error running migration:', error);
+    throw error;
+  }
+}
+
+// Admin routes for running additional fixes
+app.post('/api/admin/fix/count-aimedici', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const count = await countAimediciAgents();
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/fix/add-aimedici', authenticate, requireAdmin, async (req, res) => {
+  try {
+    await addAimediciSource();
+    res.json({ message: 'Aimedici sources added successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/admin/check/admin-sources', authenticate, requireAdmin, async (req, res) => {
+  try {
+    await checkAdminSources();
+    res.json({ message: 'Admin sources checked successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/admin/check/agents', authenticate, requireAdmin, async (req, res) => {
+  try {
+    await checkAgent();
+    res.json({ message: 'Agents checked successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/admin/check/leads', authenticate, requireAdmin, async (req, res) => {
+  try {
+    await checkLeads();
+    res.json({ message: 'Leads checked successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/admin/check/round-robin', authenticate, requireAdmin, async (req, res) => {
+  try {
+    await checkRoundRobin();
+    res.json({ message: 'Round-robin distribution checked successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/admin/check/agent-sources', authenticate, requireAdmin, async (req, res) => {
+  try {
+    await checkAgentSources();
+    res.json({ message: 'Agent sources checked successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/fix/force-source', authenticate, requireAdmin, async (req, res) => {
+  try {
+    await forceAddSource();
+    res.json({ message: 'Source added successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/run-migration', authenticate, requireAdmin, async (req, res) => {
+  try {
+    await runMigration();
+    res.json({ message: 'Migration completed successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/cases/my-cases - List cases for the current agent
+app.get('/api/cases/my-cases', authenticate, async (req, res) => {
+  try {
+    // First, get the agent's ID from the database using their Firebase UID
+    const { Agent } = await import('./models/leads-index.js');
+    const agent = await Agent.findOne({
+      where: { firebaseUid: req.user.uid }
+    });
+
+    if (!agent) {
+      console.error('Agent not found for Firebase UID:', req.user.uid);
+      return res.status(404).json({ 
+        message: 'Agente non trovato',
+        error: 'Agent record not found in database'
+      });
+    }
+
+    // Get cases for the current agent using their database ID
+    const cases = await Case.findAll({
+      where: {
+        assignedAgentId: agent.id
+      },
+      include: [
+        {
+          model: Client,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        }
+      ],
+      order: [['created_at', 'DESC']] // Most recent cases first
+    });
+
+    // Group cases by client to aggregate products
+    const clientCases = {};
+    
+    cases.forEach(caseItem => {
+      const caseData = caseItem.get({ plain: true });
+      const clientId = caseData.client.id;
+      
+      if (!clientCases[clientId]) {
+        clientCases[clientId] = {
+          id: caseData.id,
+          clients: [caseData.client],
+          products: [],
+          type: 'privato',
+          agent: req.user.name || req.user.email || req.user.uid || 'Agente',
+          status: caseData.status || 'pending'
+        };
+      }
+      
+      // Extract the product description correctly
+      let productTitle = caseData.title;
+      let productDescription = '';
+      
+      if (caseData.description && caseData.description.includes(' - ')) {
+        productDescription = caseData.description.split(' - ')[1];
+      } else {
+        productDescription = caseData.description || '';
+      }
+      
+      // Add product info from the case
+      clientCases[clientId].products.push({
+        title: productTitle,
+        description: productDescription
+      });
+    });
+
+    // Convert to array for response
+    const formattedCases = Object.values(clientCases);
+
+    res.json(formattedCases);
+  } catch (err) {
+    console.error('Error fetching agent cases:', err);
+    res.status(500).json({ 
+      message: 'Server error',
+      error: err.message  // Include error message for debugging
+    });
+  }
 });

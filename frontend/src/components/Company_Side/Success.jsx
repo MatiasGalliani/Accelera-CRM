@@ -9,12 +9,10 @@ import {
     CardFooter,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import LogoHeader from "./LogoHeader"
 
 export default function Success() {
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-50">
-            <LogoHeader />
             <Card className="w-full max-w-sm shadow-lg">
                 <CardHeader className="text-center">
                     <CardTitle className="text-3xl">Richiesta Inviata!</CardTitle>

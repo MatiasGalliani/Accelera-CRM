@@ -20,7 +20,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Search, RefreshCw, Trash2, CheckSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import LogoHeader from "./LogoHeader"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,17 +62,27 @@ const fetchCases = async (user) => {
     const token = await auth.currentUser.getIdToken(true);
     console.log("Token ottenuto con successo per il caricamento delle richieste");
     
-    const response = await fetch(`${API_BASE_URL}/api/cases`, {
+    // Use different endpoints based on user role
+    const endpoint = user.role === 'admin' ? '/api/cases' : '/api/cases/my-cases';
+    
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       headers: {
         "Authorization": `Bearer ${token}`
       }
     });
     
     if (!response.ok) {
-      throw new Error("Impossibile caricare le richieste documentali");
+      const errorData = await response.json().catch(() => null);
+      console.error('Server response:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData
+      });
+      throw new Error(errorData?.message || `Errore server: ${response.status}`);
     }
 
     const cases = await response.json();
+    console.log('Cases fetched successfully:', cases);
     
     // Add status field if not present
     return cases.map(caseItem => ({
@@ -360,7 +369,6 @@ export default function Cases() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
-      <LogoHeader />
       <Card className="w-full max-w-6xl shadow-lg">
         <CardHeader>
           <div className="flex justify-between items-center">

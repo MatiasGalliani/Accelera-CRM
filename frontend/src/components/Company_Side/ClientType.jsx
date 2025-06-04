@@ -19,7 +19,6 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card"
-import LogoHeader from "./LogoHeader"
 
 export default function ClientType() {
   const navigate = useNavigate()
@@ -40,14 +39,13 @@ export default function ClientType() {
 
   const onNext = () => {
     const path = tipo === "privato"
-      ? "/products-private"
-      : "/products-business"
+      ? "/documents-privates-grouped"
+      : "/documents-business-grouped"
     navigate(path)
   }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <LogoHeader />
       <Card className="w-full max-w-xs shadow-lg">
         <form onSubmit={handleSubmit(onNext)}>
           <CardHeader>

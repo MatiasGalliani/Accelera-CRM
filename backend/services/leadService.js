@@ -57,13 +57,22 @@ export async function createLead(leadData) {
         employeeType: leadData.tipologiaDipendente || null,
         contractType: leadData.tipoContratto || null,
         employmentSubtype: leadData.sottotipo || null,
-        residenceProvince: leadData.provinciaResidenza || null
+        residenceProvince: leadData.provinciaResidenza || null,
+        employmentDate: leadData.meseAnnoAssunzione || null,
+        numEmployees: leadData.numeroDipendenti || null,
+        birthDate: leadData.dataNascita || null,
+        financingPurpose: leadData.scopoRichiesta || null,
+        residenceCity: leadData.cittaResidenza || null
       }, { transaction });
     } else if (leadData.source === 'aimedici') {
       await LeadDetail.create({
         leadId: lead.id,
         requestedAmount: leadData.importoRichiesto || null,
         financingPurpose: leadData.scopoRichiesta || null,
+        residenceCity: leadData.cittaResidenza || null,
+        residenceProvince: leadData.provinciaResidenza || null,
+        netSalary: leadData.stipendioNetto || null,
+        pensioneNettaMensile: leadData.pensioneNettaMensile || null,
         residenceCity: leadData.cittaResidenza || null,
         residenceProvince: leadData.provinciaResidenza || null
       }, { transaction });
@@ -73,8 +82,9 @@ export async function createLead(leadData) {
         companyName: leadData.nomeAzienda || null,
         legalCity: leadData.cittaSedeLegale || null,
         operationalCity: leadData.cittaSedeOperativa || null,
-        financingPurpose: leadData.scopoFinanziamento || null,
-        requestedAmount: leadData.importoRichiesto || null
+        financingPurpose: leadData.financingScope || null,
+        requestedAmount: leadData.importoRichiesto || null,
+        privacyAccettata: leadData.privacyAccepted || false
       }, { transaction });
     }
     
@@ -284,13 +294,19 @@ export async function getAgentLeads(firebaseUid, source) {
     const leads = await Lead.findAll({
       where: filter,
       include: [
-        { model: LeadDetail, as: 'details' },
+        { 
+          model: LeadDetail, 
+          as: 'details',
+          required: false // Make this a LEFT JOIN
+        },
         { 
           model: LeadNote, 
           as: 'notes',
           include: [{ model: Agent }],
           limit: 5,
-          order: [['created_at', 'DESC']]}
+          order: [['created_at', 'DESC']],
+          required: false // Make this a LEFT JOIN
+        }
       ],
       order: [['created_at', 'DESC']]
     });
@@ -309,44 +325,59 @@ export async function getAgentLeads(firebaseUid, source) {
  * @returns {Array} - Lista de leads serializada
  */
 function serializeLeads(leads) {
+  const detailFieldMap = {
+    requestedAmount: 'importoRichiesto',
+    netSalary: 'stipendioNetto',
+    employeeType: 'tipologiaDipendente',
+    contractType: 'tipoContratto',
+    employmentSubtype: 'sottotipo',
+    residenceProvince: 'provinciaResidenza',
+    employmentDate: 'meseAnnoAssunzione',
+    numEmployees: 'numeroDipendenti',
+    birthDate: 'dataNascita',
+    financingPurpose: 'financingScope',
+    residenceCity: 'cittaResidenza',
+    companyName: 'nomeAzienda',
+    legalCity: 'cittaSedeLegale',
+    operationalCity: 'cittaSedeOperativa',
+    privacyAccettata: 'privacyAccepted'
+  };
+
   return leads.map(lead => {
-    // Convertir el lead a un objeto plano
-    const plainLead = lead.get({ plain: true });
+    const serializedLead = lead.toJSON();
     
-    // Si hay detalles, aplanarlos en el objeto principal
-    if (plainLead.details) {
-      // Mapeo de campos de detalles a sus nombres en el frontend
-      const detailFieldMap = {
-        'requestedAmount': 'importoRichiesto',
-        'netSalary': 'stipendioNetto',
-        'employeeType': 'tipologiaDipendente',
-        'employmentSubtype': 'sottotipo',
-        'contractType': 'tipoContratto',
-        'residenceProvince': 'provinciaResidenza',
-        'residenceCity': 'cittaResidenza',
-        'financingPurpose': 'scopoRichiesta',
-        'companyName': 'nomeAzienda',
-        'legalCity': 'cittaSedeLegale',
-        'operationalCity': 'cittaSedeOperativa'
-      };
-      
-      // Transferir campos mapeados de detalles al objeto principal
+    // Map fields from details to main lead object
+    if (serializedLead.details) {
       Object.entries(detailFieldMap).forEach(([dbField, frontendField]) => {
-        if (plainLead.details[dbField] !== undefined && plainLead.details[dbField] !== null) {
-          plainLead[frontendField] = plainLead.details[dbField];
+        if (serializedLead.details[dbField] !== null && serializedLead.details[dbField] !== undefined) {
+          serializedLead[frontendField] = serializedLead.details[dbField];
+        } else {
+          serializedLead[frontendField] = '-';
         }
       });
+      delete serializedLead.details;
+    } else {
+      // If no details exist, set all fields to '-'
+      Object.values(detailFieldMap).forEach(field => {
+        serializedLead[field] = '-';
+      });
     }
-    
-    // Convertir notas a comentarios (si existen)
-    if (plainLead.notes && plainLead.notes.length > 0) {
-      plainLead.commenti = plainLead.notes[0].note;
+
+    // Convert notes to comments if they exist
+    if (serializedLead.notes) {
+      serializedLead.comments = serializedLead.notes.map(note => ({
+        id: note.id,
+        text: note.note,
+        createdAt: note.createdAt,
+        updatedAt: note.updatedAt
+      }));
+      delete serializedLead.notes;
     }
-    
-    // Asegurar que privacyAccettata esté como booleano
-    plainLead.privacyAccettata = !!plainLead.privacyAccettata;
-    
-    return plainLead;
+
+    // Ensure privacyAccettata is a boolean
+    serializedLead.privacyAccettata = Boolean(serializedLead.privacyAccettata);
+
+    return serializedLead;
   });
 }
 
@@ -593,6 +624,68 @@ export async function assignLeadToSpecificAgent(leadId, agentId, adminFirebaseUi
   }
 }
 
+/**
+ * Get leads for a campaign manager
+ * @param {string} firebaseUid - Firebase UID of the campaign manager
+ * @param {string} source - Source to filter leads by
+ * @returns {Promise<Array>} - Array of leads
+ */
+export async function getCampaignManagerLeads(firebaseUid, source) {
+  try {
+    // First get the agent record to verify permissions
+    const agent = await Agent.findOne({
+      where: { firebaseUid },
+      include: [{
+        model: AgentLeadSource,
+        where: { source },
+        required: true
+      }]
+    });
+
+    if (!agent) {
+      throw new Error(`Non hai accesso ai leads della fonte ${source}`);
+    }
+
+    // Get all leads for this source
+    const leads = await Lead.findAll({
+      where: { source },
+      include: [
+        { 
+          model: LeadDetail, 
+          as: 'details',
+          required: false 
+        },
+        { 
+          model: Agent, 
+          as: 'assignedAgent',
+          attributes: ['id', 'firstName', 'lastName', 'email'],
+          required: false 
+        },
+        {
+          model: LeadNote,
+          as: 'notes',
+          limit: 50,
+          order: [['created_at', 'DESC']],
+          required: false
+        },
+        {
+          model: LeadStatusHistory,
+          as: 'statusHistory',
+          limit: 20,
+          order: [['created_at', 'DESC']],
+          required: false
+        }
+      ],
+      order: [['created_at', 'DESC']]
+    });
+
+    return serializeLeads(leads);
+  } catch (error) {
+    console.error('Error getting campaign manager leads:', error);
+    throw error;
+  }
+}
+
 export default {
   createLead,
   assignLeadToAgent,
@@ -600,5 +693,6 @@ export default {
   getAgentAllowedSources,
   updateLeadStatus,
   addLeadComment,
-  assignLeadToSpecificAgent
+  assignLeadToSpecificAgent,
+  getCampaignManagerLeads
 }; 

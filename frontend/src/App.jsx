@@ -2,24 +2,9 @@ import React, { useEffect } from "react";
 import { useForm, FormProvider } from "react-hook-form"
 import { Outlet, useNavigation } from "react-router-dom"
 import { QueryClient, QueryClientProvider, useIsFetching } from "@tanstack/react-query"
-import PrivateRoute from "./auth/PrivateRoute"
-import AdminRoute from "./components/Company_Side/AdminRoute"
-import AgentOnlyRoute from "./components/Company_Side/AgentOnlyRoute"
-import LoadingSpinner from "./components/LoadingSpinner"
-
-import Login from "./auth/Login"
-import StartScreen from "./components/Company_Side/StartScreen"
-import ClientData from "./components/Company_Side/ClientData"
-import ClientType from "./components/Company_Side/ClientType"
-import ProductsPrivate from "./components/Company_Side/ProductsPrivate"
-import ProductsBusiness from "./components/Company_Side/ProductsBusiness"
-import Review from "./components/Company_Side/Review"
-import Success from "./components/Company_Side/Success"
-import Agents from "./components/Company_Side/Users"
-import Cases from "./components/Company_Side/Cases"
-import LeadsAgenti from "./components/Company_Side/AgentLeads"
-import AdminLeads from "./components/Company_Side/AdminLeads"
-import AdminCases from "./components/Company_Side/AdminCases"
+import SidePanel from "./components/SidePanel"
+import MobileHeader from "./components/MobileHeader"
+import { useAuth } from "@/auth/AuthContext"
 
 // Create a client
 const queryClient = new QueryClient({
@@ -43,6 +28,7 @@ function AppContent() {
   })
   const navigation = useNavigation();
   const isFetching = useIsFetching(); // Get TanStack Query's fetching state
+  const { user } = useAuth();
 
   useEffect(() => {
     const initialSpinner = document.getElementById('initial-spinner');
@@ -56,9 +42,21 @@ function AppContent() {
 
   return (
     <FormProvider {...methods}>
-      {/* <LoadingSpinner /> */}
-      {(isFetching > 0 || navigation.state === "loading") && <LoadingSpinner />}
-      <Outlet />
+      {(isFetching > 0 || navigation.state === "loading")}
+      <div className="relative min-h-screen">
+        {user && <MobileHeader />}
+
+        {user ? (
+          <div className="flex min-h-screen">
+            <SidePanel />
+            <div className="flex-1 bg-gray-50 lg:ml-64 lg:mt-0 mt-16">
+              <Outlet />
+            </div>
+          </div>
+        ) : (
+          <Outlet />
+        )}
+      </div>
     </FormProvider>
   );
 }

@@ -2,14 +2,7 @@ import { useState } from "react"
 import { useAuth } from "@/auth/AuthContext"
 import { useToast } from "@/hooks/use-toast"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { useNavigate } from "react-router-dom"
 import {
   Card,
   CardHeader,
@@ -20,7 +13,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Search, RefreshCw, Trash2, PencilLine, Save, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import LogoHeader from "./LogoHeader"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,12 +45,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogClose,
 } from "@/components/ui/dialog"
 import CommentPreviewCell from "./CommentPreviewCell"
 import LeadSourceTabs from "@/components/LeadSourceTabs"
 import { API_BASE_URL, API_ENDPOINTS, getApiUrl } from '@/config'
+import { Icons } from "@/components/icons"
 
 // Status options for leads
 const STATUS_OPTIONS = [
@@ -77,8 +68,7 @@ const LEAD_SOURCES = [
 
 // AIQuinto specific tabs
 const AIQUINTO_TABS = {
-  DIPENDENTI: "dipendenti",
-  PENSIONATI: "pensionati"
+  DIPENDENTI: "dipendenti"
 }
 
 // API function to fetch leads
@@ -110,8 +100,15 @@ const fetchLeads = async (user, source) => {
 
     const response = await fetch(getApiUrl(`${API_ENDPOINTS.LEADS}/my-leads?source=${source}`), {
       headers: {
-        "Authorization": `Bearer ${token}`
-      }
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Origin": window.location.origin,
+        "X-Requested-With": "XMLHttpRequest",
+        "Access-Control-Request-Method": "GET",
+        "Access-Control-Request-Headers": "Content-Type, Authorization, X-API-Key"
+      },
+      credentials: "include"
     });
 
     if (!response.ok) {
@@ -188,12 +185,12 @@ export default function LeadsAgenti() {
   const { user } = useAuth()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [leadToDelete, setLeadToDelete] = useState(null)
   const [selectedLeads, setSelectedLeads] = useState([])
   const [isMultiDeleteDialogOpen, setIsMultiDeleteDialogOpen] = useState(false)
   const [currentSource, setCurrentSource] = useState(LEAD_SOURCES[0].id)
-  const [aiquintoTab, setAiquintoTab] = useState(AIQUINTO_TABS.DIPENDENTI)
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [commentingLead, setCommentingLead] = useState(null);
   const [commentText, setCommentText] = useState("");
@@ -387,56 +384,72 @@ export default function LeadsAgenti() {
     }
   };
 
-  const filteredLeads = (leads || []).filter(lead => {
-    const searchTerm = search.toLowerCase()
+  const filteredLeads = (leads || [])
+    // AIQuinto: filter out pensionati
+    .filter(lead => {
+      if (currentSource === 'aiquinto') {
+        const tipo = (lead.tipologiaDipendente || '').toLowerCase();
+        return tipo !== 'pensionato';
+      }
+      return true;
+    })
+    .filter(lead => {
+      const searchTerm = search.toLowerCase()
 
-    // Campos comunes para todas las fuentes
-    const commonFieldsMatch =
-      ((lead.firstName || '').toLowerCase().includes(searchTerm)) ||
-      ((lead.lastName || '').toLowerCase().includes(searchTerm)) ||
-      ((lead.email || '').toLowerCase().includes(searchTerm)) ||
-      ((lead.phone || '').toLowerCase().includes(searchTerm)) ||
-      ((lead.message || '').toLowerCase().includes(searchTerm));
+      // Campos comunes para todas las fuentes
+      const commonFieldsMatch =
+        ((lead.firstName || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.lastName || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.email || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.phone || '').toLowerCase().includes(searchTerm)) ||
+        ((lead.message || '').toLowerCase().includes(searchTerm));
 
-    // Si no es AIQuinto o ya hemos encontrado coincidencia en campos comunes
-    if (currentSource !== 'aiquinto' && currentSource !== 'aifidi' || commonFieldsMatch) {
-      return commonFieldsMatch;
-    }
+      // Si no es AIQuinto o ya hemos encontrado coincidencia en campos comunes
+      if (currentSource !== 'aiquinto' && currentSource !== 'aifidi' || commonFieldsMatch) {
+        return commonFieldsMatch;
+      }
 
-    if (currentSource === 'aiquinto') {
-      // Campos específicos de AIQuinto
-      return (
-        ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
-        ((lead.stipendioNetto || '').toString().toLowerCase().includes(searchTerm)) ||
-        ((lead.tipologiaDipendente || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.sottotipo || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.tipoContratto || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.provinciaResidenza || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.meseAnnoAssunzione || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.numeroDipendenti || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.commenti || '').toLowerCase().includes(searchTerm))
-      );
-    } else if (currentSource === 'aifidi') {
-      // Campos específicos de AIFidi
-      return (
-        ((lead.scopoFinanziamento || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.nomeAzienda || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.cittaSedeLegale || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.cittaSedeOperativa || '').toLowerCase().includes(searchTerm)) ||
-        ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
-        ((lead.commenti || '').toLowerCase().includes(searchTerm))
-      );
-    }
-  })
+      if (currentSource === 'aiquinto') {
+        // Campos específicos de AIQuinto
+        return (
+          ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
+          ((lead.stipendioNetto || '').toString().toLowerCase().includes(searchTerm)) ||
+          ((lead.tipologiaDipendente || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.sottotipo || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.tipoContratto || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.provinciaResidenza || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.meseAnnoAssunzione || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.numeroDipendenti || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.commenti || '').toLowerCase().includes(searchTerm))
+        );
+      } else if (currentSource === 'aifidi') {
+        // Campos específicos de AIFidi
+        return (
+          ((lead.scopoFinanziamento || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.nomeAzienda || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.cittaSedeLegale || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.cittaSedeOperativa || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
+          ((lead.commenti || '').toLowerCase().includes(searchTerm))
+        );
+      } else if (currentSource === 'aimedici') {
+        // Campos específicos de AIMedici
+        return (
+          ((lead.importoRichiesto || '').toString().toLowerCase().includes(searchTerm)) ||
+          ((lead.financingScope || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.cittaResidenza || '').toLowerCase().includes(searchTerm)) ||
+          ((lead.provinciaResidenza || '').toLowerCase().includes(searchTerm))
+        );
+      }
+    })
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-gray-50 p-4">
-      <LogoHeader />
       <Card className="w-full max-w-6xl shadow-lg mt-16">
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle className="text-3xl">My Leads 📝</CardTitle>
+              <CardTitle className="text-3xl">My Leads <Icons.userList className="inline pb-1 h-8 w-8" /></CardTitle>
               <CardDescription className="mb-2">
                 Visualizza e gestisci tutti i tuoi leads provenienti dai diversi siti
               </CardDescription>
@@ -472,18 +485,6 @@ export default function LeadsAgenti() {
               allSources={LEAD_SOURCES}
             />
           </div>
-
-          {/* AIQuinto specific tabs */}
-          {currentSource === "aiquinto" && (
-            <div className="mt-4">
-              <Tabs value={aiquintoTab} onValueChange={setAiquintoTab}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value={AIQUINTO_TABS.DIPENDENTI}>Dipendenti</TabsTrigger>
-                  <TabsTrigger value={AIQUINTO_TABS.PENSIONATI}>Pensionati</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-          )}
         </CardHeader>
 
         <CardContent className="px-4 pt-0">
@@ -497,9 +498,9 @@ export default function LeadsAgenti() {
             />
           </div>
 
-          {/* {isLoading ? (
+          {isLoading ? (
             <div className="text-center py-4">Caricamento...</div>
-          ) : */ isError ? (
+          ) : isError ? (
             <div className="text-center py-8 flex flex-col items-center">
               <div className="bg-red-50 p-4 rounded-xl max-w-md mb-2">
                 <p className="text-red-800 font-medium mb-1">Si è verificato un problema</p>
@@ -539,39 +540,32 @@ export default function LeadsAgenti() {
                       <th>Telefono</th>
 
                       {/* Source-specific columns */}
-                      {currentSource === "aiquinto" ? (
-                        aiquintoTab === AIQUINTO_TABS.DIPENDENTI ? (
-                          <>
-                            <th>Importo Richiesto</th>
-                            <th>Stipendio Netto</th>
-                            <th>Tipologia</th>
-                            <th>Sottotipo</th>
-                            <th>Tipo Contratto</th>
-                            <th>Provincia di Residenza</th>
-                            <th>Mese ed anno di assunzione</th>
-                            <th>Numero dipendenti</th>
-                          </>
-                        ) : (
-                          <>
-                            <th>Importo Richiesto</th>
-                            <th>Pensione Netta Mensile</th>
-                            <th>Ente Pensionistico</th>
-                            <th>Tipologia di Pensione</th>
-                            <th>Data di Nascita</th>
-                            <th>Provincia di Residenza</th>
-                          </>
-                        )
-                      ) : currentSource === "aimedici" ? (
+                      {currentSource === "aiquinto" && (
                         <>
-                          <th>Scopo della richiesta</th>
                           <th>Importo Richiesto</th>
-                          <th>Città di Residenza</th>
+                          <th>Stipendio Netto</th>
+                          <th>Tipologia</th>
+                          <th>Sottotipo</th>
+                          <th>Tipo Contratto</th>
                           <th>Provincia di Residenza</th>
+                          <th>Mese ed anno di assunzione</th>
+                          <th>Numero dipendenti</th>
                         </>
-                      ) : (
+                      )}
+
+                      {currentSource === "aimedici" && (
                         <>
-                          <th>Scopo del finanziamento</th>
+                          <th>Importo Richiesto</th>
+                          <th>Scopo Richiesta</th>
+                          <th>Città Residenza</th>
+                          <th>Provincia Residenza</th>
+                        </>
+                      )}
+
+                      {currentSource === "aifidi" && (
+                        <>
                           <th>Nome Azienda</th>
+                          <th>Scopo Finanziamento</th>
                           <th>Città Sede Legale</th>
                           <th>Città Sede Operativa</th>
                           <th>Importo Richiesto</th>
@@ -590,12 +584,12 @@ export default function LeadsAgenti() {
                   <tbody>
                     {filteredLeads.length === 0 ? (
                       <tr className="hover:bg-transparent">
-                        <td colSpan={currentSource === "aiquinto" ? (aiquintoTab === AIQUINTO_TABS.DIPENDENTI ? 15 : 13) : currentSource === "aimedici" ? 13 : 14} className="h-32 text-center">
+                        <td colSpan={currentSource === "aiquinto" ? 13 : currentSource === "aimedici" ? 13 : currentSource === "aifidi" ? 14 : 14} className="h-32 text-center">
                           <div className="py-6 px-4">
                             <p className="text-gray-600 font-medium text-lg mb-3">Nessun lead trovato</p>
                             <div className="max-w-md mx-auto bg-blue-50 rounded-lg p-4 border border-blue-100">
                               <p className="text-blue-800 mb-2">Non ci sono ancora leads assegnati a te da {LEAD_SOURCES.find(source => source.id === currentSource)?.name}
-                                {currentSource === "aiquinto" ? ` - ${aiquintoTab === AIQUINTO_TABS.DIPENDENTI ? "Dipendenti" : "Pensionati"}` : ""}.
+                                {currentSource === "aiquinto" ? ` - ${AIQUINTO_TABS.DIPENDENTI}` : currentSource === "aifidi" ? "" : ""}.
                               </p>
                               <p className="text-blue-700 text-sm">Torna presto, i nuovi leads verranno mostrati qui.</p>
                             </div>
@@ -622,39 +616,32 @@ export default function LeadsAgenti() {
                             <td className="py-3 px-4">{lead.phone || "-"}</td>
 
                             {/* Source-specific data */}
-                            {currentSource === "aiquinto" ? (
-                              aiquintoTab === AIQUINTO_TABS.DIPENDENTI ? (
-                                <>
-                                  <td className="py-3 px-4">{lead.importoRichiesto || "-"}</td>
-                                  <td className="py-3 px-4">{lead.stipendioNetto || "-"}</td>
-                                  <td className="py-3 px-4">{lead.tipologiaDipendente || "-"}</td>
-                                  <td className="py-3 px-4">{lead.sottotipo || "-"}</td>
-                                  <td className="py-3 px-4">{lead.tipoContratto || "-"}</td>
-                                  <td className="py-3 px-4">{lead.provinciaResidenza || "-"}</td>
-                                  <td className="py-3 px-4">{lead.meseAnnoAssunzione || "-"}</td>
-                                  <td className="py-3 px-4">{lead.numeroDipendenti || "-"}</td>
-                                </>
-                              ) : (
-                                <>
-                                  <td className="py-3 px-4">{lead.importoRichiesto || "-"}</td>
-                                  <td className="py-3 px-4">{lead.pensioneNettaMensile || "-"}</td>
-                                  <td className="py-3 px-4">{lead.entePensionistico || "-"}</td>
-                                  <td className="py-3 px-4">{lead.tipologiaPensione || "-"}</td>
-                                  <td className="py-3 px-4">{formatDate(lead.dataNascita) || "-"}</td>
-                                  <td className="py-3 px-4">{lead.provinciaResidenza || "-"}</td>
-                                </>
-                              )
-                            ) : currentSource === "aimedici" ? (
+                            {currentSource === "aiquinto" && (
                               <>
-                                <td className="py-3 px-4">{lead.scopoRichiesta || "-"}</td>
                                 <td className="py-3 px-4">{lead.importoRichiesto || "-"}</td>
+                                <td className="py-3 px-4">{lead.stipendioNetto || "-"}</td>
+                                <td className="py-3 px-4">{lead.tipologiaDipendente || "-"}</td>
+                                <td className="py-3 px-4">{lead.sottotipo || "-"}</td>
+                                <td className="py-3 px-4">{lead.tipoContratto || "-"}</td>
+                                <td className="py-3 px-4">{lead.provinciaResidenza || "-"}</td>
+                                <td className="py-3 px-4">{lead.meseAnnoAssunzione || "-"}</td>
+                                <td className="py-3 px-4">{lead.numeroDipendenti || "-"}</td>
+                              </>
+                            )}
+
+                            {currentSource === "aimedici" && (
+                              <>
+                                <td className="py-3 px-4">{lead.importoRichiesto || "-"}</td>
+                                <td className="py-3 px-4">{lead.financingScope || "-"}</td>
                                 <td className="py-3 px-4">{lead.cittaResidenza || "-"}</td>
                                 <td className="py-3 px-4">{lead.provinciaResidenza || "-"}</td>
                               </>
-                            ) : (
+                            )}
+
+                            {currentSource === "aifidi" && (
                               <>
-                                <td className="py-3 px-4">{lead.scopoFinanziamento || "-"}</td>
                                 <td className="py-3 px-4">{lead.nomeAzienda || "-"}</td>
+                                <td className="py-3 px-4">{lead.financingScope || "-"}</td>
                                 <td className="py-3 px-4">{lead.cittaSedeLegale || "-"}</td>
                                 <td className="py-3 px-4">{lead.cittaSedeOperativa || "-"}</td>
                                 <td className="py-3 px-4">{lead.importoRichiesto || "-"}</td>
@@ -695,14 +682,13 @@ export default function LeadsAgenti() {
                               />
                             </td>
                             <td className="text-right">
-                              <Button
-                                disabled
+                              <Button  
                                 variant="default"
                                 size="sm"
-                                onClick={() => handleDeleteClick(lead.id)}
+                                onClick={() => navigate('/client-type')}
                                 className=" text-white hover:text-white rounded-xl mx-10"
                               >
-                                Richiedere Documenti
+                                Richiedi Documenti
                                 <ArrowRight className="h-4 w-4" />
                               </Button>
                             </td>

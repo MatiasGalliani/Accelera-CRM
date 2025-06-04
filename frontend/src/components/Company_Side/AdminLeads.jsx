@@ -1,15 +1,8 @@
+import { Icons } from "@/components/icons"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/auth/AuthContext"
 import { useToast } from "@/hooks/use-toast"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import {
   Card,
   CardHeader,
@@ -21,7 +14,6 @@ import { Input } from "@/components/ui/input"
 import { Search, RefreshCw, Eye, UserCog, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import LogoHeader from "./LogoHeader"
 import {
   Tabs,
   TabsContent,
@@ -48,8 +40,7 @@ import { API_BASE_URL, API_ENDPOINTS, getApiUrl } from '@/config';
 
 // AIQuinto specific tabs
 const AIQUINTO_TABS = {
-  DIPENDENTI: "dipendenti",
-  PENSIONATI: "pensionati"
+  DIPENDENTI: "dipendenti"
 }
 
 // Status options for leads
@@ -530,24 +521,33 @@ export default function AdminLeads() {
   });
 
   // Filter leads based on search term
-  const filteredLeads = data.leads.filter(lead => {
-    if (!search) return true;
-    
-    const searchTerm = search.toLowerCase();
-    const fieldsToSearch = [
-      lead.firstName || '',
-      lead.lastName || '',
-      lead.email || '',
-      lead.phone || '',
-      lead.status || '',
-      lead.agentName || '',
-      lead.commenti || ''
-    ];
-    
-    return fieldsToSearch.some(field => 
-      field.toLowerCase().includes(searchTerm)
-    );
-  });
+  const filteredLeads = data.leads
+    // AIQuinto separation between Dipendenti and Pensionati
+    .filter(lead => {
+      if (currentSource === 'aiquinto') {
+        const tipo = (lead.details?.employeeType || lead.tipologiaDipendente || '').toLowerCase();
+        return tipo !== 'pensionato'; // everything except Pensionato
+      }
+      return true;
+    })
+    .filter(lead => {
+      if (!search) return true;
+      
+      const searchTerm = search.toLowerCase();
+      const fieldsToSearch = [
+        lead.firstName || '',
+        lead.lastName || '',
+        lead.email || '',
+        lead.phone || '',
+        lead.status || '',
+        lead.agentName || '',
+        lead.commenti || ''
+      ];
+      
+      return fieldsToSearch.some(field => 
+        field.toLowerCase().includes(searchTerm)
+      );
+    });
 
   const handleSourceChange = (newSource) => {
     setCurrentSource(newSource);
@@ -681,12 +681,11 @@ export default function AdminLeads() {
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-gray-50 p-4">
-      <LogoHeader />
       <Card className="w-full max-w-6xl shadow-lg mt-16">
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle className="text-3xl">Leads degli agenti 📝</CardTitle>
+              <CardTitle className="text-3xl">Leads degli agenti <Icons.userList className="inline pb-1 h-8 w-8" /></CardTitle>
               <CardDescription className="mb-2">
                 Monitora tutti i leads assegnati agli agenti
               </CardDescription>
@@ -781,9 +780,8 @@ export default function AdminLeads() {
             {currentSource === "aiquinto" && (
               <div className="mt-4 mb-4">
                 <Tabs value={aiquintoTab} onValueChange={setAiquintoTab} defaultValue={AIQUINTO_TABS.DIPENDENTI}>
-                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsList className="grid w-full grid-cols-1">
                     <TabsTrigger value={AIQUINTO_TABS.DIPENDENTI}>Dipendenti</TabsTrigger>
-                    <TabsTrigger value={AIQUINTO_TABS.PENSIONATI}>Pensionati</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
@@ -856,7 +854,6 @@ export default function AdminLeads() {
 
                               {/* Source-specific columns */}
                               {source.id === "aiquinto" && (
-                                aiquintoTab === AIQUINTO_TABS.DIPENDENTI ? (
                                 <>
                                   <th>Importo Richiesto</th>
                                   <th>Stipendio Netto</th>
@@ -867,16 +864,6 @@ export default function AdminLeads() {
                                   <th>Mese ed anno di assunzione</th>
                                   <th>Numero dipendenti</th>
                                 </>
-                                ) : ( /* Pensionati */
-                                <>
-                                  <th>Importo Richiesto</th>
-                                  <th>Pensione Netta Mensile</th>
-                                  <th>Ente Pensionistico</th>
-                                  <th>Tipologia di Pensione</th>
-                                  <th>Data di Nascita</th>
-                                  <th>Provincia di Residenza</th>
-                                </>
-                                )
                               )}
                               
                               {source.id === "aimedici" && (
@@ -924,7 +911,7 @@ export default function AdminLeads() {
                               filteredLeads.map((lead, index) => {
                                 const statusOption = getStatusInfo(lead.status);
                                 const colSpanValue = source.id === "aiquinto" 
-                                  ? (aiquintoTab === AIQUINTO_TABS.DIPENDENTI ? 15 : 13) 
+                                  ? 13 
                                   : source.id === "aimedici" ? 13 : 14;
                                 
                                 return (
@@ -955,27 +942,16 @@ export default function AdminLeads() {
                                     
                                     {/* Source-specific data */}
                                     {source.id === "aiquinto" && (
-                                      aiquintoTab === AIQUINTO_TABS.DIPENDENTI ? (
-                                        <>
-                                          <td className="py-3 px-4">{lead.details?.requestedAmount || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.netSalary || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.employeeType || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.employmentSubtype || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.contractType || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.residenceProvince || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.employmentDate || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.employeeCount || "-"}</td>
-                                        </>
-                                      ) : ( /* Pensionati */
-                                        <>
-                                          <td className="py-3 px-4">{lead.details?.requestedAmount || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.netPensionAmount || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.pensionProvider || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.pensionType || "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.birthDate ? new Date(lead.details.birthDate).toLocaleDateString('it-IT') : "-"}</td>
-                                          <td className="py-3 px-4">{lead.details?.residenceProvince || "-"}</td>
-                                        </>
-                                      )
+                                      <>
+                                        <td className="py-3 px-4">{lead.details?.requestedAmount || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.netSalary || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.employeeType || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.employmentSubtype || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.contractType || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.residenceProvince || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.employmentDate || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.employeeCount || "-"}</td>
+                                      </>
                                     )}
                                     
                                     {source.id === "aimedici" && (

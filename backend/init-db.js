@@ -1,52 +1,38 @@
 import sequelize from './config/database.js';
-import { Case, Client, Document, CaseNote, CaseStatusHistory } from './models/index.js';
-import createPermissionsTables from './migrations/create-permissions-tables.js';
-import fs from 'fs';
-import { execSync } from 'child_process';
+import createTables from './migrations/create-permissions-tables.js';
 
-async function initDB() {
+async function initializeDatabase() {
   try {
-    // Probar la conexión
-    await sequelize.authenticate();
-    console.log('Conexión establecida correctamente.');
-
-    // Sincronizar todos los modelos con la base de datos
+    console.log('Starting database initialization...');
+    
+    // Sync all models with the database
     await sequelize.sync({ alter: true });
-    console.log('Modelos sincronizados correctamente.');
-
-    // Crear tablas para el sistema de permisos y leads
-    await createPermissionsTables();
-    console.log('Tablas de permisos y leads inicializadas correctamente.');
-
-    // Run the migration fix to add phone and calendlyUrl columns
-    try {
-      console.log('Running migration fix for agent table...');
-      execSync('node migration-fix.js', { stdio: 'inherit' });
-      console.log('Migration fix completed successfully.');
-    } catch (migrationError) {
-      console.error('Error running migration fix:', migrationError);
-    }
-
-    console.log('Base de datos inicializada correctamente.');
+    console.log('Database models synchronized');
+    
+    // Run the permissions tables creation
+    await createTables();
+    console.log('Permissions tables created');
+    
+    console.log('Database initialization completed successfully');
   } catch (error) {
-    console.error('Error al inicializar la base de datos:', error);
+    console.error('Error during database initialization:', error);
+    process.exit(1);
   } finally {
-    // Cerrar la conexión
     await sequelize.close();
   }
 }
 
-// Ejecutar la función si este archivo es llamado directamente
+// Run if this file is called directly
 if (process.argv[1] === import.meta.url) {
-  initDB()
+  initializeDatabase()
     .then(() => {
-      console.log('Proceso de inicialización completado');
+      console.log('Database initialization process completed');
       process.exit(0);
     })
     .catch(error => {
-      console.error('Error en el proceso de inicialización:', error);
+      console.error('Error in database initialization process:', error);
       process.exit(1);
     });
 }
 
-export default initDB; 
+export default initializeDatabase; 
