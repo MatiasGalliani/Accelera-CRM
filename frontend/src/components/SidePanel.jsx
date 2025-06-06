@@ -73,11 +73,13 @@ export default function SidePanel() {
             title: "Richieste Documentali",
             to: "/my-cases",
             icon: Icons.files,
+            disabled: true,
           },
           {
             title: "Pre Istruttoria Documenti IA",
             to: "/client-type",
             icon: Icons.brain,
+            disabled: true,
           },
         ]),
   ]
