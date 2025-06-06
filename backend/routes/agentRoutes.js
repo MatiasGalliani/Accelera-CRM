@@ -22,58 +22,113 @@ router.get('/', authenticate, requireAdmin, async (req, res) => {
 
 // POST /api/agents - Create a new agent
 router.post('/', authenticate, requireAdmin, async (req, res) => {
-  const { email, password, firstName, lastName, role } = req.body;
+  const { email, password, firstName, lastName, role, pages = ['aiquinto'] } = req.body;
+  let userRecord = null;
 
   try {
     console.log(`Creating new agent: ${email} with role: ${role}`);
     
+    // Validate required fields
+    if (!email || !password || !firstName || !lastName || !role) {
+      return res.status(400).json({ 
+        message: 'Missing required fields',
+        details: {
+          email: !email,
+          password: !password,
+          firstName: !firstName,
+          lastName: !lastName,
+          role: !role
+        }
+      });
+    }
+
     // Create user in Firebase Auth
-    const userRecord = await admin.auth().createUser({
-      email,
-      password,
-      displayName: `${firstName} ${lastName}`,
-    });
-    
-    console.log(`Firebase user created with UID: ${userRecord.uid}`);
+    try {
+      userRecord = await admin.auth().createUser({
+        email,
+        password,
+        displayName: `${firstName} ${lastName}`,
+      });
+      console.log(`Firebase user created with UID: ${userRecord.uid}`);
+    } catch (authError) {
+      console.error('Firebase Auth error:', authError);
+      return res.status(400).json({ 
+        message: 'Error creating Firebase user',
+        error: authError.message
+      });
+    }
 
-    // Store agent data in Firestore
-    const agentRef = await admin.firestore().collection('agents').add({
-      uid: userRecord.uid,
-      email,
-      firstName,
-      lastName,
-      role,
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
-    });
-    
-    console.log(`Firestore agent record created with ID: ${agentRef.id}`);
-    
-    // Double-check that the agent document was created with the correct UID
-    const agentDoc = await agentRef.get();
-    if (agentDoc.exists) {
+    // Store agent data in Firestore with initial pages
+    try {
+      const agentRef = await admin.firestore().collection('agents').add({
+        uid: userRecord.uid,
+        email,
+        firstName,
+        lastName,
+        role,
+        pages: pages,
+        leadSources: pages, // Sync leadSources with pages for round-robin
+        page: pages[0] || "aiquinto", // For backwards compatibility
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      
+      console.log(`Firestore agent record created with ID: ${agentRef.id}`);
+      
+      // Double-check that the agent document was created with the correct UID
+      const agentDoc = await agentRef.get();
+      if (!agentDoc.exists) {
+        throw new Error('Failed to verify agent document after creation');
+      }
+      
       console.log(`Agent document verified: ${JSON.stringify(agentDoc.data())}`);
-    } else {
-      console.error(`Failed to verify agent document after creation`);
-    }
 
-    const newAgent = {
-      id: agentRef.id,
-      uid: userRecord.uid,
-      email,
-      firstName,
-      lastName,
-      role
-    };
-    
-    // If the agent is created with admin role, log that clearly
-    if (role === 'admin') {
-      console.log(`NEW ADMIN ACCOUNT CREATED: ${email} (${userRecord.uid})`);
-    }
+      const newAgent = {
+        id: agentRef.id,
+        uid: userRecord.uid,
+        email,
+        firstName,
+        lastName,
+        role,
+        pages: pages
+      };
+      
+      // If the agent is created with admin role, log that clearly
+      if (role === 'admin') {
+        console.log(`NEW ADMIN ACCOUNT CREATED: ${email} (${userRecord.uid})`);
+      }
 
-    res.status(201).json(newAgent);
+      res.status(201).json(newAgent);
+    } catch (firestoreError) {
+      console.error('Firestore error:', firestoreError);
+      // Clean up Firebase user if Firestore creation failed
+      if (userRecord) {
+        try {
+          await admin.auth().deleteUser(userRecord.uid);
+          console.log(`Cleaned up Firebase user ${userRecord.uid} after Firestore error`);
+        } catch (cleanupError) {
+          console.error('Error cleaning up Firebase user:', cleanupError);
+        }
+      }
+      return res.status(500).json({ 
+        message: 'Error creating agent in Firestore',
+        error: firestoreError.message
+      });
+    }
   } catch (err) {
-    console.error('Error creating agent:', err);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Unexpected error in agent creation:', err);
+    // Clean up Firebase user if it was created
+    if (userRecord) {
+      try {
+        await admin.auth().deleteUser(userRecord.uid);
+        console.log(`Cleaned up Firebase user ${userRecord.uid} after unexpected error`);
+      } catch (cleanupError) {
+        console.error('Error cleaning up Firebase user:', cleanupError);
+      }
+    }
+    res.status(500).json({ 
+      message: 'Unexpected error during agent creation',
+      error: err.message
+    });
   }
 });
 
