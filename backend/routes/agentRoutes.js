@@ -1,7 +1,8 @@
 import express from 'express';
-import { authenticate, requireAdmin } from '../middleware/auth.js';
-import { Agent, AgentLeadSource } from '../models/leads-index.js';
-import admin from 'firebase-admin';
+import { authenticate, requireAdmin, requireAuth } from '../middleware/auth.js';
+import { Agent, AgentLeadSource, AgentPage } from '../models/leads-index.js';
+import admin from '../config/firebase-admin.js';
+import { checkIsAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -280,57 +281,62 @@ router.put('/:id/lead-sources', authenticate, requireAdmin, async (req, res) => 
 });
 
 // PUT /api/agents/:id/pages - Update an agent's pages (permissions)
-router.put('/:id/pages', authenticate, async (req, res) => {
+router.put('/:id/pages', requireAuth, async (req, res) => {
   try {
-    const agentId = req.params.id;
+    const { id } = req.params;
     const { pages } = req.body;
-    
+    const uid = req.user.uid;
+
     if (!Array.isArray(pages)) {
-      return res.status(400).json({ message: 'pages debe ser un array' });
+      return res.status(400).json({ message: 'Pages must be an array' });
     }
-    
-    // Get the agent document
-    const agentDoc = await admin.firestore().collection('agents').doc(agentId).get();
-    
+
+    // Check if user is admin
+    const isAdmin = await checkIsAdmin(uid);
+    console.log('User is admin:', isAdmin);
+
+    // Get agent document
+    const agentDoc = await admin.firestore()
+      .collection('agents')
+      .doc(id)
+      .get();
+
     if (!agentDoc.exists) {
       return res.status(404).json({ message: 'Agente non trovato' });
     }
 
-    // Check if user is admin or if they're accessing their own pages
-    const isAdmin = await checkIsAdmin(req.user.uid);
-    const isOwnPages = agentDoc.data().uid === req.user.uid;
-    
-    if (!isAdmin && !isOwnPages) {
+    const agentData = agentDoc.data();
+
+    // Check permissions
+    if (!isAdmin && agentData.uid !== uid) {
       return res.status(403).json({ message: 'Non hai i permessi per modificare le pagine di questo agente' });
     }
-    
-    // UPDATE: Update both pages and leadSources to ensure round-robin consistency
-    await admin.firestore().collection('agents').doc(agentId).update({
-      pages: pages,
-      leadSources: pages, // Sync leadSources with pages to fix round-robin assignment
-      // For backwards compatibility
-      page: pages[0] || "aiquinto"
-    });
-    
-    console.log(`Updated agent ${agentId} with pages and leadSources:`, pages);
-    
-    // Sync with PostgreSQL
-    const syncService = await import('../services/syncService.js');
-    await syncService.syncAgentFromFirestore(agentId, {
-      ...agentDoc.data(),
-      pages: pages,
-      leadSources: pages // Also pass the updated leadSources for sync
-    });
-    
-    res.json({ 
-      message: 'Page permissions and lead sources updated',
-      agentId,
-      pages,
-      leadSources: pages
-    });
-  } catch (err) {
-    console.error('Error updating page permissions:', err);
-    res.status(500).json({ message: 'Server error' });
+
+    // Update Firestore document
+    await admin.firestore()
+      .collection('agents')
+      .doc(id)
+      .update({
+        pages: pages,
+        leadSources: pages // Keep leadSources in sync with pages
+      });
+
+    // Update PostgreSQL
+    await AgentPage.destroy({ where: { agentId: id } });
+    await Promise.all(pages.map(page => 
+      AgentPage.create({
+        agentId: id,
+        pageId: page,
+        canView: true,
+        canEdit: true
+      })
+    ));
+
+    console.log(`Updated pages for agent ${id}:`, pages);
+    res.json({ message: 'Pagine aggiornate con successo' });
+  } catch (error) {
+    console.error('Error updating agent pages:', error);
+    res.status(500).json({ message: 'Errore durante l\'aggiornamento delle pagine' });
   }
 });
 
