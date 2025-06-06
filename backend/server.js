@@ -33,9 +33,28 @@ const db = admin.firestore();
 const app = express();
 // Parse JSON bodies
 app.use(bodyParser.json());
-// CORS: allow all origins with all necessary headers
+
+// Define allowed origins
+const allowedOrigins = [
+  'https://accelera.creditplan.it',
+  'http://localhost:5173',
+  'http://localhost:3000'
+];
+
+// CORS configuration
 app.use(cors({
-  origin: 'https://accelera.creditplan.it',
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      console.log('Blocked by CORS:', origin);
+      return callback(new Error('Not allowed by CORS'), false);
+    }
+    
+    console.log('Allowed by CORS:', origin);
+    return callback(null, true);
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
     'Content-Type',
