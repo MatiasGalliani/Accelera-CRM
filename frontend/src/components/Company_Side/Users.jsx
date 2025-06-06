@@ -270,13 +270,11 @@ export default function Agents() {
 
       console.log("Current newAgent state:", newAgent);
 
-      // Create a submission copy that keeps compatibility with backend
+      // Create a submission copy that includes all necessary data
       const submissionData = {
         ...newAgent,
-        // Ensure pages and leadSources are properly included
         pages: newAgent.pages || ["aiquinto"],
         leadSources: newAgent.pages || ["aiquinto"],
-        // Keep page field for backward compatibility
         page: newAgent.pages[0] || "aiquinto"
       };
 
@@ -291,13 +289,28 @@ export default function Agents() {
         body: JSON.stringify(submissionData),
       });
 
-      if (!res.ok) throw new Error("Creazione fallita");
+      const responseData = await res.json();
 
-      const createdAgent = await res.json();
-      console.log("Created agent response:", createdAgent);
+      if (!res.ok) {
+        // Handle specific error cases
+        if (res.status === 400) {
+          const missingFields = responseData.details ? 
+            Object.entries(responseData.details)
+              .filter(([_, missing]) => missing)
+              .map(([field]) => field)
+              .join(', ') : '';
+          
+          throw new Error(
+            missingFields ? 
+              `Campi mancanti: ${missingFields}` : 
+              responseData.message || "Dati non validi"
+          );
+        }
+        
+        throw new Error(responseData.message || responseData.error || "Creazione fallita");
+      }
 
-      // Immediately set up the pages for the new agent
-      await setupAgentPages(createdAgent.id || createdAgent.uid, newAgent.pages || ["aiquinto"], idToken);
+      console.log("Created agent response:", responseData);
 
       // Show different message based on role
       if (newAgent.role === 'admin') {
@@ -329,7 +342,12 @@ export default function Agents() {
       await Promise.all([fetchAgents(), fetchFirebaseUsers()]);
     } catch (err) {
       console.error("Error creating agent:", err);
-      toast({ title: "Errore", description: err.message, variant: "destructive" });
+      toast({ 
+        title: "Errore", 
+        description: err.message || "Si è verificato un errore durante la creazione dell'agente", 
+        variant: "destructive",
+        duration: 5000
+      });
     } finally {
       setIsLoading(false);
     }
