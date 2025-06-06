@@ -3,6 +3,7 @@ import sequelize from '../config/database.js';
 import { Op } from 'sequelize';
 import roundRobinService from './roundRobinService.js';
 
+
 /**
  * Crea un nuevo lead y lo asigna a un agente disponible
  * @param {Object} leadData - Datos del lead
