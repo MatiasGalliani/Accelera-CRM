@@ -334,4 +334,43 @@ router.put('/:id/pages', authenticate, async (req, res) => {
   }
 });
 
+// Helper function to check if a user is admin
+async function checkIsAdmin(uid) {
+  try {
+    // First check in Firestore
+    const agentsSnapshot = await admin.firestore()
+      .collection('agents')
+      .where('uid', '==', uid)
+      .limit(1)
+      .get();
+
+    if (!agentsSnapshot.empty) {
+      const agentData = agentsSnapshot.docs[0].data();
+      if (agentData.role === 'admin') {
+        return true;
+      }
+    }
+
+    // Then check in PostgreSQL
+    const { Agent } = await import('../models/leads-index.js');
+    const pgAgent = await Agent.findOne({ where: { firebaseUid: uid } });
+    
+    if (pgAgent && pgAgent.role === 'admin') {
+      return true;
+    }
+
+    // Finally check hardcoded admin emails
+    const userRecord = await admin.auth().getUser(uid);
+    const adminEmails = ['it@creditplan.it', 'admin@creditplan.it'].map(email => email.toLowerCase());
+    if (userRecord.email && adminEmails.includes(userRecord.email.toLowerCase())) {
+      return true;
+    }
+
+    return false;
+  } catch (err) {
+    console.error('Error checking admin status:', err);
+    return false;
+  }
+}
+
 export default router; 
