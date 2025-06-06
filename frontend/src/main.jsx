@@ -53,7 +53,7 @@ const router = createBrowserRouter([
       {
         element: <AdminRoute />,
         children: [
-          { path: "agents", element: <Agents /> },
+          { path: "users", element: <Agents /> },
           { path: "admin-leads", element: <AdminLeads /> },
           { path: "admin-cases", element: <AdminCases /> },
         ],

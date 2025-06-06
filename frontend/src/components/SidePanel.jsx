@@ -39,7 +39,7 @@ export default function SidePanel() {
     { title: "Home", to: "/", icon: Icons.house },
     ...(isAdmin
       ? [
-          { title: "Gestione utenti", to: "/agents", icon: Icons.users },
+          { title: "Gestione utenti", to: "/users", icon: Icons.users },
           { title: "Leads agenti", to: "/admin-leads", icon: Icons.userList },
           /*{
             title: "Eugenio AI",
