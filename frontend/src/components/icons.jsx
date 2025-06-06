@@ -20,6 +20,7 @@ import {
   Megaphone,
   OpenAiLogo,
   Sparkle,
+  FileArrowDown,
 } from "@phosphor-icons/react"
 
 export const Icons = {
@@ -42,4 +43,5 @@ export const Icons = {
   openai: OpenAiLogo,
   sparkle: Sparkle,
   chat: Sparkle,
+  fileArrowDown: FileArrowDown,
 } 
