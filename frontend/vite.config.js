@@ -2,8 +2,15 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
-// This matches the Railway CRM_BASE_URL exactly
-const TARGET_URL = 'https://accelera-crm-production.up.railway.app';
+// URLs for different environments
+const PRODUCTION_BACKEND = 'https://accelera-crm-production.up.railway.app';
+const PRODUCTION_FRONTEND = 'https://accelera.creditplan.it';
+const LOCAL_BACKEND = 'http://localhost:3000';
+
+// Determine target URL based on environment
+const TARGET_URL = process.env.NODE_ENV === 'production' 
+  ? PRODUCTION_BACKEND
+  : LOCAL_BACKEND;
 
 export default defineConfig({
   plugins: [react()],
@@ -13,14 +20,14 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
+    port: 5173, // Frontend port
     // Add historyApiFallback for client-side routing
     historyApiFallback: true,
     proxy: {
       '/api': {
         target: TARGET_URL,
         changeOrigin: true,
-        secure: true,
+        secure: process.env.NODE_ENV === 'production', // Only use secure in production
         rewrite: (path) => path,
         configure: (proxy, options) => {
           proxy.on('error', (err, req, res) => {
@@ -46,6 +53,15 @@ export default defineConfig({
         }
       },
     },
+    // Add CORS configuration
+    cors: {
+      origin: process.env.NODE_ENV === 'production' 
+        ? [PRODUCTION_FRONTEND]
+        : ['http://localhost:5173', 'http://localhost:3000'],
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
+      credentials: true
+    }
   },
   // Add base URL configuration
   base: '/',
