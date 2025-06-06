@@ -12,6 +12,7 @@ import agentRoutes from './routes/agentRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import formRoutes from './routes/formRoutes.js';
 import cors from 'cors';
+import { canRunMaintenance, safeDbOperation } from './config/database-safety.js';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -747,8 +748,9 @@ app.get('/api/force-fix-admin/:email', async (req, res) => {
   }
 });
 
-// Utility function to verify and fix admin status for a user
+// Wrap all maintenance functions
 async function verifyAndFixAdminStatus(email, uid) {
+  if (!canRunMaintenance()) return;
   console.log(`Verifying admin status for user: ${email} (${uid})`);
   
   // Check if the user exists in Firestore
@@ -811,60 +813,8 @@ async function verifyAndFixAdminStatus(email, uid) {
   }
 }
 
-// Add this endpoint after the other API endpoints
-// GET /api/verify-admin/:email - Verify and ensure admin privileges for a specific user
-app.get('/api/verify-admin/:email', authenticate, async (req, res) => {
-  try {
-    const email = req.params.email;
-    if (!email) {
-      return res.status(400).json({ message: 'Email required' });
-    }
-    
-    // Only admins can verify other users, but users can verify themselves
-    const userIsAdmin = req.user.role === 'admin';
-    const isCheckingSelf = req.user.email === email;
-    
-    if (!userIsAdmin && !isCheckingSelf) {
-      return res.status(403).json({ 
-        message: 'Unauthorized: Only admins can verify other users' 
-      });
-    }
-    
-    let userRecord;
-    try {
-      userRecord = await admin.auth().getUserByEmail(email);
-    } catch (error) {
-      return res.status(404).json({ 
-        message: 'User not found',
-        error: error.message
-      });
-    }
-    
-    const result = await verifyAndFixAdminStatus(email, userRecord.uid);
-    
-    return res.status(200).json({
-      message: result.fixed 
-        ? `Admin status ${result.action} for ${email}` 
-        : `Admin status already correct for ${email}`,
-      user: {
-        email: email,
-        uid: userRecord.uid,
-        role: 'admin',
-        fixed: result.fixed,
-        action: result.action
-      }
-    });
-  } catch (error) {
-    console.error('Error verifying admin status:', error);
-    return res.status(500).json({ 
-      message: 'Error verifying admin status',
-      error: error.message
-    });
-  }
-});
-
-// Add memory monitoring function
 function monitorMemory() {
+  if (!canRunMaintenance()) return;
   const used = process.memoryUsage();
   console.log('Memory usage:');
   for (let key in used) {
@@ -1197,6 +1147,7 @@ app.put('/api/agents/:id/pages', authenticate, async (req, res) => {
 
 // Helper function to check if a user is admin
 async function checkIsAdmin(uid) {
+  if (!canRunMaintenance()) return;
   // First check in Firestore
   const agentsSnapshot = await db.collection('agents')
     .where('uid', '==', uid)
@@ -1277,6 +1228,7 @@ app.use((req, res, next) => {
 
 // Additional Utility Functions for Database Maintenance and Fixes
 async function fixAgenteDos() {
+  if (!canRunMaintenance()) return;
   try {
     const agents = await Agent.findAll({
       where: { email: 'agente2@creditplan.it' }
@@ -1293,6 +1245,7 @@ async function fixAgenteDos() {
 }
 
 async function fixSequelizeMapping() {
+  if (!canRunMaintenance()) return;
   try {
     const agents = await Agent.findAll();
     for (const agent of agents) {
@@ -1308,6 +1261,7 @@ async function fixSequelizeMapping() {
 }
 
 async function ensureAgentSources() {
+  if (!canRunMaintenance()) return;
   try {
     const agents = await Agent.findAll({ where: { isActive: true } });
     for (const agent of agents) {
@@ -1328,6 +1282,7 @@ async function ensureAgentSources() {
 }
 
 async function fixAdminSources() {
+  if (!canRunMaintenance()) return;
   try {
     const adminAgents = await Agent.findAll({ where: { role: 'admin' } });
     for (const admin of adminAgents) {
@@ -1348,6 +1303,7 @@ async function fixAdminSources() {
 }
 
 async function debugSyncIssue() {
+  if (!canRunMaintenance()) return;
   try {
     const leads = await Lead.findAll({
       where: {
@@ -1370,6 +1326,7 @@ async function debugSyncIssue() {
 }
 
 async function enhanceSyncSystem() {
+  if (!canRunMaintenance()) return;
   try {
     const leads = await Lead.findAll();
     for (const lead of leads) {
@@ -1385,6 +1342,7 @@ async function enhanceSyncSystem() {
 }
 
 async function directCountSources() {
+  if (!canRunMaintenance()) return;
   try {
     const sources = await AgentLeadSource.findAll({
       attributes: ['sourceName', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
@@ -1398,6 +1356,7 @@ async function directCountSources() {
 }
 
 async function finalFixLeads() {
+  if (!canRunMaintenance()) return;
   try {
     const leads = await Lead.findAll({
       where: {
@@ -1416,6 +1375,7 @@ async function finalFixLeads() {
 }
 
 async function countActualAgents() {
+  if (!canRunMaintenance()) return;
   try {
     const count = await Agent.count({
       where: { isActive: true }
@@ -1428,6 +1388,7 @@ async function countActualAgents() {
 }
 
 async function countBySource() {
+  if (!canRunMaintenance()) return;
   try {
     const sources = await AgentLeadSource.findAll({
       attributes: ['sourceName', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
@@ -1441,6 +1402,7 @@ async function countBySource() {
 }
 
 async function directAddAimedici() {
+  if (!canRunMaintenance()) return;
   try {
     const agents = await Agent.findAll({ where: { isActive: true } });
     for (const agent of agents) {
@@ -1458,6 +1420,7 @@ async function directAddAimedici() {
 }
 
 async function directCheckRobin() {
+  if (!canRunMaintenance()) return;
   try {
     const agents = await Agent.findAll({ where: { isActive: true } });
     for (const agent of agents) {
@@ -1478,6 +1441,7 @@ async function directCheckRobin() {
 }
 
 async function cleanDeletedAgents() {
+  if (!canRunMaintenance()) return;
   try {
     const agents = await Agent.findAll({ where: { isActive: false } });
     for (const agent of agents) {
@@ -1592,6 +1556,7 @@ app.get('/api/admin/stats/source-distribution', authenticate, requireAdmin, asyn
 
 // Additional Utility Functions for Database Maintenance and Fixes
 async function countAimediciAgents() {
+  if (!canRunMaintenance()) return;
   try {
     const count = await Agent.count({
       where: {
@@ -1611,6 +1576,7 @@ async function countAimediciAgents() {
 }
 
 async function addAimediciSource() {
+  if (!canRunMaintenance()) return;
   try {
     const agents = await Agent.findAll({ where: { isActive: true } });
     for (const agent of agents) {
@@ -1637,6 +1603,7 @@ async function addAimediciSource() {
 }
 
 async function checkAdminSources() {
+  if (!canRunMaintenance()) return;
   try {
     const adminAgents = await Agent.findAll({ where: { role: 'admin' } });
     for (const admin of adminAgents) {
@@ -1650,6 +1617,7 @@ async function checkAdminSources() {
 }
 
 async function checkAgent() {
+  if (!canRunMaintenance()) return;
   try {
     const agents = await Agent.findAll({ where: { isActive: true } });
     for (const agent of agents) {
@@ -1665,6 +1633,7 @@ async function checkAgent() {
 }
 
 async function checkLeads() {
+  if (!canRunMaintenance()) return;
   try {
     const leads = await Lead.findAll();
     console.log(`Total leads: ${leads.length}`);
@@ -1680,6 +1649,7 @@ async function checkLeads() {
 }
 
 async function checkRoundRobin() {
+  if (!canRunMaintenance()) return;
   try {
     const agents = await Agent.findAll({ where: { isActive: true } });
     for (const agent of agents) {
@@ -1698,6 +1668,7 @@ async function checkRoundRobin() {
 }
 
 async function checkAgentSources() {
+  if (!canRunMaintenance()) return;
   try {
     const agents = await Agent.findAll({ where: { isActive: true } });
     for (const agent of agents) {
@@ -1711,6 +1682,7 @@ async function checkAgentSources() {
 }
 
 async function forceAddSource() {
+  if (!canRunMaintenance()) return;
   try {
     const { agentId, sourceName } = req.body;
     if (!agentId || !sourceName) {
@@ -1737,6 +1709,7 @@ async function forceAddSource() {
 }
 
 async function runMigration() {
+  if (!canRunMaintenance()) return;
   try {
     await sequelize.sync({ alter: true });
     console.log('✅ Database migration completed');
