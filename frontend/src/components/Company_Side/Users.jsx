@@ -613,9 +613,9 @@ export default function Agents() {
       });
 
       if (!res.ok) {
-        const errorText = await res.text();
-        console.error("Error response:", errorText);
-        throw new Error("Aggiornamento pagine fallito");
+        const errorData = await res.json();
+        console.error("Error response:", errorData);
+        throw new Error(errorData.message || "Aggiornamento pagine fallito");
       }
 
       const result = await res.json();
@@ -638,7 +638,12 @@ export default function Agents() {
       await fetchAgents();
     } catch (err) {
       console.error("Error updating pages:", err);
-      toast({ title: "Errore", description: err.message, variant: "destructive" });
+      toast({ 
+        title: "Errore", 
+        description: err.message || "Si è verificato un errore durante l'aggiornamento delle pagine", 
+        variant: "destructive",
+        duration: 5000
+      });
     } finally {
       setDeletingAgents(prev => {
         const newState = { ...prev };

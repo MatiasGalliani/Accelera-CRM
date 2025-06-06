@@ -280,7 +280,7 @@ router.put('/:id/lead-sources', authenticate, requireAdmin, async (req, res) => 
 });
 
 // PUT /api/agents/:id/pages - Update an agent's pages (permissions)
-router.put('/:id/pages', authenticate, requireAdmin, async (req, res) => {
+router.put('/:id/pages', authenticate, async (req, res) => {
   try {
     const agentId = req.params.id;
     const { pages } = req.body;
@@ -294,6 +294,14 @@ router.put('/:id/pages', authenticate, requireAdmin, async (req, res) => {
     
     if (!agentDoc.exists) {
       return res.status(404).json({ message: 'Agente non trovato' });
+    }
+
+    // Check if user is admin or if they're accessing their own pages
+    const isAdmin = await checkIsAdmin(req.user.uid);
+    const isOwnPages = agentDoc.data().uid === req.user.uid;
+    
+    if (!isAdmin && !isOwnPages) {
+      return res.status(403).json({ message: 'Non hai i permessi per modificare le pagine di questo agente' });
     }
     
     // UPDATE: Update both pages and leadSources to ensure round-robin consistency
