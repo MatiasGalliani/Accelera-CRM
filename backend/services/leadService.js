@@ -291,7 +291,7 @@ export async function getAgentLeads(firebaseUid, source) {
       filter.source = source;
     }
     
-    // Consultar los leads con sus detalles
+    // Consultar los leads con sus detalles y notas
     const leads = await Lead.findAll({
       where: filter,
       include: [
@@ -303,8 +303,7 @@ export async function getAgentLeads(firebaseUid, source) {
         { 
           model: LeadNote, 
           as: 'notes',
-          include: [{ model: Agent }],
-          limit: 5,
+          limit: 1, // Only get the latest note
           order: [['created_at', 'DESC']],
           required: false // Make this a LEFT JOIN
         }
@@ -364,16 +363,15 @@ function serializeLeads(leads) {
       });
     }
 
-    // Convert notes to comments if they exist
-    if (serializedLead.notes) {
-      serializedLead.comments = serializedLead.notes.map(note => ({
-        id: note.id,
-        text: note.note,
-        createdAt: note.createdAt,
-        updatedAt: note.updatedAt
-      }));
-      delete serializedLead.notes;
+    // Set the latest comment as commenti
+    if (serializedLead.notes && serializedLead.notes.length > 0) {
+      serializedLead.commenti = serializedLead.notes[0].note;
+    } else {
+      serializedLead.commenti = '';
     }
+
+    // Remove the notes array since we only need the latest comment
+    delete serializedLead.notes;
 
     // Ensure privacyAccettata is a boolean
     serializedLead.privacyAccettata = Boolean(serializedLead.privacyAccettata);
