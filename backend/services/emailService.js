@@ -74,7 +74,6 @@ export async function sendLeadNotificationEmail(lead, agent) {
           <div class="data-item"><span class="label">Tipo di Pensione:</span> ${leadDetails.pensionType || 'Non specificato'}</div>
           <div class="data-item"><span class="label">Data di Nascita:</span> ${formatDate(leadDetails.birthDate)}</div>
           <div class="data-item"><span class="label">Provincia:</span> ${leadDetails.residenceProvince || 'Non specificato'}</div>
-          <div class="data-item"><span class="label">Privacy Accettata:</span> ${lead.privacyAccettata ? "SI" : "NO"}</div>
         `;
       } else {
         console.log(`[EmailService] Generating dipendente email template`);
@@ -93,7 +92,6 @@ export async function sendLeadNotificationEmail(lead, agent) {
           <div class="data-item"><span class="label">Provincia:</span> ${leadDetails.residenceProvince || 'Non specificato'}</div>
           <div class="data-item"><span class="label">Data di Assunzione:</span> ${leadDetails.employmentDate || 'Non specificato'}</div>
           <div class="data-item"><span class="label">Numero di Dipendenti:</span> ${leadDetails.numEmployees || 'Non specificato'}</div>
-          <div class="data-item"><span class="label">Privacy Accettata:</span> ${lead.privacyAccettata ? "SI" : "NO"}</div>
         `;
       }
     } else if (lead.source === 'aimedici') {
@@ -107,7 +105,6 @@ export async function sendLeadNotificationEmail(lead, agent) {
         <div class="data-item"><span class="label">Importo richiesto:</span> ${leadDetails.requestedAmount || 'Non specificato'}</div>
         <div class="data-item"><span class="label">Città di residenza:</span> ${leadDetails.residenceCity || 'Non specificato'}</div>
         <div class="data-item"><span class="label">Provincia:</span> ${leadDetails.residenceProvince || 'Non specificato'}</div>
-        <div class="data-item"><span class="label">Privacy accettata:</span> ${lead.privacyAccettata ? "SI" : "NO"}</div>
       `;
     } else if (lead.source === 'aifidi') {
       console.log(`[EmailService] Generating AIFidi email template`);
@@ -120,7 +117,6 @@ export async function sendLeadNotificationEmail(lead, agent) {
         <div class="data-item"><span class="label">Importo richiesto:</span> ${leadDetails.requestedAmount || 'Non specificato'}</div>
         <div class="data-item"><span class="label">Città di residenza:</span> ${leadDetails.legalCity || 'Non specificato'}</div>
         <div class="data-item"><span class="label">Provincia:</span> ${leadDetails.operationalCity || 'Non specificato'}</div>
-        <div class="data-item"><span class="label">Privacy accettata:</span> ${lead.privacyAccettata ? "SI" : "NO"}</div>
       `;
     }
 
