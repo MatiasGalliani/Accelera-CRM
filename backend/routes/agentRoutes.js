@@ -1,8 +1,9 @@
 import express from 'express';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
-import { Agent, AgentLeadSource } from '../models/leads-index.js';
+import { Agent, AgentLeadSource, AgentPage } from '../models/leads-index.js';
 import admin from 'firebase-admin';
 import { Op } from 'sequelize';
+import sequelize from '../config/database.js';
 
 const router = express.Router();
 
@@ -104,9 +105,10 @@ router.get('/:id', authenticate, async (req, res) => {
 
 // DELETE /api/agents/:id - Delete an agent
 router.delete('/:id', authenticate, requireAdmin, async (req, res) => {
-  const transaction = await sequelize.transaction();
+  let transaction;
   
   try {
+    transaction = await sequelize.transaction();
     const agentId = req.params.id;
     console.log(`Starting complete deletion of agent ${agentId}`);
     
@@ -114,6 +116,7 @@ router.delete('/:id', authenticate, requireAdmin, async (req, res) => {
     const agentDoc = await admin.firestore().collection('agents').doc(agentId).get();
     
     if (!agentDoc.exists) {
+      await transaction.rollback();
       return res.status(404).json({ message: 'Agente non trovato' });
     }
 
@@ -132,61 +135,76 @@ router.delete('/:id', authenticate, requireAdmin, async (req, res) => {
       console.error('Error deleting Firebase Auth user:', firebaseError);
       // If the user doesn't exist in Firebase Auth, that's okay - continue with other deletions
       if (firebaseError.code !== 'auth/user-not-found') {
+        await transaction.rollback();
         throw firebaseError;
       }
     }
     
     // 3. Delete from Firestore
-    await admin.firestore().collection('agents').doc(agentId).delete();
-    console.log(`Firestore agent document ${agentId} deleted successfully`);
-    
-    // 4. Delete from PostgreSQL and related tables
-    // First find the agent in PostgreSQL by both ID and Firebase UID
-    const pgAgent = await Agent.findOne({
-      where: {
-        [Op.or]: [
-          { firebaseUid: agentData.uid },
-          { id: agentId }
-        ]
-      },
-      transaction
-    });
-    
-    if (pgAgent) {
-      // Delete related data first
-      await AgentLeadSource.destroy({
-        where: { agentId: pgAgent.id },
-        transaction
-      });
-      console.log(`Deleted lead sources for agent ${pgAgent.id}`);
-      
-      await AgentPage.destroy({
-        where: { agentId: pgAgent.id },
-        transaction
-      });
-      console.log(`Deleted page permissions for agent ${pgAgent.id}`);
-      
-      // Finally delete the agent
-      await pgAgent.destroy({ transaction });
-      console.log(`Deleted PostgreSQL agent record ${pgAgent.id}`);
-    } else {
-      console.log(`No PostgreSQL record found for agent ${agentId}`);
+    try {
+      await admin.firestore().collection('agents').doc(agentId).delete();
+      console.log(`Firestore agent document ${agentId} deleted successfully`);
+    } catch (firestoreError) {
+      console.error('Error deleting from Firestore:', firestoreError);
+      await transaction.rollback();
+      throw firestoreError;
     }
     
-    // Commit the transaction
-    await transaction.commit();
-    
-    res.status(200).json({ 
-      message: 'Agente eliminato con successo da tutti i sistemi',
-      deletedFrom: {
-        firebaseAuth: true,
-        firestore: true,
-        postgresql: !!pgAgent
+    // 4. Delete from PostgreSQL and related tables
+    try {
+      // First find the agent in PostgreSQL by both ID and Firebase UID
+      const pgAgent = await Agent.findOne({
+        where: {
+          [Op.or]: [
+            { firebaseUid: agentData.uid },
+            { id: agentId }
+          ]
+        },
+        transaction
+      });
+      
+      if (pgAgent) {
+        // Delete related data first
+        await AgentLeadSource.destroy({
+          where: { agentId: pgAgent.id },
+          transaction
+        });
+        console.log(`Deleted lead sources for agent ${pgAgent.id}`);
+        
+        await AgentPage.destroy({
+          where: { agentId: pgAgent.id },
+          transaction
+        });
+        console.log(`Deleted page permissions for agent ${pgAgent.id}`);
+        
+        // Finally delete the agent
+        await pgAgent.destroy({ transaction });
+        console.log(`Deleted PostgreSQL agent record ${pgAgent.id}`);
+      } else {
+        console.log(`No PostgreSQL record found for agent ${agentId}`);
       }
-    });
+      
+      // Commit the transaction
+      await transaction.commit();
+      
+      res.status(200).json({ 
+        message: 'Agente eliminato con successo da tutti i sistemi',
+        deletedFrom: {
+          firebaseAuth: true,
+          firestore: true,
+          postgresql: !!pgAgent
+        }
+      });
+    } catch (dbError) {
+      console.error('Error in database operations:', dbError);
+      await transaction.rollback();
+      throw dbError;
+    }
   } catch (err) {
     // Rollback the transaction on error
-    await transaction.rollback();
+    if (transaction) {
+      await transaction.rollback();
+    }
     console.error('Error in complete agent deletion:', err);
     res.status(500).json({ 
       message: 'Errore durante l\'eliminazione dell\'agente',
