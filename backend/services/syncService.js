@@ -1,6 +1,7 @@
 import admin from 'firebase-admin';
 import { Agent, AgentPage, AgentLeadSource } from '../models/leads-index.js';
 import sequelize from '../config/database.js';
+import { Op } from 'sequelize';
 
 /**
  * Sincroniza un agente de Firestore a PostgreSQL
@@ -14,9 +15,14 @@ export async function syncAgentFromFirestore(agentId, firestoreData) {
   try {
     console.log(`Sincronizando agente ${agentId} desde Firestore:`, firestoreData);
     
-    // Buscar si el agente ya existe por su UID de Firebase
+    // Buscar si el agente ya existe por su UID de Firebase o email
     let agent = await Agent.findOne({
-      where: { firebaseUid: firestoreData.uid },
+      where: {
+        [Op.or]: [
+          { firebaseUid: firestoreData.uid },
+          { email: firestoreData.email }
+        ]
+      },
       transaction
     });
     
@@ -43,6 +49,7 @@ export async function syncAgentFromFirestore(agentId, firestoreData) {
       
       // Actualizar el agente si ya existe
       await agent.update({
+        firebaseUid: firestoreData.uid, // Ensure firebaseUid is updated
         email: firestoreData.email,
         firstName: firestoreData.firstName || agent.firstName,
         lastName: firestoreData.lastName || agent.lastName,
