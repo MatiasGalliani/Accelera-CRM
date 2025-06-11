@@ -142,7 +142,7 @@ export function AuthProvider({ children }) {
               
               // Try to ensure admin record exists
               console.log("Attempting to fix admin account");
-              const fixResponse = await fetch(getApiUrl(`/api/fix-specific-account?email=${currentUser.email}`), {
+              const fixResponse = await fetch(getApiUrl(`api/fix-specific-account?email=${currentUser.email}`), {
                 headers: {
                   Authorization: `Bearer ${idToken}`
                 }

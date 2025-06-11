@@ -321,7 +321,7 @@ const AssignLeadDialog = ({ isOpen, setIsOpen, lead, refetchLeads }) => {
       
       const token = await auth.currentUser.getIdToken(true);
       
-      const response = await fetch(`/api/leads/admin/agents-by-source?source=${lead.source}`, {
+      const response = await fetch(getApiUrl(`api/leads/admin/agents-by-source?source=${lead.source}`), {
         headers: {
           "Authorization": `Bearer ${token}`
         }
