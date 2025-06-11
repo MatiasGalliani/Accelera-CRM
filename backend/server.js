@@ -17,7 +17,28 @@ import cors from 'cors';
 // Load environment variables from .env file
 dotenv.config();
 
+// Enhanced logging configuration
+const logLevels = {
+  INFO: 'INFO',
+  WARN: 'WARN',
+  ERROR: 'ERROR',
+  DEBUG: 'DEBUG'
+};
+
+const log = (level, message, data = {}) => {
+  const timestamp = new Date().toISOString();
+  const logEntry = {
+    timestamp,
+    level,
+    message,
+    ...data,
+    environment: process.env.NODE_ENV || 'development'
+  };
+  console.log(JSON.stringify(logEntry));
+};
+
 // Initialize Firebase Admin SDK
+log(logLevels.INFO, 'Initializing Firebase Admin SDK');
 admin.initializeApp({
   credential: admin.credential.cert({
     projectId: process.env.FIREBASE_PROJECT_ID,
@@ -29,6 +50,7 @@ admin.initializeApp({
 
 // Initialize Firestore
 const db = admin.firestore();
+log(logLevels.INFO, 'Firebase Admin SDK initialized successfully');
 
 const app = express();
 // Parse JSON bodies
@@ -884,15 +906,6 @@ app.get('/api/verify-admin/:email', authenticate, async (req, res) => {
   }
 });
 
-// Add memory monitoring function
-function monitorMemory() {
-  const used = process.memoryUsage();
-  console.log('Memory usage:');
-  for (let key in used) {
-    console.log(`${key}: ${Math.round(used[key] / 1024 / 1024 * 100) / 100} MB`);
-  }
-}
-
 // Modify server startup
 const PORT = process.env.PORT || 4000;
 
@@ -904,18 +917,29 @@ sequelize.options.pool = {
   idle: 10000
 };
 
+// Enhanced memory monitoring function
+function monitorMemory() {
+  const used = process.memoryUsage();
+  const memoryData = {};
+  for (let key in used) {
+    memoryData[key] = `${Math.round(used[key] / 1024 / 1024 * 100) / 100} MB`;
+  }
+  log(logLevels.INFO, 'Memory usage report', memoryData);
+}
+
 // Sync database models before starting the server
+log(logLevels.INFO, 'Starting database synchronization');
 sequelize.sync({ alter: true })
   .then(() => {
-    console.log('Database synchronized');
+    log(logLevels.INFO, 'Database synchronized successfully');
     const server = app.listen(PORT, () => {
-      console.log(`Backend running on port ${PORT}`);
+      log(logLevels.INFO, `Server started successfully`, { port: PORT });
       monitorMemory(); // Initial memory check
     });
     
     // Add server error handling
     server.on('error', (error) => {
-      console.error('Server error:', error);
+      log(logLevels.ERROR, 'Server error occurred', { error: error.message, stack: error.stack });
     });
 
     // Add keep-alive configuration
@@ -925,36 +949,39 @@ sequelize.sync({ alter: true })
     // Monitor memory usage periodically
     setInterval(monitorMemory, 300000); // Every 5 minutes
 
-    // Add graceful shutdown
+    // Add graceful shutdown with enhanced logging
     process.on('SIGTERM', async () => {
-      console.log('Received SIGTERM signal. Starting graceful shutdown...');
+      log(logLevels.INFO, 'Received SIGTERM signal. Starting graceful shutdown...');
       server.close(async () => {
         try {
+          log(logLevels.INFO, 'HTTP server closed. Closing database connections...');
           await sequelize.close();
-          console.log('Database connections closed.');
+          log(logLevels.INFO, 'Database connections closed successfully');
           process.exit(0);
         } catch (error) {
-          console.error('Error during shutdown:', error);
+          log(logLevels.ERROR, 'Error during shutdown', { error: error.message, stack: error.stack });
           process.exit(1);
         }
       });
     });
   })
   .catch(err => {
-    console.error('Error syncing database:', err);
+    log(logLevels.ERROR, 'Error syncing database', { error: err.message, stack: err.stack });
     process.exit(1);
   });
 
-// Handle uncaught exceptions
+// Enhanced error handlers
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
+  log(logLevels.ERROR, 'Uncaught Exception', { error: error.message, stack: error.stack });
   // Don't exit immediately, give time for cleanup
   setTimeout(() => process.exit(1), 1000);
 });
 
-// Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  log(logLevels.ERROR, 'Unhandled Promise Rejection', { 
+    reason: reason.message || reason,
+    stack: reason.stack
+  });
 });
 
 // GET /api/check-user-role/:uid - Check a user's role
