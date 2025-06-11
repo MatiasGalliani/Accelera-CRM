@@ -723,7 +723,6 @@ export default function AdminLeads() {
         Cognome: lead.lastName || "",
         Mail: lead.email || "",
         Telefono: lead.phone || "",
-        Privacy: lead.privacyAccettata ? "Sì" : "No",
         Stato: STATUS_OPTIONS.find((opt) => opt.value === lead.status)?.label || lead.status,
         Commenti: lead.commenti || ""
       };
@@ -789,7 +788,6 @@ export default function AdminLeads() {
         Cognome: lead.lastName || "",
         Mail: lead.email || "",
         Telefono: lead.phone || "",
-        Privacy: lead.privacyAccettata ? "Sì" : "No",
         Stato: STATUS_OPTIONS.find((opt) => opt.value === lead.status)?.label || lead.status,
         Commenti: lead.commenti || ""
       };
@@ -1071,7 +1069,6 @@ export default function AdminLeads() {
                               )}
                               
                               {/* Final common columns */}
-                              <th>Privacy</th>
                               <th className="bg-green-50">Stato</th>
                               <th className="bg-yellow-50 min-w-[250px]">Commenti</th>
                             </tr>
@@ -1079,7 +1076,7 @@ export default function AdminLeads() {
                           <tbody>
                             {filteredLeads.length === 0 ? (
                                <tr>
-                                 <td colSpan={15} className="h-32 text-center">
+                                 <td colSpan={14} className="h-32 text-center">
                                    <div className="py-6 px-4">
                                      <p className="text-gray-600 font-medium text-lg mb-3">Nessun lead trovato</p>
                                      <div className="max-w-md mx-auto bg-blue-50 rounded-lg p-4 border border-blue-100">
@@ -1159,7 +1156,6 @@ export default function AdminLeads() {
                                     )}
                                     
                                     {/* Final common data */}
-                                    <td className="py-3 px-4">{lead.privacyAccettata ? "Sì" : "No"}</td>
                                     <td className="py-3 px-4">
                                       <div className="flex items-center gap-2">
                                         <div className={`w-3 h-3 rounded-full flex-shrink-0 ${statusOption.color}`}></div>

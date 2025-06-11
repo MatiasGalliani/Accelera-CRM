@@ -757,7 +757,6 @@ export default function LeadsAgenti() {
                       )}
 
                       {/* Final common columns */}
-                      <th>Privacy</th>
                       <th>Stato</th>
                       <th>Commenti</th>
                       <th>
@@ -768,7 +767,7 @@ export default function LeadsAgenti() {
                   <tbody>
                     {filteredLeads.length === 0 ? (
                       <tr className="hover:bg-transparent">
-                        <td colSpan={currentSource === "aiquinto" ? 13 : currentSource === "aimedici" ? 13 : currentSource === "aifidi" ? 14 : 14} className="h-32 text-center">
+                        <td colSpan={currentSource === "aiquinto" ? 12 : currentSource === "aimedici" ? 12 : currentSource === "aifidi" ? 13 : 13} className="h-32 text-center">
                           <div className="py-6 px-4">
                             <p className="text-gray-600 font-medium text-lg mb-3">Nessun lead trovato</p>
                             <div className="max-w-md mx-auto bg-blue-50 rounded-lg p-4 border border-blue-100">
@@ -833,7 +832,6 @@ export default function LeadsAgenti() {
                             )}
 
                             {/* Final common data */}
-                            <td className="py-3 px-4">{lead.privacyAccettata ? "Sì" : "No"}</td>
                             <td className="py-3 px-4">
                               <Select
                                 value={lead.status || "new"}
