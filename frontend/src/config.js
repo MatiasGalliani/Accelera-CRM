@@ -4,7 +4,7 @@ const isDevelopment = import.meta.env.DEV;
 // In production, use the full URL (removing any trailing slash)
 export const API_BASE_URL = isDevelopment 
   ? '' // Empty string uses the proxy in development
-  : 'http://accelera-crm-production.up.railway.app'.replace(/\/$/, '');
+  : 'https://accelera-crm-production.up.railway.app'.replace(/\/$/, '');
 
 // Helper function to build API URLs
 export const getApiUrl = (path) => {
