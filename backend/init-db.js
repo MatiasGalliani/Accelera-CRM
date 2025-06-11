@@ -1,5 +1,6 @@
 import sequelize from './config/database.js';
 import createTables from './migrations/create-permissions-tables.js';
+import addTestLeads from './migrations/add-test-leads.js';
 
 async function initializeDatabase() {
   try {
@@ -12,6 +13,10 @@ async function initializeDatabase() {
     // Run the permissions tables creation
     await createTables();
     console.log('Permissions tables created');
+
+    // Add test leads
+    await addTestLeads();
+    console.log('Test leads added');
     
     console.log('Database initialization completed successfully');
   } catch (error) {

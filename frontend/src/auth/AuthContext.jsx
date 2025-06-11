@@ -215,8 +215,57 @@ export function AuthProvider({ children }) {
       const result = await signInWithEmailAndPassword(auth, email, password);
       console.log("Login successful for:", email);
       
-      // The role will be set by onAuthStateChanged
-      return result;
+      // Return a promise that resolves when the user state is set
+      return new Promise((resolve, reject) => {
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+          if (currentUser) {
+            try {
+              console.log("Auth state changed - user logged in:", currentUser.email);
+              
+              if (isAdminEmail(currentUser.email)) {
+                console.log("Admin email detected, setting up admin user");
+                const adminUser = {
+                  ...currentUser,
+                  role: 'admin'
+                };
+                console.log("Setting up admin user:", adminUser);
+                setUser(adminUser);
+                setLoading(false);
+                unsubscribe();
+                resolve(adminUser);
+                return;
+              }
+              
+              console.log("Non-admin email, checking role via server");
+              const role = await checkUserRole(currentUser.uid);
+              console.log("Role determined:", role);
+              
+              const enhancedUser = {
+                ...currentUser,
+                role: role
+              };
+              
+              console.log("Setting up user:", enhancedUser);
+              setUser(enhancedUser);
+              setLoading(false);
+              unsubscribe();
+              resolve(enhancedUser);
+            } catch (error) {
+              console.error("Error in auth state change:", error);
+              setUser({
+                ...currentUser,
+                role: 'agent'
+              });
+              setLoading(false);
+              unsubscribe();
+              resolve({
+                ...currentUser,
+                role: 'agent'
+              });
+            }
+          }
+        });
+      });
     } catch (error) {
       console.error("Login error:", error);
       throw error;

@@ -14,7 +14,7 @@ import {
   SelectTrigger, SelectValue
 } from "@/components/ui/select";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Loader2, ShieldAlert, Check, Search, Share2 } from "lucide-react";
+import { Loader2, ShieldAlert, Check, Search, Share2, Key } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -52,6 +52,11 @@ export default function Agents() {
   const [editingPages, setEditingPages] = useState([]);
   const [showPagesDialog, setShowPagesDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [selectedUserForPassword, setSelectedUserForPassword] = useState(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Page options for multi-select
   const pageOptions = [
@@ -88,7 +93,7 @@ export default function Agents() {
           ...prev,
           role: value,
           pages: prev.pages.length > 0 ? prev.pages : ["aiquinto"],
-          leadSources: prev.pages.length > 0 ? prev.pages : ["aiquinto"]
+          leadSources: prev.leadSources.length > 0 ? prev.leadSources : ["aiquinto"]
         };
       }
     });
@@ -100,11 +105,9 @@ export default function Agents() {
         ? [...prev.pages, pageId]
         : prev.pages.filter(id => id !== pageId);
 
-      // Keep leadSources in sync with pages for backend compatibility
       return {
         ...prev,
-        pages: updatedPages,
-        leadSources: updatedPages
+        pages: updatedPages
       };
     });
   };
@@ -275,7 +278,7 @@ export default function Agents() {
         ...newAgent,
         // Ensure pages and leadSources are properly included
         pages: newAgent.pages || ["aiquinto"],
-        leadSources: newAgent.pages || ["aiquinto"],
+        leadSources: newAgent.leadSources || ["aiquinto"],
         // Keep page field for backward compatibility
         page: newAgent.pages[0] || "aiquinto"
       };
@@ -378,73 +381,46 @@ export default function Agents() {
       if (!currentUser) throw new Error("Utente non autenticato");
       const idToken = await currentUser.getIdToken(true);
 
-      console.log("Deleting agent:", agent);
+      // First delete from database
+      const dbRes = await fetch(`${API_BASE_URL}/api/agents/${agentId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
 
-      // Track deletion results
-      let firebaseDeleted = false;
-      let firestoreDeleted = false;
-
-      // If agent is a Firebase user (has uid)
-      if (agent.uid) {
-        console.log("Attempting to delete Firebase user with UID:", agent.uid);
-        try {
-          // Use the uid as parameter for Firebase deletion
-          const deleteUserRes = await fetch(`${API_BASE_URL}/api/agents/firebase-user/${agent.uid}`, {
-            method: "DELETE",
-            headers: { Authorization: `Bearer ${idToken}` },
-          });
-
-          if (!deleteUserRes.ok) {
-            const errorText = await deleteUserRes.text();
-            console.error("Error deleting Firebase user:", errorText);
-          } else {
-            console.log("Firebase user deleted successfully");
-            firebaseDeleted = true;
-          }
-        } catch (fbError) {
-          console.error("Error during Firebase user deletion:", fbError);
-        }
+      if (!dbRes.ok) {
+        const errorText = await dbRes.text();
+        console.error("Error deleting agent from database:", errorText);
+        throw new Error("Errore durante l'eliminazione dell'agente dal database");
       }
 
-      // If agent has a Firestore record (has id)
-      if (agent.id && !agent.isFirebaseOnly) {
-        console.log("Attempting to delete Firestore agent with ID:", agent.id);
-        const res = await fetch(`${API_BASE_URL}/api/agents/${agent.id}`, {
+      // Then delete from Firebase if the agent has a Firebase UID
+      if (agent.uid) {
+        const firebaseRes = await fetch(`${API_BASE_URL}/api/agents/firebase-user/${agent.uid}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${idToken}` },
         });
 
-        if (!res.ok) {
-          const errorText = await res.text();
-          console.error("Error deleting Firestore agent:", errorText);
-        } else {
-          console.log("Firestore agent deleted successfully");
-          firestoreDeleted = true;
+        if (!firebaseRes.ok) {
+          const errorText = await firebaseRes.text();
+          console.error("Error deleting agent from Firebase:", errorText);
+          // Don't throw here, just log the error since the database deletion was successful
         }
       }
 
+      toast({
+        title: "Agente eliminato",
+        description: "Operazione completata con successo!"
+      });
+
       // Refresh both data sources
       await Promise.all([fetchAgents(), fetchFirebaseUsers()]);
-
-      if (firebaseDeleted || firestoreDeleted) {
-        toast({
-          title: "Agente eliminato",
-          description: "Operazione completata con successo!"
-        });
-      } else {
-        toast({
-          title: "Attenzione",
-          description: "L'operazione potrebbe non essere stata completata. Verificare la lista aggiornata.",
-          variant: "destructive"
-        });
-      }
 
     } catch (err) {
       console.error("Agent deletion error:", err);
       await Promise.all([fetchAgents(), fetchFirebaseUsers()]);
       toast({
         title: "Errore",
-        description: `Si è verificato un errore durante l'eliminazione. La lista è stata aggiornata.`,
+        description: err.message || "Si è verificato un errore durante l'eliminazione. La lista è stata aggiornata.",
         variant: "destructive"
       });
     } finally {
@@ -628,6 +604,65 @@ export default function Agents() {
         return newState;
       });
     }
+  };
+
+  // Add this new function for changing password
+  const changeUserPassword = async () => {
+    if (!selectedUserForPassword) return;
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Errore",
+        description: "Le password non coincidono",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+      if (!currentUser) throw new Error("Utente non autenticato");
+      const idToken = await currentUser.getIdToken(true);
+
+      const response = await fetch(`${API_BASE_URL}/api/agents/${selectedUserForPassword.uid}/password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ password: newPassword }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Errore durante il cambio password");
+      }
+
+      toast({
+        title: "Password aggiornata",
+        description: "La password è stata cambiata con successo",
+      });
+
+      setShowPasswordDialog(false);
+      setNewPassword("");
+      setConfirmPassword("");
+      setSelectedUserForPassword(null);
+    } catch (error) {
+      console.error("Error changing password:", error);
+      toast({
+        title: "Errore",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  // Add this function to open the password dialog
+  const openPasswordDialog = (user) => {
+    setSelectedUserForPassword(user);
+    setShowPasswordDialog(true);
   };
 
   return (
@@ -872,9 +907,13 @@ export default function Agents() {
                                   </h3>
                                   <p className="text-xs text-gray-500">{agent.email}</p>
                                   <p className="text-xs text-gray-500">
-                                    {agent.isFirebaseOnly
-                                      ? "Utente Firebase"
-                                      : "Ruolo: Amministratore"}
+                                    {agent.isFirebaseOnly ? (
+                                      "Utente Firebase"
+                                    ) : (
+                                      `Ruolo: ${agent.role === 'admin' ? 'Amministratore' : 
+                                              agent.role === 'campaign_manager' ? 'Campaign Manager' : 
+                                              'Agente'}`
+                                    )}
                                   </p>
                                 </div>
                                 <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 mt-3 md:mt-0">
@@ -893,6 +932,15 @@ export default function Agents() {
                                     ) : (
                                       "Elimina"
                                     )}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="rounded-xl text-xs h-7 hover:bg-blue-100 hover:text-blue-600 flex items-center gap-1"
+                                    onClick={() => openPasswordDialog(agent)}
+                                  >
+                                    <Key className="h-3 w-3" />
+                                    Cambia Password
                                   </Button>
                                 </div>
                               </div>
@@ -925,7 +973,13 @@ export default function Agents() {
                                   </h3>
                                   <p className="text-xs text-gray-500">{agent.email}</p>
                                   <p className="text-xs text-gray-500">
-                                    Ruolo: Campaign Manager
+                                    {agent.isFirebaseOnly ? (
+                                      "Utente Firebase"
+                                    ) : (
+                                      `Ruolo: ${agent.role === 'admin' ? 'Amministratore' : 
+                                              agent.role === 'campaign_manager' ? 'Campaign Manager' : 
+                                              'Agente'}`
+                                    )}
                                   </p>
                                   <div className="mt-1">
                                     <p className="text-xs text-gray-600">Campagne gestite:</p>
@@ -975,6 +1029,15 @@ export default function Agents() {
                                       "Elimina"
                                     )}
                                   </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="rounded-xl text-xs h-7 hover:bg-blue-100 hover:text-blue-600 flex items-center gap-1"
+                                    onClick={() => openPasswordDialog(agent)}
+                                  >
+                                    <Key className="h-3 w-3" />
+                                    Cambia Password
+                                  </Button>
                                 </div>
                               </div>
                             </Card>
@@ -1005,9 +1068,13 @@ export default function Agents() {
                                   </h3>
                                   <p className="text-xs text-gray-500">{agent.email}</p>
                                   <p className="text-xs text-gray-500">
-                                    {agent.isFirebaseOnly
-                                      ? "Utente Firebase"
-                                      : "Ruolo: Agente"}
+                                    {agent.isFirebaseOnly ? (
+                                      "Utente Firebase"
+                                    ) : (
+                                      `Ruolo: ${agent.role === 'admin' ? 'Amministratore' : 
+                                              agent.role === 'campaign_manager' ? 'Campaign Manager' : 
+                                              'Agente'}`
+                                    )}
                                   </p>
                                 </div>
                                 <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 mt-3 md:mt-0">
@@ -1035,6 +1102,15 @@ export default function Agents() {
                                     ) : (
                                       "Elimina"
                                     )}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="rounded-xl text-xs h-7 hover:bg-blue-100 hover:text-blue-600 flex items-center gap-1"
+                                    onClick={() => openPasswordDialog(agent)}
+                                  >
+                                    <Key className="h-3 w-3" />
+                                    Cambia Password
                                   </Button>
                                 </div>
                               </div>
@@ -1112,6 +1188,94 @@ export default function Agents() {
                 </>
               ) : (
                 'Salva Impostazioni'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cambia Password</DialogTitle>
+            <DialogDescription>
+              Cambia la password per {selectedUserForPassword?.email}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="newPassword">Nuova Password</Label>
+              <div className="relative">
+                <Input
+                  id="newPassword"
+                  type={showPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Inserisci la nuova password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-700"
+                  tabIndex="-1"
+                >
+                  {showPassword ? (
+                    <Icons.eyeClosed size={20} />
+                  ) : (
+                    <Icons.eye size={20} />
+                  )}
+                </button>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="confirmPassword">Conferma Password</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Conferma la nuova password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-700"
+                  tabIndex="-1"
+                >
+                  {showPassword ? (
+                    <Icons.eyeClosed size={20} />
+                  ) : (
+                    <Icons.eye size={20} />
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowPasswordDialog(false)}
+            >
+              Annulla
+            </Button>
+            <Button
+              onClick={changeUserPassword}
+              disabled={isChangingPassword || !newPassword || !confirmPassword}
+            >
+              {isChangingPassword ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Cambio Password...
+                </>
+              ) : (
+                'Cambia Password'
               )}
             </Button>
           </DialogFooter>

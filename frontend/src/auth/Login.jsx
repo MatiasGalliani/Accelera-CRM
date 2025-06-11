@@ -26,30 +26,24 @@ export default function Login() {
         setError("");
         setIsLoading(true);
 
-          // ─── VALIDAZIONI IN LOCALE ─────────────────────────────────────────────────
-              if (!email) {
-                    setError("Per favore inserisci la tua email");
-                    setIsLoading(false);
-                    return;
-                  }
-          if (!password) {
-                setError("Per favore inserisci la password");
-                setIsLoading(false);
-                return;
-              }
-         // ─────────────────────────────────────────────────────────────────────────────
+        // ─── VALIDAZIONI IN LOCALE ─────────────────────────────────────────────────
+        if (!email) {
+            setError("Per favore inserisci la tua email");
+            setIsLoading(false);
+            return;
+        }
+        if (!password) {
+            setError("Per favore inserisci la password");
+            setIsLoading(false);
+            return;
+        }
+        // ─────────────────────────────────────────────────────────────────────────────
         try {
-            const result = await login(email, password);
-            
-            // Wait for user state to be updated by adding a small delay
-            // This ensures the auth state change listener completes before navigation
-            setTimeout(() => {
-                if (result && result.user) {
-                    nav("/");
-                }
-                setIsLoading(false);
-            }, 1000);
-            
+            const user = await login(email, password);
+            if (user) {
+                nav("/");
+            }
+            setIsLoading(false);
         } catch (err) {
             // Mappatura dei codici di errore di Firebase su stringhe in italiano
             const errorMessages = {

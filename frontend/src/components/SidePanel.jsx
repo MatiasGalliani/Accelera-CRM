@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
 import { Icons } from "@/components/icons"
 
+
 export default function SidePanel() {
   const { user, logout, isAdminEmail, loading } = useAuth()
   const location = useLocation()
@@ -47,7 +48,17 @@ export default function SidePanel() {
             icon: Icons.sparkle,
           },*/
           {
-            title: "Richieste Documentali",
+            title: "Impostazioni",
+            to: "/settings",
+            icon: Icons.gear,
+          },
+          {
+            title: "Email Marketing",
+            to: "/email-marketing",
+            icon: Icons.envelopeSimple,
+          },
+          {
+            title: "Richieste Documentali (in arrivo)",
             to: "/admin-cases",
             icon: Icons.files,
             disabled: true,
@@ -70,13 +81,18 @@ export default function SidePanel() {
             icon: Icons.sparkle,
           },*/
           {
-            title: "Richieste Documentali",
+            title: "Impostazioni",
+            to: "/settings",
+            icon: Icons.gear,
+          },
+          {
+            title: "Richieste Documentali (in arrivo)",
             to: "/my-cases",
             icon: Icons.files,
             disabled: true,
           },
           {
-            title: "Pre Istruttoria Documenti IA",
+            title: "Pre Istruttoria Documenti IA (in arrivo)",
             to: "/client-type",
             icon: Icons.brain,
             disabled: true,

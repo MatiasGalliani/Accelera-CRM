@@ -2,6 +2,7 @@ import React from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { FiUsers, FiFileText, FiMessageSquare, FiClipboard, FiBriefcase, FiCheckCircle, FiSettings, FiUserPlus, FiBarChart2 } from "react-icons/fi";
+import { Icons } from "../icons";
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -29,37 +30,34 @@ export default function Home() {
     {
       title: "Utenti",
       description: "Gestisci gli utenti del sistema",
-      icon: <FiUserPlus className="w-5 h-5" />,
+      icon: <Icons.users className="w-5 h-5" />,
       path: "/users",
       size: "large",
       stats: "Gestisci permessi",
       disabled: false
     },
     {
-      title: "Statistiche",
-      description: "Visualizza le statistiche del sistema",
-      icon: <FiBarChart2 className="w-5 h-5" />,
-      path: "/stats",
+      title: "Crea campagna email",
+      description: "Crea una nuova campagna email",
+      icon: <Icons.envelopeSimple className="w-5 h-5" />,
+      path: "/email-marketing/create",
       size: "large",
-      stats: "Report completi",
-      disabled: true
+      stats: "Crea una nuova campagna email",
     },
     {
       title: "Impostazioni",
-      description: "Configura il sistema",
-      icon: <FiSettings className="w-5 h-5" />,
+      description: "Configura il tuo Accelera CRM",
+      icon: <Icons.gear className="w-5 h-5" />,
       path: "/settings",
       size: "medium",
-      stats: "Configurazione",
       disabled: true
     },
     {
       title: "Leads",
       description: "Gestisci e monitora i leads degli agenti",
-      icon: <FiUsers className="w-5 h-5" />,
+      icon: <Icons.megaphone className="w-5 h-5" />,
       path: "/admin-leads",
       size: "large",
-      stats: "12 nuovi",
       disabled: false
     },
     {
@@ -68,16 +66,14 @@ export default function Home() {
       icon: <FiFileText className="w-5 h-5" />,
       path: "/documents",
       size: "small",
-      stats: "5 da revisionare",
       disabled: true
     },
     {
-      title: "Casi",
+      title: "Richieste Documentali",
       description: "Visualizza e gestisci i casi",
-      icon: <FiClipboard className="w-5 h-5" />,
+      icon: <Icons.files className="w-5 h-5" />,
       path: "/cases",
       size: "large",
-      stats: "8 attivi",
       disabled: true
     },
   ];
@@ -87,29 +83,33 @@ export default function Home() {
     {
       title: "Leads",
       description: "Gestisci e monitora i tuoi leads",
-      icon: <FiUsers className="w-5 h-5" />,
-      path: "/my-leads",
+      icon: <Icons.megaphone className="w-5 h-5" />,
+      path: "/agent/my-leads",
       size: "large",
-      stats: "12 nuovi",
       disabled: false
     },
     {
-      title: "Richiesta Documenti",
+      title: "Pre Istruttoria Documenti IA",
       description: "Richiedi documenti privati e business",
-      icon: <FiFileText className="w-5 h-5" />,
+      icon: <Icons.brain className="w-5 h-5" />,
       path: "/request-documents",
       size: "small",
-      stats: "5 da revisionare",
       disabled: true
     },
     {
-      title: "Casi",
+      title: "Richieste Documentali",
       description: "Visualizza e gestisci i casi",
-      icon: <FiClipboard className="w-5 h-5" />,
+      icon: <Icons.files className="w-5 h-5" />,
       path: "/cases",
       size: "large",
-      stats: "8 attivi",
       disabled: true
+    },
+    {
+      title: "Impostazioni",
+      description: "Configura il tuo Accelera CRM",
+      icon: <Icons.gear className="w-5 h-5" />,
+      path: "/settings",
+      size: "medium",
     },
   ];
 

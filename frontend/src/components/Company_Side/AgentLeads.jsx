@@ -82,18 +82,19 @@ const fetchLeads = async (user, source) => {
     let token;
     try {
       token = await auth.currentUser.getIdToken(false);
+      console.log("Got token without force refresh");
     } catch (tokenError) {
       console.error('Error getting cached token:', tokenError);
       // Only try force refresh if not a quota error
       if (!tokenError.message?.includes('quota')) {
         token = await auth.currentUser.getIdToken(true);
+        console.log("Got token with force refresh");
       } else {
         throw new Error("Troppi tentativi. Attendi qualche minuto e riprova.");
       }
     }
 
-    console.log("Token ottenuto con successo per il caricamento dei leads");
-
+    console.log("Making request to /my-leads with source:", source);
     const response = await fetch(getApiUrl(`${API_ENDPOINTS.LEADS}/my-leads?source=${source}`), {
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -107,17 +108,21 @@ const fetchLeads = async (user, source) => {
       credentials: "include"
     });
 
+    console.log("Response status:", response.status);
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
         throw new Error("Sessione scaduta o non autorizzata. Effettua nuovamente l'accesso.");
       } else if (response.status === 404) {
+        console.log("No leads found");
         return []; // No leads found
       } else {
         throw new Error(`Impossibile caricare i leads da ${source}`);
       }
     }
 
-    return await response.json();
+    const data = await response.json();
+    console.log("Received leads:", data);
+    return data;
   } catch (error) {
     console.error("Errore nel caricamento dei leads:", error);
     throw error;
@@ -239,6 +244,72 @@ export default function LeadsAgenti() {
 
     saveAs(blob, filename);
   };
+
+  const exportSelectedToExcel = () => {
+    const selectedLeadsData = filteredLeads.filter(lead => selectedLeads.includes(lead.id));
+    
+    const rows = selectedLeadsData.map((lead) => {
+      const base = {
+        Data: formatDate(lead.created_at),
+        Nome: lead.firstName || "",
+        Cognome: lead.lastName || "",
+        Mail: lead.email || "",
+        Telefono: lead.phone || "",
+        Privacy: lead.privacyAccettata ? "Sì" : "No",
+        Stato: STATUS_OPTIONS.find((opt) => opt.value === lead.status)?.label || lead.status,
+        Commenti: lead.commenti || ""
+      };
+
+      if (currentSource === "aiquinto") {
+        return {
+          ...base,
+          "Importo Richiesto": lead.importoRichiesto || "",
+          "Stipendio Netto": lead.stipendioNetto || "",
+          Tipologia: lead.tipologiaDipendente || "",
+          Sottotipo: lead.sottotipo || "",
+          "Tipo Contratto": lead.tipoContratto || "",
+          "Provincia Residenza": lead.provinciaResidenza || "",
+          "Mese/Anno Assunzione": lead.meseAnnoAssunzione || "",
+          "Numero Dipendenti": lead.numeroDipendenti || ""
+        };
+      } else if (currentSource === "aimedici") {
+        return {
+          ...base,
+          "Importo Richiesto": lead.importoRichiesto || "",
+          "Scopo Richiesta": lead.financingScope || "",
+          "Città Residenza": lead.cittaResidenza || "",
+          "Provincia Residenza": lead.provinciaResidenza || ""
+        };
+      } else if (currentSource === "aifidi") {
+        return {
+          ...base,
+          "Nome Azienda": lead.nomeAzienda || "",
+          "Scopo Finanziamento": lead.financingScope || "",
+          "Città Sede Legale": lead.cittaSedeLegale || "",
+          "Città Sede Operativa": lead.cittaSedeOperativa || "",
+          "Importo Richiesto": lead.importoRichiesto || ""
+        };
+      } else {
+        return base;
+      }
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(rows, { origin: "A1" });
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Selected Leads");
+
+    const wbout = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([wbout], { type: "application/octet-stream" });
+
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    const filename = `selected_leads_${currentSource}_${yyyy}${mm}${dd}.xlsx`;
+
+    saveAs(blob, filename);
+  };
+
   const [search, setSearch] = useState("")
   const { user } = useAuth()
   const { toast } = useToast()
@@ -400,8 +471,16 @@ export default function LeadsAgenti() {
   };
 
   const handleEditComment = (lead) => {
+    // Get the comment from either notes array or commenti field
+    const getComment = () => {
+      if (lead.notes && lead.notes.length > 0) {
+        return lead.notes[0].note || lead.notes[0].content;
+      }
+      return lead.commenti || '';
+    };
+
     setCommentingLead(lead);
-    setCommentText(lead.commenti || "");
+    setCommentText(getComment());
     setIsCommentModalOpen(true);
   };
 
@@ -412,18 +491,43 @@ export default function LeadsAgenti() {
       const { auth } = await import('@/auth/firebase');
       const token = await auth.currentUser.getIdToken(true);
 
-      await addLeadComment({
+      const response = await addLeadComment({
         id: commentingLead.id,
         comment: commentText,
         token
       });
 
-      // Refresh leads to get updated comments
-      queryClient.invalidateQueries({ queryKey: ['leads', currentSource] });
+      // Update the lead in the cache with the new comment
+      queryClient.setQueryData(['leads', currentSource], (oldData) => {
+        if (!oldData) return oldData;
+        
+        // Handle both array and object data structures
+        const leads = Array.isArray(oldData) ? oldData : oldData.leads || [];
+        
+        const updatedLeads = leads.map(lead => {
+          if (lead.id === commentingLead.id) {
+            return {
+              ...lead,
+              notes: [{
+                id: response.id,
+                note: commentText,
+                content: commentText,
+                createdAt: new Date().toISOString()
+              }],
+              commenti: commentText
+            };
+          }
+          return lead;
+        });
 
-      // Cerrar el modal
+        // Return the data in the same structure as it was received
+        return Array.isArray(oldData) ? updatedLeads : { ...oldData, leads: updatedLeads };
+      });
+
+      // Close the modal
       setIsCommentModalOpen(false);
       setCommentingLead(null);
+      setCommentText("");
 
       toast({
         title: "Commento salvato",
@@ -514,19 +618,29 @@ export default function LeadsAgenti() {
             </div>
             <div className="flex gap-2 mb-8 md:mb-0">
               {selectedLeads.length > 0 && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => setIsMultiDeleteDialogOpen(true)}
-                  className="rounded-xl"
-                  disabled={bulkDeleteMutation.isPending}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Elimina ({selectedLeads.length})
-                </Button>
+                <>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setIsMultiDeleteDialogOpen(true)}
+                    className="rounded-xl"
+                    disabled={bulkDeleteMutation.isPending}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Elimina ({selectedLeads.length})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={exportSelectedToExcel}
+                    className="rounded-xl flex items-center gap-1"
+                  >
+                    <Icons.fileArrowDown className="h-4 w-4" />
+                    Esporta Selezionati ({selectedLeads.length})
+                  </Button>
+                </>
               )}
 
-              {/* Aquí agregamos el botón “Esporta Excel” */}
               <Button
                 variant="outline"
                 size="sm"
@@ -695,7 +809,7 @@ export default function LeadsAgenti() {
                                 <td className="py-3 px-4">{lead.tipoContratto || "-"}</td>
                                 <td className="py-3 px-4">{lead.provinciaResidenza || "-"}</td>
                                 <td className="py-3 px-4">{lead.meseAnnoAssunzione || "-"}</td>
-                                <td className="py-3 px-4">{lead.numeroDipendenti || "-"}</td>
+                                <td className="py-3 px-4">{lead.numeroDipendenti !== null && lead.numeroDipendenti !== undefined ? lead.numeroDipendenti : "-"}</td>
                               </>
                             )}
 
@@ -754,11 +868,12 @@ export default function LeadsAgenti() {
                             <td className="text-right">
                               <Button
                                 variant="default"
+                                disabled={true}
                                 size="sm"
                                 onClick={() => navigate('/client-type')}
                                 className=" text-white hover:text-white rounded-xl mx-10"
                               >
-                                Richiedi Documenti
+                                Richiedi Documenti (in arrivo)
                                 <ArrowRight className="h-4 w-4" />
                               </Button>
                             </td>

@@ -37,6 +37,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { API_BASE_URL, API_ENDPOINTS, getApiUrl } from '@/config';
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 // AIQuinto specific tabs
 const AIQUINTO_TABS = {
@@ -61,13 +63,26 @@ const LEAD_SOURCES = [
 // Comment preview component with dialog to view full comment
 const CommentViewerCell = ({ lead }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const hasComment = lead.commenti && lead.commenti.trim() !== "";
+  
+  // Get the comment from either notes array, comments array, or commenti field
+  const getComment = () => {
+    if (lead.notes && lead.notes.length > 0) {
+      return lead.notes[0].note || lead.notes[0].content;
+    }
+    if (lead.comments && lead.comments.length > 0) {
+      return lead.comments[0].text;
+    }
+    return lead.commenti || '';
+  };
+
+  const comment = getComment();
+  const hasComment = comment && comment.trim() !== "";
   
   return (
     <>
       <div className="flex items-center justify-between gap-2">
         <div className={`max-w-[200px] truncate ${!hasComment ? "text-gray-400" : ""}`}>
-          {hasComment ? lead.commenti : "-"}
+          {hasComment ? comment : "-"}
         </div>
         <Button 
           variant="ghost" 
@@ -94,7 +109,7 @@ const CommentViewerCell = ({ lead }) => {
             </DialogDescription>
           </DialogHeader>
           <div className="bg-gray-50 p-4 rounded-lg text-base mt-2 whitespace-pre-wrap max-h-[300px] overflow-y-auto">
-            {lead.commenti}
+            {comment}
           </div>
         </DialogContent>
       </Dialog>
@@ -116,7 +131,7 @@ const fetchAllAgentLeads = async (user, source) => {
     const token = await auth.currentUser.getIdToken(true);
     
     // Fetch leads from API
-    const response = await fetch(getApiUrl(`${API_ENDPOINTS.LEADS}/admin-leads?source=${source}`), {
+    const response = await fetch(getApiUrl(`${API_ENDPOINTS.LEADS}/admin/all?source=${source}`), {
       headers: {
         "Authorization": `Bearer ${token}`
       }
@@ -574,6 +589,26 @@ export default function AdminLeads() {
       } else {
         plainLead.commenti = '';
       }
+
+      // Process message field if it exists and is a JSON string
+      if (plainLead.message && typeof plainLead.message === 'string') {
+        try {
+          const messageData = JSON.parse(plainLead.message);
+          // Map pensionati specific fields
+          if (messageData.pensioneNetta) {
+            plainLead.details = {
+              ...plainLead.details,
+              netSalary: messageData.pensioneNetta,
+              employeeType: 'Pensionato',
+              requestedAmount: messageData.pensionAmount || null,
+              residenceProvince: messageData.province || null,
+              financingPurpose: messageData.scopoRichiesta || null
+            };
+          }
+        } catch (e) {
+          console.error('Error parsing lead message:', e);
+        }
+      }
       
       return plainLead;
     } catch (err) {
@@ -679,6 +714,136 @@ export default function AdminLeads() {
     setIsDeleteDialogOpen(false);
   };
 
+  const exportToExcel = () => {
+    const rows = filteredLeads.map((lead) => {
+      const base = {
+        Data: new Date(lead.createdAt).toLocaleDateString('it-IT'),
+        Agente: lead.agentName || "Non assegnato",
+        Nome: lead.firstName || "",
+        Cognome: lead.lastName || "",
+        Mail: lead.email || "",
+        Telefono: lead.phone || "",
+        Privacy: lead.privacyAccettata ? "Sì" : "No",
+        Stato: STATUS_OPTIONS.find((opt) => opt.value === lead.status)?.label || lead.status,
+        Commenti: lead.commenti || ""
+      };
+
+      if (currentSource === "aiquinto") {
+        return {
+          ...base,
+          "Importo Richiesto": lead.details?.requestedAmount || "",
+          "Stipendio Netto": lead.details?.netSalary || "",
+          Tipologia: lead.details?.employeeType || "",
+          Sottotipo: lead.details?.employmentSubtype || "",
+          "Tipo Contratto": lead.details?.contractType || "",
+          "Provincia Residenza": lead.details?.residenceProvince || "",
+          "Mese/Anno Assunzione": lead.details?.employmentDate || "",
+          "Numero Dipendenti": lead.details?.employeeCount || ""
+        };
+      } else if (currentSource === "aimedici") {
+        return {
+          ...base,
+          "Importo Richiesto": lead.details?.requestedAmount || "",
+          "Scopo Richiesta": lead.details?.financingPurpose || "",
+          "Città Residenza": lead.details?.residenceCity || "",
+          "Provincia Residenza": lead.details?.residenceProvince || ""
+        };
+      } else if (currentSource === "aifidi") {
+        return {
+          ...base,
+          "Nome Azienda": lead.details?.companyName || "",
+          "Scopo Finanziamento": lead.details?.financingPurpose || "",
+          "Città Sede Legale": lead.details?.legalCity || "",
+          "Città Sede Operativa": lead.details?.operationalCity || "",
+          "Importo Richiesto": lead.details?.requestedAmount || ""
+        };
+      } else {
+        return base;
+      }
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(rows, { origin: "A1" });
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
+
+    const wbout = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([wbout], { type: "application/octet-stream" });
+
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    const filename = `admin_leads_${currentSource}_${yyyy}${mm}${dd}.xlsx`;
+
+    saveAs(blob, filename);
+  };
+
+  const exportSelectedToExcel = () => {
+    const selectedLeadsData = filteredLeads.filter(lead => selectedLeads.includes(lead.id));
+    
+    const rows = selectedLeadsData.map((lead) => {
+      const base = {
+        Data: new Date(lead.createdAt).toLocaleDateString('it-IT'),
+        Agente: lead.agentName || "Non assegnato",
+        Nome: lead.firstName || "",
+        Cognome: lead.lastName || "",
+        Mail: lead.email || "",
+        Telefono: lead.phone || "",
+        Privacy: lead.privacyAccettata ? "Sì" : "No",
+        Stato: STATUS_OPTIONS.find((opt) => opt.value === lead.status)?.label || lead.status,
+        Commenti: lead.commenti || ""
+      };
+
+      if (currentSource === "aiquinto") {
+        return {
+          ...base,
+          "Importo Richiesto": lead.details?.requestedAmount || "",
+          "Stipendio Netto": lead.details?.netSalary || "",
+          Tipologia: lead.details?.employeeType || "",
+          Sottotipo: lead.details?.employmentSubtype || "",
+          "Tipo Contratto": lead.details?.contractType || "",
+          "Provincia Residenza": lead.details?.residenceProvince || "",
+          "Mese/Anno Assunzione": lead.details?.employmentDate || "",
+          "Numero Dipendenti": lead.details?.employeeCount || ""
+        };
+      } else if (currentSource === "aimedici") {
+        return {
+          ...base,
+          "Importo Richiesto": lead.details?.requestedAmount || "",
+          "Scopo Richiesta": lead.details?.financingPurpose || "",
+          "Città Residenza": lead.details?.residenceCity || "",
+          "Provincia Residenza": lead.details?.residenceProvince || ""
+        };
+      } else if (currentSource === "aifidi") {
+        return {
+          ...base,
+          "Nome Azienda": lead.details?.companyName || "",
+          "Scopo Finanziamento": lead.details?.financingPurpose || "",
+          "Città Sede Legale": lead.details?.legalCity || "",
+          "Città Sede Operativa": lead.details?.operationalCity || "",
+          "Importo Richiesto": lead.details?.requestedAmount || ""
+        };
+      } else {
+        return base;
+      }
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(rows, { origin: "A1" });
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Selected Leads");
+
+    const wbout = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([wbout], { type: "application/octet-stream" });
+
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    const filename = `admin_selected_leads_${currentSource}_${yyyy}${mm}${dd}.xlsx`;
+
+    saveAs(blob, filename);
+  };
+
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-gray-50 p-4">
       <Card className="w-full max-w-6xl shadow-lg mt-16">
@@ -692,16 +857,36 @@ export default function AdminLeads() {
             </div>
             <div className="flex gap-2 mb-8 md:mb-0 items-center">
               {selectedLeads.length > 0 && (
-                <Button 
-                  variant="destructive" 
-                  size="sm"
-                  className="rounded-xl"
-                  onClick={() => setIsDeleteDialogOpen(true)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Elimina ({selectedLeads.length})
-                </Button>
+                <>
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    className="rounded-xl"
+                    onClick={() => setIsDeleteDialogOpen(true)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Elimina ({selectedLeads.length})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={exportSelectedToExcel}
+                    className="rounded-xl flex items-center gap-1"
+                  >
+                    <Icons.fileArrowDown className="h-4 w-4" />
+                    Esporta Selezionati ({selectedLeads.length})
+                  </Button>
+                </>
               )}
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={exportToExcel}
+                className="rounded-xl flex items-center gap-1"
+              >
+                <Icons.fileArrowDown className="h-4 w-4" />
+                Esporta Excel
+              </Button>
               <Button 
                 variant="outline" 
                 size="sm"

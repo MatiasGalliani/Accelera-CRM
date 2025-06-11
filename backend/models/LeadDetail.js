@@ -27,6 +27,11 @@ const LeadDetail = sequelize.define('LeadDetail', {
     allowNull: true,
     field: 'employee_type'
   },
+  secondarySelection: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    field: 'secondary_selection'
+  },
   contractType: {
     type: DataTypes.STRING(50),
     allowNull: true,
@@ -81,6 +86,16 @@ const LeadDetail = sequelize.define('LeadDetail', {
     type: DataTypes.STRING(100),
     allowNull: true,
     field: 'operational_city'
+  },
+  pensionAuthority: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    field: 'pension_authority'
+  },
+  pensionType: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    field: 'pension_type'
   }
 }, {
   timestamps: true,

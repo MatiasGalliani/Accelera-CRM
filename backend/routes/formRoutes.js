@@ -22,20 +22,20 @@ router.post('/dipendente', async (req, res) => {
       lastName: data.cognome || '',
       email: data.mail,
       phone: data.telefono || '',
-
-      // Persist the full original payload as message for reference / audit
       message: JSON.stringify(data),
+      privacyAccettata: data.privacyAccepted || false,
 
-      // Detail fields used by AIQuinto in our DB
+      // Map the fields correctly
       importoRichiesto: data.amountRequested || null,
       stipendioNetto: data.netSalary || null,
       tipologiaDipendente: data.depType || 'Dipendente',
       sottotipo: data.secondarySelection || null,
       tipoContratto: data.contractType || null,
       provinciaResidenza: data.province || null,
-      employmentDate: data.employmentDate || null,
-      numEmployees: data.numEmployees ? parseInt(data.numEmployees) : null,
-      birthDate: data.birthDate || null
+      meseAnnoAssunzione: data.employmentDate || null,
+      numeroDipendenti: data.numEmployees || null,
+      dataNascita: data.birthDate || null,
+      cittaResidenza: data.residenceCity || null
     };
 
     const lead = await createLead(leadData);
@@ -138,6 +138,53 @@ router.post('/aifidi', async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating AIFidi lead:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating lead',
+      error: error.message
+    });
+  }
+});
+
+// POST /api/forms/pensionato
+router.post('/pensionato', async (req, res) => {
+  try {
+    const data = req.body;
+    console.log('Received pensionato form data:', data);
+
+    // Build the lead payload expected by leadService.createLead
+    const leadData = {
+      source: 'aiquinto',
+      firstName: data.nome || '',
+      lastName: data.cognome || '',
+      email: data.mail,
+      phone: data.telefono || '',
+      message: JSON.stringify(data),
+      privacyAccettata: data.privacyAccepted || false,
+      
+      // Map the fields correctly for pensionato
+      importoRichiesto: data.pensionAmount || null,
+      stipendioNetto: data.pensioneNetta || null,
+      tipologiaDipendente: 'Pensionato',
+      provinciaResidenza: data.province || null,
+      dataNascita: data.birthDate || null,
+      entePensionistico: data.entePensionistico || null,
+      tipoPensione: data.pensioneType || null
+    };
+
+    console.log('Processed lead data:', leadData);
+
+    // Create the lead using the round robin service
+    const lead = await createLead(leadData);
+
+    // Return success response
+    res.status(201).json({
+      success: true,
+      message: 'Lead created successfully',
+      data: lead
+    });
+  } catch (error) {
+    console.error('Error creating pensionato lead:', error);
     res.status(500).json({
       success: false,
       message: 'Error creating lead',

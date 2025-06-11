@@ -11,6 +11,7 @@ import leadRoutes from './routes/leadRoutes.js';
 import agentRoutes from './routes/agentRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import formRoutes from './routes/formRoutes.js';
+import emailRoutes from './routes/emailRoutes.js';
 import cors from 'cors';
 
 // Load environment variables from .env file
@@ -34,7 +35,20 @@ const app = express();
 app.use(bodyParser.json());
 // CORS: allow all origins with all necessary headers
 app.use(cors({
-  origin: 'https://accelera.creditplan.it',
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      'https://accelera.creditplan.it',
+      'http://localhost:5173',
+      'http://localhost:3000'
+    ];
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
     'Content-Type',
@@ -56,6 +70,13 @@ app.use(cors({
   preflightContinue: false,
   optionsSuccessStatus: 204
 }));
+
+// Mount routes
+app.use('/api/leads', leadRoutes);
+app.use('/api/agents', agentRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/forms', formRoutes);
+app.use('/api/email', emailRoutes);
 
 // Add API key verification middleware
 const verifyApiKey = (req, res, next) => {
@@ -1240,6 +1261,7 @@ app.use('/api/leads', leadRoutes);
 app.use('/api/agents', agentRoutes);
 app.use('/api', authRoutes);
 app.use('/api/forms', formRoutes);
+app.use('/api/email', emailRoutes);
 
 // Add health check endpoint
 app.get('/health', (req, res) => {

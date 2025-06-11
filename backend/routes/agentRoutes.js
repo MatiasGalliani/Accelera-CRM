@@ -2,6 +2,7 @@ import express from 'express';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 import { Agent, AgentLeadSource } from '../models/leads-index.js';
 import admin from 'firebase-admin';
+import { Op } from 'sequelize';
 
 const router = express.Router();
 
@@ -22,8 +23,9 @@ router.get('/', authenticate, requireAdmin, async (req, res) => {
 
 // POST /api/agents - Create a new agent
 router.post('/', authenticate, requireAdmin, async (req, res) => {
-  const { email, password, firstName, lastName, role } = req.body;
+  const { email, password, firstName, lastName, role, phone, calendlyUrl } = req.body;
 
+  const transaction = await Agent.sequelize.transaction();
   try {
     console.log(`Creating new agent: ${email} with role: ${role}`);
     
@@ -43,35 +45,40 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
       firstName,
       lastName,
       role,
+      phone: phone || null,
+      calendlyUrl: calendlyUrl || null,
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
     
     console.log(`Firestore agent record created with ID: ${agentRef.id}`);
-    
-    // Double-check that the agent document was created with the correct UID
-    const agentDoc = await agentRef.get();
-    if (agentDoc.exists) {
-      console.log(`Agent document verified: ${JSON.stringify(agentDoc.data())}`);
-    } else {
-      console.error(`Failed to verify agent document after creation`);
-    }
 
-    const newAgent = {
+    // Create agent in PostgreSQL
+    const newAgent = await Agent.create({
+      firebaseUid: userRecord.uid,
+      email,
+      firstName,
+      lastName,
+      role,
+      phone: phone || null,
+      calendlyUrl: calendlyUrl || null,
+      isActive: true
+    }, { transaction });
+
+    await transaction.commit();
+
+    res.status(201).json({
       id: agentRef.id,
       uid: userRecord.uid,
       email,
       firstName,
       lastName,
-      role
-    };
-    
-    // If the agent is created with admin role, log that clearly
-    if (role === 'admin') {
-      console.log(`NEW ADMIN ACCOUNT CREATED: ${email} (${userRecord.uid})`);
-    }
-
-    res.status(201).json(newAgent);
+      role,
+      phone: phone || null,
+      calendlyUrl: calendlyUrl || null,
+      dbId: newAgent.id
+    });
   } catch (err) {
+    await transaction.rollback();
     console.error('Error creating agent:', err);
     res.status(500).json({ message: 'Server error' });
   }
@@ -97,8 +104,13 @@ router.get('/:id', authenticate, async (req, res) => {
 
 // DELETE /api/agents/:id - Delete an agent
 router.delete('/:id', authenticate, requireAdmin, async (req, res) => {
+  const transaction = await sequelize.transaction();
+  
   try {
     const agentId = req.params.id;
+    console.log(`Starting complete deletion of agent ${agentId}`);
+    
+    // 1. Get the agent document from Firestore
     const agentDoc = await admin.firestore().collection('agents').doc(agentId).get();
     
     if (!agentDoc.exists) {
@@ -106,14 +118,80 @@ router.delete('/:id', authenticate, requireAdmin, async (req, res) => {
     }
 
     const agentData = agentDoc.data();
+    console.log(`Found agent data:`, agentData);
     
-    // Delete from Firestore
+    // 2. Delete from Firebase Auth
+    try {
+      if (agentData.uid) {
+        await admin.auth().deleteUser(agentData.uid);
+        console.log(`Firebase Auth user ${agentData.uid} deleted successfully`);
+      } else {
+        console.log('No Firebase UID found for this agent');
+      }
+    } catch (firebaseError) {
+      console.error('Error deleting Firebase Auth user:', firebaseError);
+      // If the user doesn't exist in Firebase Auth, that's okay - continue with other deletions
+      if (firebaseError.code !== 'auth/user-not-found') {
+        throw firebaseError;
+      }
+    }
+    
+    // 3. Delete from Firestore
     await admin.firestore().collection('agents').doc(agentId).delete();
+    console.log(`Firestore agent document ${agentId} deleted successfully`);
     
-    res.status(200).json({ message: 'Agente eliminato' });
+    // 4. Delete from PostgreSQL and related tables
+    // First find the agent in PostgreSQL by both ID and Firebase UID
+    const pgAgent = await Agent.findOne({
+      where: {
+        [Op.or]: [
+          { firebaseUid: agentData.uid },
+          { id: agentId }
+        ]
+      },
+      transaction
+    });
+    
+    if (pgAgent) {
+      // Delete related data first
+      await AgentLeadSource.destroy({
+        where: { agentId: pgAgent.id },
+        transaction
+      });
+      console.log(`Deleted lead sources for agent ${pgAgent.id}`);
+      
+      await AgentPage.destroy({
+        where: { agentId: pgAgent.id },
+        transaction
+      });
+      console.log(`Deleted page permissions for agent ${pgAgent.id}`);
+      
+      // Finally delete the agent
+      await pgAgent.destroy({ transaction });
+      console.log(`Deleted PostgreSQL agent record ${pgAgent.id}`);
+    } else {
+      console.log(`No PostgreSQL record found for agent ${agentId}`);
+    }
+    
+    // Commit the transaction
+    await transaction.commit();
+    
+    res.status(200).json({ 
+      message: 'Agente eliminato con successo da tutti i sistemi',
+      deletedFrom: {
+        firebaseAuth: true,
+        firestore: true,
+        postgresql: !!pgAgent
+      }
+    });
   } catch (err) {
-    console.error('Error deleting agent:', err);
-    res.status(500).json({ message: 'Server error' });
+    // Rollback the transaction on error
+    await transaction.rollback();
+    console.error('Error in complete agent deletion:', err);
+    res.status(500).json({ 
+      message: 'Errore durante l\'eliminazione dell\'agente',
+      error: err.message
+    });
   }
 });
 

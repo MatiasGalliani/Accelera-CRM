@@ -1,10 +1,11 @@
 import React, { useEffect } from "react";
 import { useForm, FormProvider } from "react-hook-form"
-import { Outlet, useNavigation } from "react-router-dom"
+import { Outlet, useNavigation, Routes, Route } from "react-router-dom"
 import { QueryClient, QueryClientProvider, useIsFetching } from "@tanstack/react-query"
 import SidePanel from "./components/SidePanel"
 import MobileHeader from "./components/MobileHeader"
 import { useAuth } from "@/auth/AuthContext"
+import EmailCreation from './components/Company_Side/EmailCreation';
 
 // Create a client
 const queryClient = new QueryClient({

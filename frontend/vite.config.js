@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 // This matches the Railway CRM_BASE_URL exactly
-const TARGET_URL = 'https://accelera-crm-production.up.railway.app';
+const TARGET_URL = 'http://localhost:3001';
 
 export default defineConfig({
   plugins: [react()],
@@ -20,7 +20,7 @@ export default defineConfig({
       '/api': {
         target: TARGET_URL,
         changeOrigin: true,
-        secure: true,
+        secure: false,
         rewrite: (path) => path,
         configure: (proxy, options) => {
           proxy.on('error', (err, req, res) => {

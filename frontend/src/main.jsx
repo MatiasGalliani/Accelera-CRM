@@ -26,6 +26,10 @@ import AgentOnlyRoute from "./components/Company_Side/AgentOnlyRoute"
 import CampaignManagerRoute from "./components/Company_Side/CampaignManagerRoute"
 import CampaignManagerLeads from "./components/Company_Side/CampaignManagerLeads"
 import EugenioChat from "./components/Company_Side/EugenioChat"
+import EmailCreation from "./components/Company_Side/EmailCreation"
+import EmailMarketing from "./components/Company_Side/EmailMarketing"
+import AutomaticEmailCreation from "./components/Company_Side/AutomaticEmailCreation"
+import Settings from "./components/Company_Side/Settings"
 
 // Define routes using createBrowserRouter
 const router = createBrowserRouter([
@@ -43,6 +47,7 @@ const router = createBrowserRouter([
       { path: "review", element: <PrivateRoute><Review /></PrivateRoute> },
       { path: "success", element: <PrivateRoute><Success /></PrivateRoute> },
       { path: "eugenio-chat", element: <PrivateRoute><EugenioChat /></PrivateRoute> },
+      { path: "settings", element: <PrivateRoute><Settings /></PrivateRoute> },
       {
         path: "agent",
         element: <AgentOnlyRoute />,
@@ -56,6 +61,9 @@ const router = createBrowserRouter([
           { path: "users", element: <Agents /> },
           { path: "admin-leads", element: <AdminLeads /> },
           { path: "admin-cases", element: <AdminCases /> },
+          { path: "email-marketing", element: <EmailMarketing /> },
+          { path: "email-marketing/create", element: <EmailCreation /> },
+          { path: "email-marketing/automatic-mails", element: <AutomaticEmailCreation /> },
         ],
       },
       {

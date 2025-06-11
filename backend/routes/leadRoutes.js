@@ -154,15 +154,59 @@ router.get('/admin/all', authenticate, requireAdmin, async (req, res) => {
       where: filter,
       include: [
         { model: LeadDetail, as: 'details' },
-        { model: Agent, as: 'assignedAgent' }
+        { model: Agent, as: 'assignedAgent' },
+        {
+          model: LeadNote,
+          as: 'notes',
+          limit: 100,
+          order: [['created_at', 'DESC']],
+          required: false
+        }
       ],
       order: [['created_at', 'DESC']],
       limit,
       offset
     });
     
+    // Process leads to include agent name and comments
+    const processedLeads = leads.map(lead => {
+      try {
+        const plainLead = lead.get ? lead.get({ plain: true }) : lead;
+        
+        // Add agent name for display
+        if (plainLead.assignedAgent) {
+          plainLead.agentName = `${plainLead.assignedAgent.firstName || ''} ${plainLead.assignedAgent.lastName || ''}`.trim();
+        }
+        
+        // Merge the latest note/comment into the lead object for display
+        if (plainLead.notes && plainLead.notes.length > 0) {
+          plainLead.commenti = plainLead.notes[0].note;
+          // Also set content field for backward compatibility
+          plainLead.notes.forEach(note => {
+            note.content = note.note;
+          });
+        } else {
+          plainLead.commenti = '';
+        }
+        
+        return plainLead;
+      } catch (err) {
+        console.error('Error processing lead:', err);
+        return {
+          id: lead.id,
+          source: lead.source,
+          firstName: lead.firstName || 'Error',
+          lastName: lead.lastName || 'Processing',
+          email: lead.email || '-',
+          status: lead.status || 'unknown',
+          createdAt: lead.created_at || lead.createdAt || new Date().toISOString(),
+          commenti: 'Error processing lead data'
+        };
+      }
+    });
+    
     res.json({
-      leads,
+      leads: processedLeads,
       total: count,
       page,
       totalPages: Math.ceil(count / limit)

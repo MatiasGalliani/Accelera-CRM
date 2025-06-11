@@ -6,6 +6,8 @@ import {
   Menu,
   X,
   LogOut,
+  Settings,
+  Loader2,
 } from "lucide-react"
 import {
   Brain,
@@ -21,6 +23,8 @@ import {
   OpenAiLogo,
   Sparkle,
   FileArrowDown,
+  EnvelopeSimple,
+  Gear,
 } from "@phosphor-icons/react"
 
 export const Icons = {
@@ -44,4 +48,8 @@ export const Icons = {
   sparkle: Sparkle,
   chat: Sparkle,
   fileArrowDown: FileArrowDown,
+  envelopeSimple: EnvelopeSimple,
+  cog: Settings,
+  gear: Gear,
+  spinner: Loader2,
 } 

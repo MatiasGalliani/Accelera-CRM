@@ -2,6 +2,7 @@ import { Lead, LeadDetail, LeadNote, LeadStatusHistory, Agent, AgentLeadSource }
 import sequelize from '../config/database.js';
 import { Op } from 'sequelize';
 import roundRobinService from './roundRobinService.js';
+import emailService from './emailService.js';
 
 
 /**
@@ -23,6 +24,7 @@ export async function createLead(leadData) {
     // Si se proporcionó un agentId específico, lo usamos
     // Si no, obtenemos uno usando el round robin
     let assignedAgentId = leadData.agentId;
+    let assignedAgent = null;
     
     if (!assignedAgentId) {
       // Obtener un agente usando el sistema round robin
@@ -34,7 +36,11 @@ export async function createLead(leadData) {
         assignedAgentId = null; // Set to null to indicate unassigned
       } else {
         assignedAgentId = agent.id;
+        assignedAgent = agent;
       }
+    } else {
+      // If we have a specific agentId, get the agent details
+      assignedAgent = await Agent.findByPk(assignedAgentId, { transaction });
     }
     
     // Crear el lead básico con el agente asignado (o null si no hay agentes)
@@ -46,7 +52,8 @@ export async function createLead(leadData) {
       phone: leadData.phone || '',
       message: leadData.message || '',
       status: 'new',
-      assignedAgentId  // Will be null if unassigned
+      assignedAgentId,  // Will be null if unassigned
+      privacyAccettata: leadData.privacyAccepted || false
     }, { transaction });
     
     // Crear detalles específicos según la fuente
@@ -113,6 +120,17 @@ export async function createLead(leadData) {
         { model: Agent, as: 'assignedAgent' }
       ]
     });
+
+    // Send email notification if the lead was assigned to an agent
+    if (assignedAgent) {
+      try {
+        await emailService.sendLeadNotificationEmail(completeLead, assignedAgent);
+        console.log(`Email notification sent to agent ${assignedAgent.email} for lead ${lead.id}`);
+      } catch (emailError) {
+        // Log the error but don't fail the lead creation
+        console.error('Failed to send email notification:', emailError);
+      }
+    }
     
     return completeLead;
   } catch (error) {
@@ -257,18 +275,21 @@ export async function assignLeadToAgent(leadId, source, transaction) {
  */
 export async function getAgentLeads(firebaseUid, source) {
   try {
-    console.log(`Obteniendo leads para el agente ${firebaseUid}`);
+    console.log(`Getting leads for agent ${firebaseUid} from source ${source}`);
     
-    // Obtener el ID del agente en PostgreSQL
+    // Get the agent's ID in PostgreSQL
     const agent = await Agent.findOne({
       where: { firebaseUid }
     });
     
     if (!agent) {
-      throw new Error('Agente no encontrado');
+      console.log(`Agent not found for firebaseUid ${firebaseUid}`);
+      throw new Error('Agente non trovato');
     }
     
-    // Verificar si el agente tiene permiso para ver leads de esta fuente
+    console.log(`Found agent with ID ${agent.id}`);
+    
+    // Check if the agent has permission to view leads from this source
     if (source && source !== 'all') {
       const hasPermission = await AgentLeadSource.findOne({
         where: {
@@ -278,11 +299,14 @@ export async function getAgentLeads(firebaseUid, source) {
       });
       
       if (!hasPermission) {
+        console.log(`Agent ${agent.id} does not have permission for source ${source}`);
         throw new Error(`No tienes permiso para ver leads de ${source}`);
       }
+      
+      console.log(`Agent ${agent.id} has permission for source ${source}`);
     }
     
-    // Construir el filtro según los parámetros
+    // Build the filter based on parameters
     const filter = {
       assignedAgentId: agent.id
     };
@@ -291,7 +315,9 @@ export async function getAgentLeads(firebaseUid, source) {
       filter.source = source;
     }
     
-    // Consultar los leads con sus detalles
+    console.log('Querying leads with filter:', filter);
+    
+    // Query the leads with their details
     const leads = await Lead.findAll({
       where: filter,
       include: [
@@ -312,10 +338,15 @@ export async function getAgentLeads(firebaseUid, source) {
       order: [['created_at', 'DESC']]
     });
     
-    // Serializar los leads para que sea más fácil usarlos en el frontend
-    return serializeLeads(leads);
+    console.log(`Found ${leads.length} leads for agent ${agent.id}`);
+    
+    // Serialize the leads for easier use in the frontend
+    const serializedLeads = serializeLeads(leads);
+    console.log('Serialized leads:', serializedLeads);
+    
+    return serializedLeads;
   } catch (error) {
-    console.error('Error al obtener leads del agente:', error);
+    console.error('Error getting agent leads:', error);
     throw error;
   }
 }
@@ -350,7 +381,11 @@ function serializeLeads(leads) {
     // Map fields from details to main lead object
     if (serializedLead.details) {
       Object.entries(detailFieldMap).forEach(([dbField, frontendField]) => {
-        if (serializedLead.details[dbField] !== null && serializedLead.details[dbField] !== undefined) {
+        if (dbField === 'numEmployees') {
+          // For numEmployees, we want to preserve 0 as a valid value
+          serializedLead[frontendField] = serializedLead.details[dbField] !== null && serializedLead.details[dbField] !== undefined ? 
+            serializedLead.details[dbField] : null;
+        } else if (serializedLead.details[dbField] !== null && serializedLead.details[dbField] !== undefined) {
           serializedLead[frontendField] = serializedLead.details[dbField];
         } else {
           serializedLead[frontendField] = '-';
@@ -358,21 +393,30 @@ function serializeLeads(leads) {
       });
       delete serializedLead.details;
     } else {
-      // If no details exist, set all fields to '-'
-      Object.values(detailFieldMap).forEach(field => {
-        serializedLead[field] = '-';
+      // If no details exist, set all fields to '-' except numEmployees
+      Object.entries(detailFieldMap).forEach(([dbField, frontendField]) => {
+        serializedLead[frontendField] = dbField === 'numEmployees' ? null : '-';
       });
     }
 
-    // Convert notes to comments if they exist
+    // Keep both notes and comments arrays for backward compatibility
     if (serializedLead.notes) {
+      // Keep the original notes array
+      serializedLead.notes = serializedLead.notes.map(note => ({
+        id: note.id,
+        note: note.note,
+        content: note.note, // Add content field for backward compatibility
+        createdAt: note.createdAt,
+        updatedAt: note.updatedAt
+      }));
+
+      // Also create the comments array
       serializedLead.comments = serializedLead.notes.map(note => ({
         id: note.id,
         text: note.note,
         createdAt: note.createdAt,
         updatedAt: note.updatedAt
       }));
-      delete serializedLead.notes;
     }
 
     // Ensure privacyAccettata is a boolean

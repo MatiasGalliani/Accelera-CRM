@@ -149,4 +149,55 @@ router.get('/firebase-users', authenticate, async (req, res) => {
   }
 });
 
+// POST /api/users/:uid/password - Change user password
+router.post('/:uid/password', authenticate, async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const { password } = req.body;
+
+    if (!password) {
+      console.error('No password provided in request');
+      return res.status(400).json({ error: 'Password is required' });
+    }
+
+    console.log(`Attempting to change password for user ${uid}`);
+
+    // Verify the user is changing their own password or is an admin
+    const agent = await Agent.findOne({
+      where: { firebaseUid: req.user.uid }
+    });
+
+    if (!agent) {
+      console.error(`Agent not found for UID: ${req.user.uid}`);
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Only allow users to change their own password or admins to change any password
+    if (req.user.uid !== uid && agent.role !== 'admin') {
+      console.error(`Unauthorized password change attempt: ${req.user.uid} tried to change ${uid}'s password`);
+      return res.status(403).json({ error: 'Unauthorized to change this password' });
+    }
+
+    console.log(`Updating password for user ${uid}`);
+    
+    // Update the password in Firebase Auth
+    await admin.auth().updateUser(uid, {
+      password: password
+    });
+
+    console.log(`Password updated successfully for user ${uid}`);
+    res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    // Check for specific Firebase Auth errors
+    if (error.code === 'auth/invalid-password') {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+    if (error.code === 'auth/user-not-found') {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.status(500).json({ error: error.message || 'Server error' });
+  }
+});
+
 export default router; 

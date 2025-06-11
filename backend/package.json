@@ -22,9 +22,10 @@
     "express": "^5.1.0",
     "firebase-admin": "^13.3.0",
     "node-fetch": "^2.7.0",
-    "pg": "^8.15.6",
+    "nodemailer": "^7.0.3",
+    "pg": "^8.16.0",
     "pg-hstore": "^2.3.4",
-    "resend": "^4.5.1",
+    "resend": "^4.5.2",
     "sequelize": "^6.37.7"
   },
   "devDependencies": {
