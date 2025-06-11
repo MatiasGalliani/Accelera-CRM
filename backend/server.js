@@ -13,6 +13,7 @@ import authRoutes from './routes/authRoutes.js';
 import formRoutes from './routes/formRoutes.js';
 import emailRoutes from './routes/emailRoutes.js';
 import cors from 'cors';
+import os from 'os';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -32,10 +33,28 @@ const log = (level, message, data = {}) => {
     level,
     message,
     ...data,
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    pid: process.pid,
+    uptime: process.uptime()
   };
   console.log(JSON.stringify(logEntry));
 };
+
+// Log process information at startup
+log(logLevels.INFO, 'Process starting', {
+  nodeVersion: process.version,
+  platform: process.platform,
+  arch: process.arch,
+  memory: {
+    total: `${Math.round(os.totalmem() / 1024 / 1024)} MB`,
+    free: `${Math.round(os.freemem() / 1024 / 1024)} MB`
+  },
+  cpus: os.cpus().length,
+  env: {
+    NODE_ENV: process.env.NODE_ENV,
+    PORT: process.env.PORT
+  }
+});
 
 // Initialize Firebase Admin SDK
 log(logLevels.INFO, 'Initializing Firebase Admin SDK');
@@ -909,7 +928,7 @@ app.get('/api/verify-admin/:email', authenticate, async (req, res) => {
 // Modify server startup
 const PORT = process.env.PORT || 4000;
 
-// Configure Sequelize connection pool
+// Configure Sequelize connection pool with enhanced logging
 sequelize.options.pool = {
   max: 2,
   min: 0,
@@ -917,13 +936,23 @@ sequelize.options.pool = {
   idle: 10000
 };
 
+log(logLevels.INFO, 'Database pool configured', {
+  max: sequelize.options.pool.max,
+  min: sequelize.options.pool.min,
+  acquire: sequelize.options.pool.acquire,
+  idle: sequelize.options.pool.idle
+});
+
 // Enhanced memory monitoring function
 function monitorMemory() {
   const used = process.memoryUsage();
-  const memoryData = {};
-  for (let key in used) {
-    memoryData[key] = `${Math.round(used[key] / 1024 / 1024 * 100) / 100} MB`;
-  }
+  const memoryData = {
+    heapUsed: `${Math.round(used.heapUsed / 1024 / 1024 * 100) / 100} MB`,
+    heapTotal: `${Math.round(used.heapTotal / 1024 / 1024 * 100) / 100} MB`,
+    rss: `${Math.round(used.rss / 1024 / 1024 * 100) / 100} MB`,
+    external: `${Math.round(used.external / 1024 / 1024 * 100) / 100} MB`,
+    arrayBuffers: `${Math.round(used.arrayBuffers / 1024 / 1024 * 100) / 100} MB`
+  };
   log(logLevels.INFO, 'Memory usage report', memoryData);
 }
 
@@ -933,13 +962,20 @@ sequelize.sync({ alter: true })
   .then(() => {
     log(logLevels.INFO, 'Database synchronized successfully');
     const server = app.listen(PORT, () => {
-      log(logLevels.INFO, `Server started successfully`, { port: PORT });
+      log(logLevels.INFO, `Server started successfully`, { 
+        port: PORT,
+        address: server.address()
+      });
       monitorMemory(); // Initial memory check
     });
     
     // Add server error handling
     server.on('error', (error) => {
-      log(logLevels.ERROR, 'Server error occurred', { error: error.message, stack: error.stack });
+      log(logLevels.ERROR, 'Server error occurred', { 
+        error: error.message, 
+        stack: error.stack,
+        code: error.code
+      });
     });
 
     // Add keep-alive configuration
@@ -951,7 +987,11 @@ sequelize.sync({ alter: true })
 
     // Add graceful shutdown with enhanced logging
     process.on('SIGTERM', async () => {
-      log(logLevels.INFO, 'Received SIGTERM signal. Starting graceful shutdown...');
+      log(logLevels.INFO, 'Received SIGTERM signal. Starting graceful shutdown...', {
+        uptime: process.uptime(),
+        memory: process.memoryUsage()
+      });
+      
       server.close(async () => {
         try {
           log(logLevels.INFO, 'HTTP server closed. Closing database connections...');
@@ -959,20 +999,41 @@ sequelize.sync({ alter: true })
           log(logLevels.INFO, 'Database connections closed successfully');
           process.exit(0);
         } catch (error) {
-          log(logLevels.ERROR, 'Error during shutdown', { error: error.message, stack: error.stack });
+          log(logLevels.ERROR, 'Error during shutdown', { 
+            error: error.message, 
+            stack: error.stack,
+            code: error.code
+          });
           process.exit(1);
         }
       });
     });
+
+    // Add SIGINT handler for local development
+    process.on('SIGINT', () => {
+      log(logLevels.INFO, 'Received SIGINT signal. Starting graceful shutdown...');
+      server.close(() => {
+        log(logLevels.INFO, 'Server closed. Exiting...');
+        process.exit(0);
+      });
+    });
   })
   .catch(err => {
-    log(logLevels.ERROR, 'Error syncing database', { error: err.message, stack: err.stack });
+    log(logLevels.ERROR, 'Error syncing database', { 
+      error: err.message, 
+      stack: err.stack,
+      code: err.code
+    });
     process.exit(1);
   });
 
 // Enhanced error handlers
 process.on('uncaughtException', (error) => {
-  log(logLevels.ERROR, 'Uncaught Exception', { error: error.message, stack: error.stack });
+  log(logLevels.ERROR, 'Uncaught Exception', { 
+    error: error.message, 
+    stack: error.stack,
+    code: error.code
+  });
   // Don't exit immediately, give time for cleanup
   setTimeout(() => process.exit(1), 1000);
 });
@@ -980,7 +1041,8 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason, promise) => {
   log(logLevels.ERROR, 'Unhandled Promise Rejection', { 
     reason: reason.message || reason,
-    stack: reason.stack
+    stack: reason.stack,
+    code: reason.code
   });
 });
 
