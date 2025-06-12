@@ -318,7 +318,109 @@ export async function sendClientNotificationEmail(lead, agent) {
   }
 }
 
+/**
+ * Sends a password reset email with a reset code
+ * @param {string} to - The recipient's email address
+ * @param {string} resetCode - The reset code to include in the email
+ * @returns {Promise<Object>} - Result of the email sending
+ */
+export async function sendPasswordResetEmail(to, resetCode) {
+  console.log(`[EmailService] Starting to send password reset email to: ${to}`);
+  
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'Maschera Per Noi <noreply@transactional.creditplan.it>',
+      to: to,
+      subject: 'Reset Password - App Documenti',
+      html: `
+        <!DOCTYPE html>
+        <html lang="it">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Reset Password</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              background-color: #f4f4f4; 
+              color: #333; 
+              margin: 0; 
+              padding: 0; 
+            }
+            .container { 
+              max-width: 600px; 
+              margin: 20px auto; 
+              background: #fff; 
+              padding: 20px; 
+              border-radius: 8px; 
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .header { 
+              background-color: #007bff; 
+              color: #fff; 
+              padding: 20px; 
+              text-align: center; 
+              border-radius: 6px 6px 0 0; 
+            }
+            .content { 
+              padding: 20px; 
+            }
+            .code {
+              background-color: #f5f5f5;
+              padding: 20px;
+              text-align: center;
+              font-size: 24px;
+              letter-spacing: 5px;
+              margin: 20px 0;
+              border-radius: 4px;
+            }
+            .footer { 
+              margin-top: 20px; 
+              font-size: 12px; 
+              text-align: center; 
+              color: #777; 
+              padding: 20px;
+              border-top: 1px solid #eee;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h2>Reset Password</h2>
+            </div>
+            <div class="content">
+              <p>Hai richiesto il reset della password. Usa il seguente codice per procedere:</p>
+              <div class="code">
+                <strong>${resetCode}</strong>
+              </div>
+              <p>Il codice è valido per 10 minuti.</p>
+              <p>Se non hai richiesto il reset della password, ignora questa email.</p>
+            </div>
+            <div class="footer">
+              <p>Questa è un'email automatica, non rispondere.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `
+    });
+
+    if (error) {
+      console.error('[EmailService] Error sending password reset email:', error);
+      throw error;
+    }
+
+    console.log('[EmailService] Password reset email sent successfully');
+    return data;
+  } catch (error) {
+    console.error('[EmailService] Error in sendPasswordResetEmail:', error);
+    throw error;
+  }
+}
+
 export default {
   sendLeadNotificationEmail,
-  sendClientNotificationEmail
+  sendClientNotificationEmail,
+  sendPasswordResetEmail
 }; 

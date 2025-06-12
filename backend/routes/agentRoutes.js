@@ -367,4 +367,37 @@ router.put('/:id/pages', authenticate, requireAdmin, async (req, res) => {
   }
 });
 
+// POST /api/agents/:uid/password - Change user password
+router.post('/:uid/password', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const { password } = req.body;
+
+    if (!password) {
+      console.error('No password provided in request');
+      return res.status(400).json({ error: 'Password is required' });
+    }
+
+    console.log(`Attempting to change password for user ${uid}`);
+
+    // Update the password in Firebase Auth
+    await admin.auth().updateUser(uid, {
+      password: password
+    });
+
+    console.log(`Password updated successfully for user ${uid}`);
+    res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    // Check for specific Firebase Auth errors
+    if (error.code === 'auth/invalid-password') {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+    if (error.code === 'auth/user-not-found') {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.status(500).json({ error: error.message || 'Server error' });
+  }
+});
+
 export default router; 

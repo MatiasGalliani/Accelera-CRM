@@ -14,6 +14,7 @@ import formRoutes from './routes/formRoutes.js';
 import emailRoutes from './routes/emailRoutes.js';
 import cors from 'cors';
 import os from 'os';
+import passwordResetRoutes from './routes/auth.js';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -123,6 +124,7 @@ app.use('/api/agents', agentRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/forms', formRoutes);
 app.use('/api/email', emailRoutes);
+app.use('/api/password-reset', passwordResetRoutes);
 
 // Add API key verification middleware
 const verifyApiKey = (req, res, next) => {
@@ -1356,6 +1358,7 @@ app.use('/api/agents', agentRoutes);
 app.use('/api', authRoutes);
 app.use('/api/forms', formRoutes);
 app.use('/api/email', emailRoutes);
+app.use('/api/password-reset', passwordResetRoutes);
 
 // Add health check endpoint
 app.get('/health', (req, res) => {
