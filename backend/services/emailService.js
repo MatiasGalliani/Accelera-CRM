@@ -249,8 +249,8 @@ export async function sendClientNotificationEmail(lead, agent) {
   
   try {
     const clientName = `${lead.firstName} ${lead.lastName}`.trim();
-    const agentName = agent ? agent.firstName : 'il nostro agente';
-    const agentPhone = agent ? agent.phone : '';
+    const agentName = agent ? `${agent.firstName} ${agent.lastName}` : 'il nostro agente';
+    const agentEmail = agent ? agent.email : '';
 
     const { data, error } = await resend.emails.send({
       from: getSenderEmail(lead.source),
@@ -284,7 +284,7 @@ export async function sendClientNotificationEmail(lead, agent) {
                 Il tuo agente assegnato è <strong>${agentName}</strong>.
               </p>
               <p style="margin-bottom: 1rem;">
-                Puoi contattarlo direttamente al numero <strong>${agentPhone}</strong>.
+                Puoi contattarlo direttamente all'email <strong>${agentEmail}</strong>.
               </p>
               <p style="margin-top: 1.5rem;">
                 Siamo certi che il nostro team saprà offrirti la migliore consulenza e supporto. Rimaniamo a tua completa disposizione per qualsiasi ulteriore informazione.
