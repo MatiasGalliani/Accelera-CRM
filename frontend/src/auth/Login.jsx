@@ -214,7 +214,7 @@ export default function Login() {
             return;
         }
 
-        setIsResetting(true);
+        setIsChangingPassword(true);
         try {
             // Update password through our backend
             const response = await fetch(getApiUrl('/api/password-reset/reset-password'), {
@@ -251,7 +251,7 @@ export default function Login() {
             console.error("Error resetting password:", error);
             setError(error.message);
         } finally {
-            setIsResetting(false);
+            setIsChangingPassword(false);
         }
     };
 
