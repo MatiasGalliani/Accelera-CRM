@@ -83,6 +83,8 @@ app.use(cors({
       'https://accelera-ocosckkhc-matias-gallianis-projects.vercel.app',
       'https://www.aimedici.it',
       'http://www.aimedici.it',
+      'https://www.aifidi.it',
+      'http://www.aifidi.it',
       'http://localhost:5173',
       'http://localhost:3000'
     ];
