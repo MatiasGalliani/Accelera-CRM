@@ -644,7 +644,7 @@ export default function AdminLeads() {
     
     return Promise.all(
       leadIds.map(id => 
-        fetch(`${API_BASE_URL}${API_ENDPOINTS.LEADS}/${id}`, {
+        fetch(getApiUrl(`${API_ENDPOINTS.LEADS}/${id}`), {
           method: 'DELETE',
           headers: {
             "Authorization": `Bearer ${token}`
