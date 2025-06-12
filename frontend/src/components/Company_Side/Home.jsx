@@ -50,7 +50,6 @@ export default function Home() {
       icon: <Icons.gear className="w-5 h-5" />,
       path: "/settings",
       size: "medium",
-      disabled: true
     },
     {
       title: "Leads",
