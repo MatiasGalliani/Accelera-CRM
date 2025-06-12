@@ -22,7 +22,7 @@ function getSenderEmail(source) {
       senderEmail = 'AIFidi.it <aifidi@transactional.creditplan.it>';
       break;
     default:
-      senderEmail = 'Maschera Per Noi <noreply@transactional.creditplan.it>';
+      senderEmail = 'Accelera CRM <noreply@transactional.creditplan.it>';
   }
   
   console.log(`[EmailService] Selected sender email: ${senderEmail}`);
@@ -216,7 +216,7 @@ export async function sendLeadNotificationEmail(lead, agent) {
             </div>
             <div class="footer">
               <p>Questo è un messaggio automatico. Non rispondere a questa email.</p>
-              <img class="logo" src="https://backend-richiedidiessereconttato-production.up.railway.app/assets/logo_eugenio.png" alt="Maschera Per Noi" style="width: 150px;" />
+              <img class="logo" src="https://backend-richiedidiessereconttato-production.up.railway.app/assets/logo_eugenio.png" alt="Accelera CRM" style="width: 150px;" />
             </div>
           </div>
         </body>
@@ -329,7 +329,7 @@ export async function sendPasswordResetEmail(to, resetCode) {
   
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Maschera Per Noi <noreply@transactional.creditplan.it>',
+      from: 'Accelera CRM <noreply@transactional.creditplan.it>',
       to: to,
       subject: 'Reset Password - App Documenti',
       html: `
