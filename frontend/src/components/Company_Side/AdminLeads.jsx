@@ -754,7 +754,8 @@ export default function AdminLeads() {
           "Scopo Finanziamento": lead.details?.financingPurpose || "",
           "Città Sede Legale": lead.details?.legalCity || "",
           "Città Sede Operativa": lead.details?.operationalCity || "",
-          "Importo Richiesto": lead.details?.requestedAmount || ""
+          "Importo Richiesto": lead.details?.requestedAmount || "",
+          "Partita IVA": lead.details?.partitaIVA || ""
         };
       } else {
         return base;
@@ -819,7 +820,8 @@ export default function AdminLeads() {
           "Scopo Finanziamento": lead.details?.financingPurpose || "",
           "Città Sede Legale": lead.details?.legalCity || "",
           "Città Sede Operativa": lead.details?.operationalCity || "",
-          "Importo Richiesto": lead.details?.requestedAmount || ""
+          "Importo Richiesto": lead.details?.requestedAmount || "",
+          "Partita IVA": lead.details?.partitaIVA || ""
         };
       } else {
         return base;
@@ -1065,6 +1067,7 @@ export default function AdminLeads() {
                                   <th>Città Sede Legale</th>
                                   <th>Città Sede Operativa</th>
                                   <th>Importo Richiesto</th>
+                                  <th>Partita IVA</th>
                                 </>
                               )}
                               
@@ -1152,6 +1155,7 @@ export default function AdminLeads() {
                                         <td className="py-3 px-4">{lead.details?.legalCity || "-"}</td>
                                         <td className="py-3 px-4">{lead.details?.operationalCity || "-"}</td>
                                         <td className="py-3 px-4">{lead.details?.requestedAmount || "-"}</td>
+                                        <td className="py-3 px-4">{lead.details?.partitaIVA || "-"}</td>
                                       </>
                                     )}
                                     

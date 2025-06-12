@@ -92,7 +92,8 @@ export async function createLead(leadData) {
         operationalCity: leadData.cittaSedeOperativa || null,
         financingPurpose: leadData.financingScope || null,
         requestedAmount: leadData.importoRichiesto || null,
-        privacyAccettata: leadData.privacyAccepted || false
+        privacyAccettata: leadData.privacyAccepted || false,
+        partitaIVA: leadData.partitaIVA || null
       }, { transaction });
     }
     

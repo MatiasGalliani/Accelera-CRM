@@ -122,7 +122,8 @@ router.post('/aifidi', async (req, res) => {
       cognome: data.cognome || '',
       mail: data.mail || '',
       telefono: data.telefono || '',
-      privacyAccepted: data.privacyAccepted || false
+      privacyAccepted: data.privacyAccepted || false,
+      partitaIVA: data.partitaIVA || null  // Add the new partitaIVA field
     };
 
     console.log('Processed lead data:', leadData); // Add logging to debug

@@ -96,6 +96,11 @@ const LeadDetail = sequelize.define('LeadDetail', {
     type: DataTypes.STRING(50),
     allowNull: true,
     field: 'pension_type'
+  },
+  partitaIVA: {
+    type: DataTypes.STRING(11),
+    allowNull: true,
+    field: 'partita_iva'
   }
 }, {
   timestamps: true,
