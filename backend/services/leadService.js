@@ -126,9 +126,13 @@ export async function createLead(leadData) {
       try {
         await emailService.sendLeadNotificationEmail(completeLead, assignedAgent);
         console.log(`Email notification sent to agent ${assignedAgent.email} for lead ${lead.id}`);
+        
+        // Send notification email to client
+        await emailService.sendClientNotificationEmail(completeLead, assignedAgent);
+        console.log(`Client notification email sent to ${completeLead.email} for lead ${lead.id}`);
       } catch (emailError) {
         // Log the error but don't fail the lead creation
-        console.error('Failed to send email notification:', emailError);
+        console.error('Failed to send email notifications:', emailError);
       }
     }
     

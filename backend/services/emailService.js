@@ -238,6 +238,87 @@ export async function sendLeadNotificationEmail(lead, agent) {
   }
 }
 
+/**
+ * Sends a notification email to a client when their lead is created
+ * @param {Object} lead - The lead object
+ * @param {Object} agent - The agent object
+ * @returns {Promise<Object>} - Result of the email sending
+ */
+export async function sendClientNotificationEmail(lead, agent) {
+  console.log(`[EmailService] Starting to send client notification email for lead ID: ${lead.id}`);
+  
+  try {
+    const clientName = `${lead.firstName} ${lead.lastName}`.trim();
+    const agentName = agent ? agent.firstName : 'il nostro agente';
+    const agentPhone = agent ? agent.phone : '';
+
+    const { data, error } = await resend.emails.send({
+      from: getSenderEmail(lead.source),
+      to: lead.email,
+      subject: `Conosci il tuo consulente ${lead.source === 'aiquinto' ? 'per la Cessione del Quinto' : ''} con Creditplan`,
+      html: `
+        <!DOCTYPE html>
+        <html lang="it">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Conosci il tuo consulente in Creditplan</title>
+        </head>
+        <body style="background-color: #eff6ff; margin: 0; padding: 0;">
+          <div style="max-width: 32rem; margin: 0 auto; background: #ffffff; border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden;">
+            <div>
+              <img src="https://backend-richiedidiessereconttato-production.up.railway.app/assets/${lead.source}_mail_header_client.png" alt="Intestazione della Mail" style="width: 100%; display: block;">
+            </div>
+            <div style="text-align: center; padding: 1rem 0;">
+              <span style="font-size: 2.25rem; font-weight: bold; color: #1e3a8a;">Grazie!</span>
+            </div>
+            <div style="padding: 1.5rem; color: #4a5568;">
+              <p style="margin-bottom: 1rem;">Ciao <strong>${clientName},</strong></p>
+              <p style="margin-bottom: 1rem;">
+                <strong>Prima di tutto,</strong> ti ringraziamo per aver scelto Creditplan per le tue esigenze finanziarie. Siamo lieti di poterti supportare e ci impegniamo a fornirti l'assistenza più adeguata e personalizzata.
+              </p>
+              <p style="margin-bottom: 1rem;">
+                Il nostro sistema ha processato la tua richiesta e, in base alla nostra organizzazione, <strong>ti è stato assegnato un agente dedicato</strong> che si occuperà di fornirti tutte le informazioni necessarie e guidarti nel percorso.
+              </p>
+              <p style="margin-bottom: 1rem;">
+                Il tuo agente assegnato è <strong>${agentName}</strong>.
+              </p>
+              <p style="margin-bottom: 1rem;">
+                Puoi contattarlo direttamente al numero <strong>${agentPhone}</strong>.
+              </p>
+              <p style="margin-top: 1.5rem;">
+                Siamo certi che il nostro team saprà offrirti la migliore consulenza e supporto. Rimaniamo a tua completa disposizione per qualsiasi ulteriore informazione.
+              </p>
+              <p style="margin-top: 0.5rem;">
+                Cordiali saluti,<br>
+                Il team di Creditplan
+              </p>
+            </div>
+            <div style="background-color: #eff6ff; padding: 1rem; text-align: center; font-size: 0.875rem; color: #718096; border-top: 1px solid #e2e8f0;">
+              &copy; 2025 Creditplan Società di Mediazione Creditizia. Tutti i diritti riservati.<br>
+              Via Giacomo Tosi 3, Monza, MB (20900)
+            </div>
+          </div>
+        </body>
+        </html>
+      `
+    });
+
+    if (error) {
+      console.error('[EmailService] Error sending client notification email:', error);
+      throw error;
+    }
+
+    console.log(`[EmailService] Client notification email sent successfully. Response:`, JSON.stringify(data, null, 2));
+    return data;
+  } catch (error) {
+    console.error('[EmailService] Error in sendClientNotificationEmail:', error);
+    console.error('[EmailService] Error stack:', error.stack);
+    throw error;
+  }
+}
+
 export default {
-  sendLeadNotificationEmail
+  sendLeadNotificationEmail,
+  sendClientNotificationEmail
 }; 
