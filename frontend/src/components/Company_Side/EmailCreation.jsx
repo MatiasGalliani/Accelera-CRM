@@ -98,8 +98,7 @@ const EmailCreation = () => {
         const response = await fetch('/api/email/sources', {
           headers: {
             'Authorization': `Bearer ${idToken}`
-          },
-          credentials: 'include'
+          }
         });
 
         if (!response.ok) {

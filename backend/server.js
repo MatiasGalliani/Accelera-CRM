@@ -75,54 +75,50 @@ log(logLevels.INFO, 'Firebase Admin SDK initialized successfully');
 const app = express();
 // Parse JSON bodies
 app.use(bodyParser.json());
-// CORS configuration
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'https://accelera.creditplan.it',
-  'https://accelera-frontend.vercel.app'
-];
-
+// CORS: allow all origins with all necessary headers
 app.use(cors({
   origin: function(origin, callback) {
+    const allowedOrigins = [
+      'https://accelera.creditplan.it',
+      'https://accelera-ocosckkhc-matias-gallianis-projects.vercel.app',
+      'https://www.aimedici.it',
+      'http://www.aimedici.it',
+      'https://www.aifidi.it',
+      'http://www.aifidi.it',
+      'http://localhost:5173',
+      'http://localhost:3000'
+    ];
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
     if (allowedOrigins.indexOf(origin) === -1) {
+      log(logLevels.WARN, 'CORS request blocked', { origin });
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
     }
+    log(logLevels.INFO, 'CORS request allowed', { origin });
     return callback(null, true);
   },
-  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
     'Content-Type',
     'Authorization',
-    'X-Requested-With',
+    'X-API-Key',
     'Accept',
     'Origin',
-    'Access-Control-Allow-Origin',
-    'Access-Control-Allow-Methods',
-    'Access-Control-Allow-Headers',
-    'Access-Control-Allow-Credentials'
+    'X-Requested-With',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers'
   ],
   exposedHeaders: [
+    'Content-Length',
     'Content-Type',
     'Authorization',
-    'X-Requested-With',
-    'Accept',
-    'Origin',
-    'Access-Control-Allow-Origin',
-    'Access-Control-Allow-Methods',
-    'Access-Control-Allow-Headers',
-    'Access-Control-Allow-Credentials'
+    'X-API-Key'
   ],
-  maxAge: 86400 // 24 hours
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
-
-// Handle preflight requests
-app.options('*', cors());
 
 // Mount routes
 app.use('/api/leads', leadRoutes);
@@ -131,11 +127,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/forms', formRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/password-reset', passwordResetRoutes);
-
-// Add a catch-all route for API endpoints
-app.all('/api/*', (req, res) => {
-  res.status(404).json({ error: 'API endpoint not found' });
-});
 
 // Add API key verification middleware
 const verifyApiKey = (req, res, next) => {
