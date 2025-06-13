@@ -107,17 +107,26 @@ app.use(cors({
     'Origin',
     'X-Requested-With',
     'Access-Control-Request-Method',
-    'Access-Control-Request-Headers'
+    'Access-Control-Request-Headers',
+    'Access-Control-Allow-Origin',
+    'Access-Control-Allow-Methods',
+    'Access-Control-Allow-Headers',
+    'Access-Control-Allow-Credentials'
   ],
   exposedHeaders: [
     'Content-Length',
     'Content-Type',
     'Authorization',
-    'X-API-Key'
+    'X-API-Key',
+    'Access-Control-Allow-Origin',
+    'Access-Control-Allow-Methods',
+    'Access-Control-Allow-Headers',
+    'Access-Control-Allow-Credentials'
   ],
   credentials: true,
   preflightContinue: false,
-  optionsSuccessStatus: 204
+  optionsSuccessStatus: 204,
+  maxAge: 86400 // Cache preflight requests for 24 hours
 }));
 
 // Mount routes
