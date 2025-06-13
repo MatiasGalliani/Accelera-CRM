@@ -12,6 +12,7 @@ import Image from '@tiptap/extension-image';
 import TextAlign from '@tiptap/extension-text-align';
 import Editor from '@monaco-editor/react';
 import { auth } from '@/auth/firebase';
+import { getApiUrl } from '@/config';
 import {
   ToggleGroup,
   ToggleGroupItem,
@@ -95,7 +96,7 @@ const EmailCreation = () => {
         if (!currentUser) return;
 
         const idToken = await currentUser.getIdToken(true);
-        const response = await fetch('/api/email/sources', {
+        const response = await fetch(getApiUrl('api/email/sources'), {
           headers: {
             'Authorization': `Bearer ${idToken}`
           }
@@ -219,7 +220,7 @@ const EmailCreation = () => {
       
       const idToken = await currentUser.getIdToken(true);
       
-      const response = await fetch('/api/email/send', {
+      const response = await fetch(getApiUrl('api/email/send'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
