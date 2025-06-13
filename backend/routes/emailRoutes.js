@@ -78,38 +78,46 @@ router.post('/send', authenticate, requireAdmin, async (req, res) => {
 
     console.log(`Sending email to ${validRecipients.length} valid recipients`);
 
-    // Send email using Resend
-    console.log('Email configuration:', {
-      from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
-      replyTo: process.env.EMAIL_REPLY_TO,
-      recipientCount: validRecipients.length
-    });
+    // Send individual emails to each recipient
+    const results = await Promise.all(
+      validRecipients.map(async (recipient) => {
+        try {
+          const { data, error } = await resend.emails.send({
+            from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+            to: recipient,
+            subject: subject,
+            html: content,
+            reply_to: process.env.EMAIL_REPLY_TO
+          });
 
-    const { data, error } = await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
-      to: validRecipients,
-      subject: subject,
-      html: content,
-      reply_to: process.env.EMAIL_REPLY_TO
-    });
+          if (error) {
+            console.error(`Error sending email to ${recipient}:`, error);
+            return { recipient, success: false, error: error.message };
+          }
 
-    if (error) {
-      console.error('Resend error:', error);
-      return res.status(500).json({ 
-        error: 'Error sending email',
-        details: error.message 
-      });
-    }
+          return { recipient, success: true, messageId: data.id };
+        } catch (error) {
+          console.error(`Error sending email to ${recipient}:`, error);
+          return { recipient, success: false, error: error.message };
+        }
+      })
+    );
 
-    // Log successful email send
-    console.log(`Email sent successfully to ${validRecipients.length} recipients`);
-    console.log('Message ID:', data.id);
+    // Count successful and failed sends
+    const successfulSends = results.filter(r => r.success).length;
+    const failedSends = results.filter(r => !r.success).length;
+
+    // Log results
+    console.log(`Email sending complete. Successful: ${successfulSends}, Failed: ${failedSends}`);
 
     res.json({
       success: true,
-      message: 'Email sent successfully',
-      messageId: data.id,
-      recipients: validRecipients.length,
+      message: 'Email sending complete',
+      results: {
+        total: validRecipients.length,
+        successful: successfulSends,
+        failed: failedSends
+      },
       leadsBySource
     });
   } catch (error) {

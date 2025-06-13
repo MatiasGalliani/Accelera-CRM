@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "https://accelera-backend.creditplan.it/api/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
