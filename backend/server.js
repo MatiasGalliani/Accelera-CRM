@@ -132,6 +132,11 @@ app.use('/api/forms', formRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/password-reset', passwordResetRoutes);
 
+// Add a catch-all route for API endpoints
+app.all('/api/*', (req, res) => {
+  res.status(404).json({ error: 'API endpoint not found' });
+});
+
 // Add API key verification middleware
 const verifyApiKey = (req, res, next) => {
   const apiKey = req.headers['x-api-key'];
