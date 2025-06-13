@@ -75,59 +75,54 @@ log(logLevels.INFO, 'Firebase Admin SDK initialized successfully');
 const app = express();
 // Parse JSON bodies
 app.use(bodyParser.json());
-// CORS: allow all origins with all necessary headers
+// CORS configuration
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://accelera.creditplan.it',
+  'https://accelera-frontend.vercel.app'
+];
+
 app.use(cors({
   origin: function(origin, callback) {
-    const allowedOrigins = [
-      'https://accelera.creditplan.it',
-      'https://accelera-ocosckkhc-matias-gallianis-projects.vercel.app',
-      'https://www.aimedici.it',
-      'http://www.aimedici.it',
-      'https://www.aifidi.it',
-      'http://www.aifidi.it',
-      'http://localhost:5173',
-      'http://localhost:3000'
-    ];
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
+    
     if (allowedOrigins.indexOf(origin) === -1) {
-      log(logLevels.WARN, 'CORS request blocked', { origin });
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
     }
-    log(logLevels.INFO, 'CORS request allowed', { origin });
     return callback(null, true);
   },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
     'Content-Type',
     'Authorization',
-    'X-API-Key',
+    'X-Requested-With',
     'Accept',
     'Origin',
-    'X-Requested-With',
-    'Access-Control-Request-Method',
-    'Access-Control-Request-Headers',
     'Access-Control-Allow-Origin',
     'Access-Control-Allow-Methods',
     'Access-Control-Allow-Headers',
     'Access-Control-Allow-Credentials'
   ],
   exposedHeaders: [
-    'Content-Length',
     'Content-Type',
     'Authorization',
-    'X-API-Key',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
     'Access-Control-Allow-Origin',
     'Access-Control-Allow-Methods',
     'Access-Control-Allow-Headers',
     'Access-Control-Allow-Credentials'
   ],
-  credentials: true,
-  preflightContinue: false,
-  optionsSuccessStatus: 204,
-  maxAge: 86400 // Cache preflight requests for 24 hours
+  maxAge: 86400 // 24 hours
 }));
+
+// Handle preflight requests
+app.options('*', cors());
 
 // Mount routes
 app.use('/api/leads', leadRoutes);
