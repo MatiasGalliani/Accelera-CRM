@@ -95,7 +95,10 @@ const EmailCreation = () => {
         if (!currentUser) return;
 
         const idToken = await currentUser.getIdToken(true);
-        const response = await fetch('/api/email/sources', {
+        const baseUrl = import.meta.env.PROD 
+          ? 'https://accelera-backend-production.up.railway.app'
+          : '';
+        const response = await fetch(`${baseUrl}/api/email/sources`, {
           headers: {
             'Authorization': `Bearer ${idToken}`
           }
