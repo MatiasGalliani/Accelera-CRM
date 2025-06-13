@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://accelera-backend.creditplan.it/api/:path*"
+      "destination": "https://accelera-backend-production.up.railway.app/api/:path*"
     },
     {
       "source": "/(.*)",
